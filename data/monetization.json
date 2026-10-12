@@ -1,0 +1,55 @@
+{
+  "_doc": "Store catalogue and ad rules. 'price' is only the fallback shown by the mock provider; real prices come from the store at runtime. Product ids must match App Store Connect / Play Console.",
+
+  "products": {
+    "remove_ads": {
+      "type": "non_consumable", "name": "Remove Ads", "price": "$3.99", "icon": "noads",
+      "desc": "No more ads between runs. Optional reward ads stay available.",
+      "grants": { "entitlement": "remove_ads" }
+    },
+    "starter_pack": {
+      "type": "non_consumable", "name": "Starter Pack", "price": "$1.99", "icon": "gift",
+      "desc": "300 Crystals, 5,000 Credits and the exclusive AURUM core skin.",
+      "grants": { "crystals": 300, "credits": 5000, "skin": "aurum", "entitlement": "starter_pack" }
+    },
+    "crystals_s": {
+      "type": "consumable", "name": "Handful of Crystals", "price": "$0.99", "icon": "crystal",
+      "desc": "120 Crystals",
+      "grants": { "crystals": 120 }
+    },
+    "crystals_m": {
+      "type": "consumable", "name": "Cache of Crystals", "price": "$4.99", "icon": "crystal",
+      "desc": "650 Crystals", "tag": "POPULAR",
+      "grants": { "crystals": 650 }
+    },
+    "crystals_l": {
+      "type": "consumable", "name": "Vault of Crystals", "price": "$9.99", "icon": "crystal",
+      "desc": "1,500 Crystals", "tag": "BEST VALUE",
+      "grants": { "crystals": 1500 }
+    }
+  },
+
+  "shop_layout": ["starter_pack", "remove_ads", "crystals_s", "crystals_m", "crystals_l"],
+
+  "exchange": [
+    { "id": "ex_small", "crystals": 50, "credits": 2000 },
+    { "id": "ex_large", "crystals": 200, "credits": 9000 }
+  ],
+
+  "ads": {
+    "rewarded": {
+      "revive": { "enabled": true },
+      "double_rewards": { "enabled": true },
+      "reroll": { "enabled": true },
+      "daily_double": { "enabled": true },
+      "shop_credits": { "enabled": true, "credits": 150, "daily_cap": 3 }
+    },
+    "interstitial": {
+      "enabled": true,
+      "min_runs_before_first": 3,
+      "runs_between": 2,
+      "min_interval_sec": 180,
+      "skip_if_rewarded_this_flow": true
+    }
+  }
+}

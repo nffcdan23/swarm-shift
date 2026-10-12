@@ -1,0 +1,11 @@
+{
+  "_doc": "Sprites packed into the runtime atlas, loaded from assets/sprites/atlas/<name>.png. 128px images take one cell, 256px images take a 2x2 block. To replace art, overwrite the PNG - no code change needed.",
+  "cell": 128,
+  "grid": 8,
+  "atlas": [
+    "enemy_brute", "enemy_tank", "elite_aura", "hole",
+    "enemy_swarmer", "enemy_dasher", "enemy_shooter", "enemy_splitter", "enemy_splitling",
+    "gem_s", "gem_m", "gem_l", "credit", "repair", "magnet", "bomb", "cache",
+    "bolt", "pellet", "orb", "glow", "flare", "missile", "blade", "mine", "drone", "beam", "shard", "bullet"
+  ]
+}

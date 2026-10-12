@@ -1,0 +1,75 @@
+{
+  "_doc": "Sound table. 'file' is assets/audio/sfx/<file>.wav (or music/<file>.wav). vol in dB, pitch_var is +/- random pitch, interval is the minimum seconds between two plays of the same sound (stops 200 simultaneous hits clipping).",
+
+  "sfx_voices": 14,
+  "music_fade": 0.8,
+  "menu_lowpass_hz": 900,
+
+  "sfx": {
+    "ui_click": { "file": "ui_click", "vol": -8, "pitch_var": 0.03, "interval": 0.03 },
+    "ui_back": { "file": "ui_back", "vol": -8, "pitch_var": 0.03, "interval": 0.03 },
+    "ui_tab": { "file": "ui_tab", "vol": -9, "pitch_var": 0.03, "interval": 0.03 },
+    "ui_open": { "file": "ui_open", "vol": -9, "pitch_var": 0.02, "interval": 0.05 },
+    "ui_error": { "file": "ui_error", "vol": -6, "pitch_var": 0.0, "interval": 0.1 },
+    "ui_purchase": { "file": "ui_purchase", "vol": -4, "pitch_var": 0.0, "interval": 0.1 },
+    "ui_claim": { "file": "ui_claim", "vol": -4, "pitch_var": 0.02, "interval": 0.08 },
+    "count_tick": { "file": "count_tick", "vol": -15, "pitch_var": 0.0, "interval": 0.03 },
+    "reward": { "file": "reward", "vol": -5, "pitch_var": 0.0, "interval": 0.1 },
+
+    "card_show": { "file": "card_show", "vol": -9, "pitch_var": 0.04, "interval": 0.05 },
+    "upgrade_pick": { "file": "upgrade_pick", "vol": -3, "pitch_var": 0.0, "interval": 0.1 },
+    "level_up": { "file": "level_up", "vol": -2, "pitch_var": 0.0, "interval": 0.2 },
+    "reroll": { "file": "reroll", "vol": -6, "pitch_var": 0.03, "interval": 0.1 },
+    "synergy": { "file": "synergy", "vol": -2, "pitch_var": 0.0, "interval": 0.3 },
+    "cache_open": { "file": "cache_open", "vol": -3, "pitch_var": 0.0, "interval": 0.3 },
+
+    "shoot_pulse": { "file": "shoot_pulse", "vol": -15, "pitch_var": 0.08, "interval": 0.05 },
+    "shoot_scatter": { "file": "shoot_scatter", "vol": -9, "pitch_var": 0.06, "interval": 0.08 },
+    "shoot_drone": { "file": "shoot_drone", "vol": -18, "pitch_var": 0.1, "interval": 0.07 },
+    "shoot_missile": { "file": "shoot_missile", "vol": -10, "pitch_var": 0.06, "interval": 0.1 },
+    "lightning": { "file": "lightning", "vol": -11, "pitch_var": 0.1, "interval": 0.09 },
+    "nova": { "file": "nova", "vol": -6, "pitch_var": 0.04, "interval": 0.2 },
+    "laser": { "file": "laser", "vol": -9, "pitch_var": 0.03, "interval": 0.3 },
+    "mine_drop": { "file": "mine_drop", "vol": -15, "pitch_var": 0.05, "interval": 0.1 },
+    "blade_hit": { "file": "blade_hit", "vol": -17, "pitch_var": 0.12, "interval": 0.07 },
+    "singularity": { "file": "singularity", "vol": -6, "pitch_var": 0.0, "interval": 0.5 },
+    "implosion": { "file": "implosion", "vol": -4, "pitch_var": 0.04, "interval": 0.3 },
+
+    "explosion_s": { "file": "explosion_s", "vol": -11, "pitch_var": 0.12, "interval": 0.06 },
+    "explosion_m": { "file": "explosion_m", "vol": -7, "pitch_var": 0.08, "interval": 0.09 },
+    "explosion_l": { "file": "explosion_l", "vol": -3, "pitch_var": 0.05, "interval": 0.2 },
+    "shatter": { "file": "shatter", "vol": -11, "pitch_var": 0.1, "interval": 0.07 },
+
+    "enemy_hit": { "file": "enemy_hit", "vol": -19, "pitch_var": 0.14, "interval": 0.045 },
+    "enemy_die": { "file": "enemy_die", "vol": -13, "pitch_var": 0.14, "interval": 0.04 },
+    "elite_die": { "file": "elite_die", "vol": -4, "pitch_var": 0.0, "interval": 0.3 },
+    "enemy_shoot": { "file": "enemy_shoot", "vol": -14, "pitch_var": 0.08, "interval": 0.09 },
+    "dash_warn": { "file": "dash_warn", "vol": -13, "pitch_var": 0.05, "interval": 0.12 },
+
+    "pickup_xp": { "file": "pickup_xp", "vol": -15, "pitch_var": 0.0, "interval": 0.028 },
+    "pickup_credit": { "file": "pickup_credit", "vol": -11, "pitch_var": 0.05, "interval": 0.05 },
+    "pickup_special": { "file": "pickup_special", "vol": -5, "pitch_var": 0.0, "interval": 0.2 },
+
+    "player_hurt": { "file": "player_hurt", "vol": -3, "pitch_var": 0.05, "interval": 0.15 },
+    "player_death": { "file": "player_death", "vol": -1, "pitch_var": 0.0, "interval": 0.5 },
+    "revive": { "file": "revive", "vol": -2, "pitch_var": 0.0, "interval": 0.5 },
+    "phase": { "file": "phase", "vol": -8, "pitch_var": 0.0, "interval": 0.3 },
+
+    "surge": { "file": "surge", "vol": -5, "pitch_var": 0.0, "interval": 0.5 },
+    "boss_warning": { "file": "boss_warning", "vol": -3, "pitch_var": 0.0, "interval": 0.5 },
+    "boss_spawn": { "file": "boss_spawn", "vol": -2, "pitch_var": 0.0, "interval": 0.5 },
+    "boss_phase": { "file": "boss_phase", "vol": -3, "pitch_var": 0.0, "interval": 0.5 },
+    "boss_charge": { "file": "boss_charge", "vol": -5, "pitch_var": 0.03, "interval": 0.3 },
+    "boss_laser": { "file": "boss_laser", "vol": -6, "pitch_var": 0.0, "interval": 0.5 },
+    "boss_die": { "file": "boss_die", "vol": 0, "pitch_var": 0.0, "interval": 0.5 },
+
+    "run_start": { "file": "run_start", "vol": -4, "pitch_var": 0.0, "interval": 0.5 },
+    "victory": { "file": "victory", "vol": -2, "pitch_var": 0.0, "interval": 0.5 },
+    "defeat": { "file": "defeat", "vol": -3, "pitch_var": 0.0, "interval": 0.5 }
+  },
+
+  "music": {
+    "menu": { "file": "music_menu", "vol": -9 },
+    "combat": { "file": "music_combat", "vol": -8 }
+  }
+}

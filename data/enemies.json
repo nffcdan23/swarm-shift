@@ -1,0 +1,81 @@
+{
+  "types": {
+    "swarmer": {
+      "name": "Swarmer", "sprite": "enemy_swarmer", "color": "#ff4d6d",
+      "radius": 14, "size": 46, "hp": 9, "speed": 105, "damage": 8, "xp": 1,
+      "ai": "seek", "wobble": 0.35, "mass": 1.0,
+      "credit_chance": 0.035, "credit_value": 1
+    },
+    "brute": {
+      "name": "Brute", "sprite": "enemy_brute", "color": "#ff9a3d",
+      "radius": 26, "size": 84, "hp": 70, "speed": 62, "damage": 16, "xp": 5,
+      "ai": "seek", "wobble": 0.1, "mass": 3.5,
+      "credit_chance": 0.2, "credit_value": 3
+    },
+    "dasher": {
+      "name": "Dasher", "sprite": "enemy_dasher", "color": "#ffe14d",
+      "radius": 15, "size": 52, "hp": 26, "speed": 92, "damage": 14, "xp": 3,
+      "ai": "dasher", "wobble": 0.2, "mass": 1.2,
+      "dash": { "trigger_range": 330, "telegraph": 0.55, "speed": 580, "duration": 0.45, "cooldown": 2.6 },
+      "credit_chance": 0.08, "credit_value": 2
+    },
+    "shooter": {
+      "name": "Shooter", "sprite": "enemy_shooter", "color": "#c77dff",
+      "radius": 17, "size": 58, "hp": 32, "speed": 80, "damage": 8, "xp": 4,
+      "ai": "shooter", "wobble": 0.0, "mass": 1.4,
+      "shoot": { "range": 430, "keep_min": 270, "cooldown": 2.4, "telegraph": 0.35, "bullet_speed": 250, "bullet_damage": 12 },
+      "credit_chance": 0.1, "credit_value": 2
+    },
+    "splitter": {
+      "name": "Splitter", "sprite": "enemy_splitter", "color": "#7dff8a",
+      "radius": 22, "size": 72, "hp": 48, "speed": 72, "damage": 12, "xp": 4,
+      "ai": "seek", "wobble": 0.15, "mass": 2.2,
+      "split": { "into": "splitling", "count": 3 },
+      "credit_chance": 0.1, "credit_value": 2
+    },
+    "splitling": {
+      "name": "Splitling", "sprite": "enemy_splitling", "color": "#7dff8a",
+      "radius": 10, "size": 34, "hp": 8, "speed": 138, "damage": 6, "xp": 1,
+      "ai": "seek", "wobble": 0.5, "mass": 0.6,
+      "credit_chance": 0.0, "credit_value": 0
+    },
+    "tank": {
+      "name": "Tank", "sprite": "enemy_tank", "color": "#6fb7ff",
+      "radius": 40, "size": 128, "hp": 420, "speed": 40, "damage": 28, "xp": 25,
+      "ai": "seek", "wobble": 0.0, "mass": 30.0,
+      "credit_chance": 1.0, "credit_value": 10
+    }
+  },
+
+  "elite": {
+    "hp_mult": 7.0,
+    "size_mult": 1.35,
+    "damage_mult": 1.4,
+    "speed_mult": 1.05,
+    "xp_mult": 10.0,
+    "credit_value": 25,
+    "tint": "#ffd15c",
+    "affixes": {
+      "swift": { "name": "SWIFT", "speed_mult": 1.5 },
+      "armored": { "name": "ARMORED", "damage_taken_mult": 0.6 },
+      "volatile": { "name": "VOLATILE", "death_blast_radius": 130, "death_blast_damage": 26, "death_blast_delay": 0.9 },
+      "spawner": { "name": "BROODMOTHER", "spawn_enemy": "swarmer", "spawn_interval": 2.2, "spawn_count": 3 }
+    }
+  },
+
+  "bullets": {
+    "radius": 8,
+    "size": 30,
+    "lifetime": 5.0,
+    "max": 260
+  },
+
+  "behaviour": {
+    "separation_strength": 0.85,
+    "knockback_decay": 7.0,
+    "recycle_distance": 1500,
+    "player_push": 1.0,
+    "chill_slow": 0.45,
+    "contact_interval": 0.5
+  }
+}

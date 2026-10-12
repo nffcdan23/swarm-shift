@@ -1,0 +1,90 @@
+{
+  "_doc": "A run follows one timeline. Rates are spawns/second as [time, value] keyframes (linear interpolation). Sector tier and endless cycle scale the whole thing via 'scaling': multiplier = 1 + per_tier * n + per_tier_sq * n^2, where n = tier - 1. The squared term keeps late sectors ahead of a fully upgraded player.",
+
+  "sector_count": 20,
+  "endless_unlock_sector": 3,
+
+  "scaling": {
+    "hp_per_tier": 0.12,
+    "hp_per_tier_sq": 0.012,
+    "damage_per_tier": 0.06,
+    "damage_per_tier_sq": 0.004,
+    "speed_per_tier": 0.008,
+    "speed_cap": 1.3,
+    "spawn_per_tier": 0.03,
+    "spawn_cap": 1.6,
+    "boss_hp_per_tier": 0.18,
+    "boss_hp_per_tier_sq": 0.015,
+    "reward_per_tier": 0.3,
+    "account_xp_per_tier": 0.15,
+    "endless_cycle_tiers": 5.0
+  },
+
+  "themes": [
+    { "name": "CYAN GRID", "grid": "#16324a", "accent": "#2de2ff" },
+    { "name": "EMBER FIELD", "grid": "#3b1f1a", "accent": "#ff7a3d" },
+    { "name": "VIOLET RIFT", "grid": "#2a1b45", "accent": "#b58cff" },
+    { "name": "TOXIC BLOOM", "grid": "#143a2a", "accent": "#5cffb1" },
+    { "name": "CRIMSON VOID", "grid": "#3d1424", "accent": "#ff4d6d" }
+  ],
+
+  "timeline": {
+    "boss_time": 300,
+    "boss": "overseer",
+    "boss_warning": 6.0,
+
+    "hp_curve": [[0, 1.0], [60, 1.5], [120, 2.3], [180, 3.4], [240, 4.8], [300, 6.5]],
+    "damage_curve": [[0, 1.0], [300, 1.5]],
+
+    "tracks": [
+      { "enemy": "swarmer", "rate": [[0, 1.7], [30, 2.4], [60, 3.5], [120, 6.0], [180, 8.5], [240, 11.0], [300, 13.0]] },
+      { "enemy": "brute", "rate": [[40, 0.0], [45, 0.08], [120, 0.22], [240, 0.5], [300, 0.65]] },
+      { "enemy": "dasher", "rate": [[75, 0.0], [80, 0.1], [180, 0.3], [300, 0.5]] },
+      { "enemy": "splitter", "rate": [[120, 0.0], [125, 0.07], [240, 0.2], [300, 0.26]] },
+      { "enemy": "shooter", "rate": [[150, 0.0], [155, 0.06], [240, 0.18], [300, 0.24]] },
+      { "enemy": "tank", "rate": [[200, 0.0], [205, 0.02], [300, 0.05]] }
+    ],
+
+    "events": [
+      { "t": 0.4, "type": "surge", "label": "", "distance": 0.5, "spawns": { "swarmer": 7 } },
+      { "t": 60, "type": "surge", "label": "SWARM SURGE", "pattern": "ring", "spawns": { "swarmer": 28 } },
+      { "t": 90, "type": "elite", "enemy": "brute", "escort": { "swarmer": 8 } },
+      { "t": 120, "type": "surge", "label": "SWARM SURGE", "pattern": "ring", "spawns": { "swarmer": 40 } },
+      { "t": 165, "type": "elite", "enemy": "dasher", "escort": { "dasher": 5 } },
+      { "t": 180, "type": "surge", "label": "HEAVY SURGE", "pattern": "ring", "spawns": { "swarmer": 50, "brute": 6 } },
+      { "t": 225, "type": "elite", "enemy": "splitter", "escort": { "splitter": 3 } },
+      { "t": 240, "type": "surge", "label": "BLITZ SURGE", "pattern": "ring", "spawns": { "swarmer": 60, "dasher": 10 } },
+      { "t": 270, "type": "elite", "enemy": "tank", "escort": { "brute": 4 } },
+      { "t": 276, "type": "surge", "label": "FINAL SWARM", "pattern": "ring", "spawns": { "swarmer": 80 } }
+    ],
+
+    "boss_phase_spawn_rate": 0.0
+  },
+
+  "bosses": {
+    "overseer": {
+      "name": "THE OVERSEER",
+      "radius": 60,
+      "size": 230,
+      "hp": 16000,
+      "speed": 48,
+      "contact_damage": 30,
+      "arena_radius": 540,
+      "xp": 150,
+      "credits": 150,
+      "color": "#ff3d6e",
+      "phases": [
+        { "hp_above": 0.66, "attacks": ["burst", "summon", "charge"], "idle": 1.5, "speed_mult": 1.0 },
+        { "hp_above": 0.33, "attacks": ["burst", "laser", "charge", "summon"], "idle": 1.15, "speed_mult": 1.2 },
+        { "hp_above": 0.0, "attacks": ["zones", "burst", "laser", "charge", "summon"], "idle": 0.85, "speed_mult": 1.4 }
+      ],
+      "attacks": {
+        "burst": { "volleys": 3, "bullets": 14, "interval": 0.6, "bullet_speed": 205, "damage": 14, "spin": 0.22, "bullets_per_phase": 3 },
+        "charge": { "telegraph": 0.95, "speed": 760, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1 },
+        "summon": { "spawns": { "swarmer": 10, "brute": 1 }, "cast_time": 0.8, "extra_per_phase": 4 },
+        "laser": { "beams": 3, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.5, "length": 640, "width": 22, "damage": 18, "tick": 0.3 },
+        "zones": { "count": 6, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9 }
+      }
+    }
+  }
+}

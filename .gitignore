@@ -1,0 +1,22 @@
+# Godot 4
+.godot/
+*.translation
+.import/
+
+# Build outputs
+build/
+*.apk
+*.aab
+*.ipa
+*.xcarchive
+android/
+
+# OS / editor
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# Local-only
+*.tmp
+*.log

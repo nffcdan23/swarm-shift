@@ -1,0 +1,117 @@
+{
+  "title": "SWARM//SHIFT",
+  "tagline": "ONE CORE. ENDLESS SWARM.",
+  "version": "0.1.0",
+
+  "currencies": {
+    "credits": { "name": "Credits", "icon": "credit", "color": "#ffd15c" },
+    "crystals": { "name": "Crystals", "icon": "crystal", "color": "#b58cff" }
+  },
+
+  "player": {
+    "radius": 17,
+    "iframes": 0.55,
+    "hit_shockwave_radius": 130,
+    "hit_shockwave_force": 460,
+    "base_stats": {
+      "max_hp": 100,
+      "move_speed": 250,
+      "damage": 1.0,
+      "fire_rate": 1.0,
+      "crit_chance": 0.05,
+      "crit_mult": 1.6,
+      "armor": 0,
+      "regen": 0,
+      "pickup_radius": 95,
+      "luck": 0,
+      "xp_gain": 1.0,
+      "credit_gain": 1.0,
+      "area": 1.0,
+      "projectile_speed": 1.0,
+      "extra_projectiles": 0,
+      "duration": 1.0
+    },
+    "armor_min_fraction": 0.3
+  },
+
+  "run": {
+    "xp_base": 1,
+    "xp_linear": 4,
+    "xp_quad": 0.42,
+    "weapon_slots": 4,
+    "passive_slots": 5,
+    "base_rerolls": 1,
+    "max_enemies": 420,
+    "max_pickups": 340,
+    "camera_zoom": 0.88,
+    "boss_camera_zoom": 0.74,
+    "levelup_shockwave_radius": 230,
+    "levelup_shockwave_force": 520,
+    "levelup_invuln": 0.8,
+    "revive_hp_fraction": 0.5,
+    "revive_invuln": 2.5,
+    "revive_shockwave_radius": 420,
+    "ad_revives_per_run": 1,
+    "ad_rerolls_per_run": 2,
+    "elite_cache_choices": 3,
+    "fallback_heal_fraction": 0.3,
+    "fallback_credits": 40
+  },
+
+  "rarities": {
+    "common": { "name": "COMMON", "color": "#8fa6c4", "weight": 1.0, "luck_factor": 0.0 },
+    "rare": { "name": "RARE", "color": "#2de2ff", "weight": 0.9, "luck_factor": 0.5 },
+    "epic": { "name": "EPIC", "color": "#c77dff", "weight": 0.36, "luck_factor": 1.0 },
+    "legendary": { "name": "LEGENDARY", "color": "#ffc247", "weight": 0.15, "luck_factor": 1.6 }
+  },
+
+  "pickups": {
+    "magnet_speed": 620,
+    "magnet_accel": 2600,
+    "collect_radius": 26,
+    "gem_tiers": [
+      { "min_xp": 1, "sprite": "gem_s", "size": 32 },
+      { "min_xp": 5, "sprite": "gem_m", "size": 42 },
+      { "min_xp": 20, "sprite": "gem_l", "size": 54 }
+    ],
+    "repair_heal_fraction": 0.25,
+    "special_drops": {
+      "repair": { "chance": 0.006, "min_interval": 25 },
+      "magnet": { "chance": 0.004, "min_interval": 40 },
+      "bomb": { "chance": 0.0012, "min_interval": 80 }
+    },
+    "bomb_damage": 400,
+    "bomb_radius": 620
+  },
+
+  "rewards": {
+    "credits_per_minute": 10,
+    "sector_clear_credits": 120,
+    "first_clear_crystals": 10,
+    "xp_per_second": 0.6,
+    "xp_per_kill": 0.08,
+    "xp_per_run_level": 4,
+    "xp_per_boss": 120,
+    "xp_sector_clear": 60,
+    "abandon_reward_fraction": 1.0
+  },
+
+  "haptics": {
+    "light": { "ms": 12, "amp": 0.35 },
+    "medium": { "ms": 22, "amp": 0.6 },
+    "heavy": { "ms": 40, "amp": 1.0 },
+    "success": { "ms": 30, "amp": 0.7 },
+    "warning": { "ms": 60, "amp": 0.9 },
+    "min_interval_ms": 45
+  },
+
+  "feel": {
+    "shake_decay": 2.6,
+    "shake_max_offset": 22,
+    "hitstop_boss_phase": 0.12,
+    "hitstop_player_hit": 0.06,
+    "death_slowmo_time": 1.1,
+    "death_slowmo_scale": 0.25,
+    "damage_number_cap": 44
+  }
+}

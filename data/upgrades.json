@@ -1,0 +1,133 @@
+{
+  "_doc": "Run upgrades. 'mods' keys: '<stat>' adds flat, '<stat>_pct' adds percent. 'w.<weapon>.<stat>' targets one weapon. 'fx.<name>' enables/parameterises special effects. Requirement tokens: w:<weapon> p:<passive> a:<augment>.",
+
+  "passives": {
+    "amplifier": { "name": "Amplifier", "icon": "damage", "rarity": "common", "max_level": 5, "desc": "+12% damage", "mods": { "damage_pct": 0.12 } },
+    "overclock": { "name": "Overclock", "icon": "firerate", "rarity": "common", "max_level": 5, "desc": "+10% fire rate", "mods": { "fire_rate_pct": 0.1 } },
+    "precision": { "name": "Precision", "icon": "crit", "rarity": "common", "max_level": 5, "desc": "+7% critical chance", "mods": { "crit_chance": 0.07 } },
+    "lethality": { "name": "Lethality", "icon": "critdmg", "rarity": "common", "max_level": 5, "desc": "+30% critical damage", "mods": { "crit_mult": 0.3 } },
+    "thrusters": { "name": "Thrusters", "icon": "speed", "rarity": "common", "max_level": 5, "desc": "+7% move speed", "mods": { "move_speed_pct": 0.07 } },
+    "plating": { "name": "Plating", "icon": "heart", "rarity": "common", "max_level": 5, "desc": "+20 max health", "mods": { "max_hp": 20 }, "heal": 20 },
+    "nanobots": { "name": "Nanobots", "icon": "regen", "rarity": "common", "max_level": 5, "desc": "+0.6 health per second", "mods": { "regen": 0.6 } },
+    "deflector": { "name": "Deflector", "icon": "shield", "rarity": "common", "max_level": 5, "desc": "+1 armour", "mods": { "armor": 1 } },
+    "magnet": { "name": "Tractor Beam", "icon": "magnet", "rarity": "common", "max_level": 5, "desc": "+25% pickup radius", "mods": { "pickup_radius_pct": 0.25 } },
+    "datatap": { "name": "Data Tap", "icon": "xp", "rarity": "common", "max_level": 5, "desc": "+8% energy gained", "mods": { "xp_gain_pct": 0.08 } },
+    "fortune": { "name": "Fortune", "icon": "luck", "rarity": "rare", "max_level": 3, "desc": "+15% luck (better upgrades, more drops)", "mods": { "luck": 0.15 } },
+    "expander": { "name": "Expander", "icon": "area", "rarity": "rare", "max_level": 5, "desc": "+10% area and projectile size", "mods": { "area_pct": 0.1 } },
+    "multishot": { "name": "Multishot", "icon": "multishot", "rarity": "epic", "max_level": 2, "desc": "+1 projectile on every projectile weapon", "mods": { "extra_projectiles": 1 } }
+  },
+
+  "augments": {
+    "volatile": {
+      "name": "Volatile Cores", "icon": "explosion", "rarity": "epic",
+      "desc": "Enemies explode on death, damaging everything nearby.",
+      "requires": { "min_level": 4 },
+      "mods": { "fx.volatile": 1, "fx.volatile_damage": 14, "fx.volatile_radius": 82 }
+    },
+    "storm_crit": {
+      "name": "Storm Strike", "icon": "storm", "rarity": "legendary",
+      "desc": "Critical hits unleash lightning at nearby enemies.",
+      "requires": { "any": ["p:precision", "w:chain"] },
+      "mods": { "fx.storm": 1, "fx.storm_damage": 10, "fx.storm_arcs": 2, "fx.storm_cooldown": 0.12 }
+    },
+    "shatter": {
+      "name": "Shatter", "icon": "shatter", "rarity": "epic",
+      "desc": "Chilled enemies take +50% damage and burst into ice shards on death.",
+      "requires": { "any": ["w:nova"] },
+      "mods": { "fx.shatter": 1, "fx.shatter_shards": 6, "fx.shatter_damage": 12, "fx.chilled_damage_pct": 0.5 }
+    },
+    "split_rounds": {
+      "name": "Split Rounds", "icon": "split", "rarity": "epic",
+      "desc": "Projectiles split in two after their first hit.",
+      "requires": { "any": ["w:pulse", "w:scatter", "w:drone"] },
+      "mods": { "fx.split": 1, "fx.split_damage_pct": 0.55 }
+    },
+    "barrage": {
+      "name": "Barrage Protocol", "icon": "barrage", "rarity": "legendary",
+      "desc": "Every 40 kills launches a missile barrage.",
+      "requires": { "min_level": 6 },
+      "mods": { "fx.barrage": 1, "fx.barrage_kills": 40, "fx.barrage_count": 6, "fx.barrage_damage": 22, "fx.barrage_radius": 74 }
+    },
+    "reactive": {
+      "name": "Reactive Shell", "icon": "shockwave", "rarity": "rare",
+      "desc": "Taking damage releases a shockwave that damages and repels enemies.",
+      "requires": {},
+      "mods": { "fx.reactive": 1, "fx.reactive_damage": 40, "fx.reactive_radius": 210 }
+    },
+    "phase_shift": {
+      "name": "Phase Shift", "icon": "phase", "rarity": "epic",
+      "desc": "Every 10 seconds you become invulnerable for 1.5 seconds.",
+      "requires": { "min_level": 5 },
+      "mods": { "fx.phase": 1, "fx.phase_interval": 10, "fx.phase_duration": 1.5 }
+    },
+    "seeker": {
+      "name": "Seeker Rounds", "icon": "seeker", "rarity": "rare",
+      "desc": "Your projectiles home in on enemies.",
+      "requires": { "any": ["w:pulse", "w:scatter", "w:drone"] },
+      "mods": { "fx.seeker": 1, "fx.seeker_turn": 4.5 }
+    },
+    "explosive_rounds": {
+      "name": "Explosive Rounds", "icon": "bomb", "rarity": "epic",
+      "desc": "Projectile hits explode, damaging nearby enemies.",
+      "requires": { "any": ["w:pulse", "w:scatter", "w:drone"] },
+      "mods": { "fx.explosive": 1, "fx.explosive_radius": 48, "fx.explosive_damage_pct": 0.45 }
+    },
+    "glass_reactor": {
+      "name": "Glass Reactor", "icon": "glass", "rarity": "legendary",
+      "desc": "+50% damage and +15% fire rate, but -35% max health.",
+      "requires": { "min_level": 8 },
+      "mods": { "damage_pct": 0.5, "fire_rate_pct": 0.15, "max_hp_pct": -0.35 }
+    },
+    "siphon": {
+      "name": "Siphon", "icon": "siphon", "rarity": "epic",
+      "desc": "Restore 1 health for every 12 kills.",
+      "requires": { "min_level": 3 },
+      "mods": { "fx.siphon": 1, "fx.siphon_kills": 12 }
+    }
+  },
+
+  "synergies": {
+    "cryo_detonation": {
+      "name": "CRYO-DETONATION",
+      "desc": "Volatile explosions are 60% larger and chill everything they touch.",
+      "requires": ["w:nova", "a:volatile"],
+      "mods": { "fx.volatile_radius_pct": 0.6, "fx.volatile_chill": 1 }
+    },
+    "tesla_storm": {
+      "name": "TESLA STORM",
+      "desc": "Arc Caster gains +3 jumps and Storm Strike fires +2 arcs.",
+      "requires": ["w:chain", "a:storm_crit"],
+      "mods": { "w.chain.chains": 3, "fx.storm_arcs": 2 }
+    },
+    "bullet_hell": {
+      "name": "BULLET HELL",
+      "desc": "Pulse Cannon fires 40% faster and its split bolts deal full damage.",
+      "requires": ["w:pulse", "a:split_rounds", "p:multishot"],
+      "mods": { "w.pulse.cooldown_pct": -0.28, "fx.split_damage_pct": 0.45 }
+    },
+    "event_horizon": {
+      "name": "EVENT HORIZON",
+      "desc": "Mines blast 40% wider and Singularity deals +60% damage.",
+      "requires": ["w:singularity", "w:mine"],
+      "mods": { "w.mine.blast_radius_pct": 0.4, "w.singularity.damage_pct": 0.6, "w.singularity.implosion_damage_pct": 0.6 }
+    },
+    "steel_swarm": {
+      "name": "STEEL SWARM",
+      "desc": "+1 Combat Drone and +2 Orbit Blades.",
+      "requires": ["w:drone", "w:orbit"],
+      "mods": { "w.drone.drones": 1, "w.orbit.blades": 2 }
+    },
+    "death_blossom": {
+      "name": "DEATH BLOSSOM",
+      "desc": "Barrage Protocol fires twice as many missiles.",
+      "requires": ["w:missile", "a:barrage"],
+      "mods": { "fx.barrage_count": 6 }
+    },
+    "absolute_zero": {
+      "name": "ABSOLUTE ZERO",
+      "desc": "Chilled enemies take a further +75% damage and shatter into more shards.",
+      "requires": ["w:nova", "a:shatter", "p:lethality"],
+      "mods": { "fx.chilled_damage_pct": 0.75, "fx.shatter_shards": 4 }
+    }
+  }
+}

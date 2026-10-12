@@ -1,0 +1,80 @@
+{
+  "_doc": "Permanent (between-run) progression. Upgrade cost for the next level = round_to_5(cost_base * cost_growth ^ current_level).",
+
+  "account": {
+    "max_level": 100,
+    "xp_base": 80,
+    "xp_linear": 40,
+    "xp_quad": 6,
+    "credits_base": 100,
+    "credits_per_level": 40,
+    "credits_cap": 3000,
+    "crystal_interval": 5,
+    "crystal_amount": 25
+  },
+
+  "upgrades": {
+    "m_damage": { "name": "Weapon Calibration", "icon": "damage", "desc": "+4% damage", "max_level": 10, "cost_base": 120, "cost_growth": 1.45, "mods": { "damage_pct": 0.04 } },
+    "m_hp": { "name": "Hull Reinforcement", "icon": "heart", "desc": "+6% max health", "max_level": 10, "cost_base": 100, "cost_growth": 1.45, "mods": { "max_hp_pct": 0.06 } },
+    "m_credits": { "name": "Salvage Protocol", "icon": "credit", "desc": "+6% Credits earned", "max_level": 10, "cost_base": 150, "cost_growth": 1.5, "mods": { "credit_gain_pct": 0.06 } },
+    "m_speed": { "name": "Thruster Tuning", "icon": "speed", "desc": "+2% move speed", "max_level": 5, "cost_base": 200, "cost_growth": 1.7, "mods": { "move_speed_pct": 0.02 } },
+    "m_crit": { "name": "Targeting Suite", "icon": "crit", "desc": "+2% critical chance", "max_level": 5, "cost_base": 250, "cost_growth": 1.7, "mods": { "crit_chance": 0.02 } },
+    "m_xp": { "name": "Neural Uplink", "icon": "xp", "desc": "+5% energy gained in runs", "max_level": 5, "cost_base": 300, "cost_growth": 1.7, "mods": { "xp_gain_pct": 0.05 } },
+    "m_pickup": { "name": "Tractor Field", "icon": "magnet", "desc": "+10% pickup radius", "max_level": 5, "cost_base": 150, "cost_growth": 1.6, "mods": { "pickup_radius_pct": 0.1 } },
+    "m_regen": { "name": "Repair Nanites", "icon": "regen", "desc": "+0.2 health per second", "max_level": 5, "cost_base": 250, "cost_growth": 1.7, "mods": { "regen": 0.2 } },
+    "m_luck": { "name": "Probability Engine", "icon": "luck", "desc": "+5% luck", "max_level": 5, "cost_base": 300, "cost_growth": 1.7, "mods": { "luck": 0.05 } },
+    "m_armor": { "name": "Ablative Plating", "icon": "shield", "desc": "+1 armour", "max_level": 3, "cost_base": 600, "cost_growth": 2.2, "mods": { "armor": 1 } },
+    "m_reroll": { "name": "Reroute Buffer", "icon": "reroll", "desc": "+1 upgrade reroll per run", "max_level": 3, "cost_base": 400, "cost_growth": 2.5, "mods": { "run.rerolls": 1 } },
+    "m_startlvl": { "name": "Pre-Charged Arsenal", "icon": "upgrade", "desc": "Starting weapon begins +1 level higher", "max_level": 2, "cost_base": 2500, "cost_growth": 3.0, "mods": { "run.start_weapon_level": 1 } },
+    "m_revive": { "name": "Emergency Reboot", "icon": "revive", "desc": "Revive once per run at 50% health", "max_level": 1, "cost_base": 5000, "cost_growth": 1.0, "mods": { "run.revives": 1 } }
+  },
+
+  "cores": {
+    "vanguard": {
+      "name": "VANGUARD", "desc": "Balanced combat core. No weaknesses.", "color": "#2de2ff",
+      "start_weapon": "pulse", "mods": {},
+      "traits": ["Balanced stats"],
+      "unlock": { "type": "default" }
+    },
+    "striker": {
+      "name": "STRIKER", "desc": "Fast and fragile. Gets in, gets out.", "color": "#ff9a3d",
+      "start_weapon": "scatter", "mods": { "move_speed_pct": 0.15, "fire_rate_pct": 0.1, "max_hp_pct": -0.2 },
+      "traits": ["+15% move speed", "+10% fire rate", "-20% max health"],
+      "unlock": { "type": "level", "level": 3, "cost": 1500 }
+    },
+    "bastion": {
+      "name": "BASTION", "desc": "A walking fortress that grinds the swarm down.", "color": "#5cffb1",
+      "start_weapon": "orbit", "mods": { "max_hp_pct": 0.4, "armor": 2, "move_speed_pct": -0.08 },
+      "traits": ["+40% max health", "+2 armour", "-8% move speed"],
+      "unlock": { "type": "level", "level": 6, "cost": 4000 }
+    },
+    "frostbite": {
+      "name": "FROSTBITE", "desc": "Controls the field with cold.", "color": "#8fd8ff",
+      "start_weapon": "nova", "mods": { "area_pct": 0.2, "w.nova.cooldown_pct": -0.15 },
+      "traits": ["+20% area", "Cryo Nova pulses 15% faster"],
+      "unlock": { "type": "level", "level": 9, "cost": 6500 }
+    },
+    "tempest": {
+      "name": "TEMPEST", "desc": "Critical strikes and chained lightning.", "color": "#b9a6ff",
+      "start_weapon": "chain", "mods": { "crit_chance": 0.1, "crit_mult": 0.25, "max_hp_pct": -0.1 },
+      "traits": ["+10% critical chance", "+25% critical damage", "-10% max health"],
+      "unlock": { "type": "level", "level": 12, "cost": 9000 }
+    },
+    "phantom": {
+      "name": "PHANTOM", "desc": "Lucky scavenger with a wide tractor field.", "color": "#ff5cd6",
+      "start_weapon": "drone", "mods": { "luck": 0.2, "pickup_radius_pct": 0.4, "xp_gain_pct": 0.1 },
+      "traits": ["+20% luck", "+40% pickup radius", "+10% energy gained"],
+      "unlock": { "type": "crystals", "cost": 300 }
+    }
+  },
+
+  "skins": {
+    "default": { "name": "FACTORY", "color": "", "unlock": { "type": "default" } },
+    "ember": { "name": "EMBER", "color": "#ff7a3d", "unlock": { "type": "crystals", "cost": 80 } },
+    "venom": { "name": "VENOM", "color": "#7dff8a", "unlock": { "type": "crystals", "cost": 80 } },
+    "amethyst": { "name": "AMETHYST", "color": "#b58cff", "unlock": { "type": "crystals", "cost": 120 } },
+    "rose": { "name": "ROSE", "color": "#ff5cd6", "unlock": { "type": "crystals", "cost": 120 } },
+    "ghost": { "name": "GHOST", "color": "#eaf6ff", "unlock": { "type": "crystals", "cost": 200 } },
+    "aurum": { "name": "AURUM", "color": "#ffd15c", "unlock": { "type": "product", "product": "starter_pack" } }
+  }
+}

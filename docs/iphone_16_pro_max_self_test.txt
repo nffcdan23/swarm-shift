@@ -1,0 +1,60 @@
+generated: 2026-10-12 14:56:24
+--- platform
+device: iPhone17,2 | iOS 27.0.0 | 6 cores
+engine: 4.7.2-stable (official) | debug build: true
+game: SWARM//SHIFT v0.1.0
+PASS  all data tables loaded from the installed pack
+PASS  data cross-references resolve (sprites, audio, scripts all present)
+--- display
+renderer: mobile / metal on Apple A18 Pro GPU (Apple9)
+window: 1320x2868 px | canvas: 720x1564 units | scale: 1.83 px per unit
+screen: 120 Hz | density scale 3.0 | orientation 1
+PASS  running in portrait (1320x2868)
+PASS  canvas keeps its 720-wide design space and grows taller (720x1564)
+safe area: x 0, y 186, 1320x2580 px
+unsafe insets: top 186 px, bottom 102 px, left 0 px, right 0 px
+HUD margins applied: top 113, bottom 67, left 12, right 12 canvas units
+PASS  top margin clears the notch / Dynamic Island
+PASS  bottom margin clears the home indicator
+SHOT_READY menu
+--- input
+PASS  touchscreen is available
+mouse events emulated from touch (drives buttons): true
+PASS  a drag up on the joystick steers up at full speed
+PASS  lifting the finger stops
+note: this proves the game's handling of touches; only a finger proves the glass
+--- audio
+driver: CoreAudio | mix rate 48000 Hz | output latency 0 ms | device: Default
+PASS  audio server is running
+bus Master    0.0 dB
+bus Music    -3.1 dB
+bus SFX       0.0 dB
+PASS  all 52 sound effects and 2 music tracks are in the build
+PASS  a sound effect was accepted for playback
+PASS  music is being mixed (position 4.89 s)
+note: this proves audio is being produced. The game uses the 'ambient' session, so the
+      Ring/Silent switch mutes it. If you hear nothing, check silent mode and volume.
+haptics: sent one test pulse - you should have felt a short tap
+--- storage
+user data: /var/mobile/Containers/Data/Application/E2306513-479E-4623-834A-27D460E6B171/Documents
+PASS  a save file can be written
+PASS  it reads back intact after a fresh load
+PASS  the previous version is kept as a backup
+PASS  test files cleaned up
+PASS  your profile exists on this device (2849 bytes, account level 1) and was left untouched
+--- gameplay under load
+opening: 120 fps avg, slowest second 118 fps | sim 0.51 ms per step (worst 10.4) | 6 enemies, 2 projectiles on screen
+SHOT_READY run_early
+PASS  the core fires and kills on its own (15 kills)
+PASS  levelling up pauses the run for a choice
+SHOT_READY level_up
+SHOT_READY run_heavy
+late swarm: 120 fps avg, slowest second 120 fps | sim 1.37 ms per step (worst 9.3) | 223 enemies, 3 projectiles on screen
+late swarm, continued: 120 fps avg, slowest second 120 fps | sim 1.59 ms per step (worst 4.6) | 172 enemies, 3 projectiles on screen
+PASS  holds at least 55 fps on average under load (120)
+PASS  slowest second stayed at 120 fps
+PASS  sustained combat (276 kills, level 6, peak 238 enemies)
+PASS  simulation state is sane
+SHOT_READY results
+--- result
+RESULT PASS - 24 passed, 0 warnings, 0 failed
