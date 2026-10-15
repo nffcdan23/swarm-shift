@@ -6,6 +6,10 @@ extends Control
 ## The anchor follows the thumb once it is dragged past the rim, which keeps a
 ## reversal of direction to a short flick instead of a long swipe back across
 ## the stick. Full speed is reached well before the rim.
+##
+## While disabled (upgrade screen, pause) the stick reports no movement but
+## keeps following the thumb that was steering, so if that thumb never leaves
+## the glass the player is still running the same way when play resumes.
 
 const RADIUS := 78.0
 const DEADZONE := 9.0
@@ -16,9 +20,13 @@ const FULL_AT := 0.62
 var vector := Vector2.ZERO
 var enabled := true:
 	set(value):
+		if enabled == value:
+			return
 		enabled = value
-		if not value:
+		# Do not trust a finger that may have lifted while we were not looking.
+		if value and _finger != -1 and not TouchTaps.is_down(_finger):
 			release()
+		queue_redraw()
 
 var _finger := -1
 var _origin := Vector2.ZERO
@@ -34,11 +42,9 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not enabled:
-		return
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
-		if touch.pressed and _finger == -1:
+		if touch.pressed and _finger == -1 and enabled:
 			_finger = touch.index
 			_origin = _to_local(touch.position)
 			_thumb = _origin
@@ -90,13 +96,15 @@ func keyboard_vector() -> Vector2:
 
 
 func current() -> Vector2:
+	if not enabled:
+		return Vector2.ZERO
 	if _finger != -1:
 		return vector
-	return keyboard_vector() if enabled else Vector2.ZERO
+	return keyboard_vector()
 
 
 func _process(delta: float) -> void:
-	var target := 1.0 if _finger != -1 else 0.0
+	var target := 1.0 if _finger != -1 and enabled else 0.0
 	if absf(_fade - target) > 0.01 or _finger != -1:
 		_fade = lerpf(_fade, target, 1.0 - exp(-delta * 16.0))
 		queue_redraw()

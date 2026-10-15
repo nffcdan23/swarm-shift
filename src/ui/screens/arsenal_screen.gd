@@ -122,7 +122,7 @@ func _action(category: String, id: String, info: Dictionary, selected: bool) -> 
 			return UiKit.tag("STARTER PACK", Palette.GOLD)
 		"level", "crystals":
 			if not bool(info.level_met):
-				return UiKit.tag("LEVEL %d" % int(info.level), Palette.MUTED, UiTheme.SMALL)
+				return UiKit.tag("PLAYER LV %d" % int(info.level), Palette.MUTED, UiTheme.TINY)
 			var currency := str(info.currency)
 			var color := Palette.currency(currency)
 			var affordable := bool(info.affordable)

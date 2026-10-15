@@ -25,15 +25,15 @@ Three rules hold the structure together:
 | `SaveService` | The profile dictionary; debounced, atomic, checksummed writes via a `SaveBackend` |
 | `SaveMigrations` | Schema version, defaults, forward migrations |
 | `Economy` | The only place balances change; every grant/spend names its source |
-| `AccountService` | Account XP, level, per-level rewards |
-| `MetaService` | Permanent upgrades |
+| `AccountService` | The permanent Player Level: XP, per-level rewards, what each level unlocks |
+| `MetaService` | Permanent upgrades: categories, Player Level gates, single and bulk purchase, effect text |
 | `ArsenalService` | Weapon / core / skin unlocks and the loadout |
-| `CampaignService` | Sectors, tier scaling, Endless unlock |
+| `CampaignService` | Sectors, tier scaling, sector briefs and mutators, Endless unlock |
 | `MissionService` | Daily missions (seeded per day and install) |
 | `AchievementService` | Thresholds over lifetime stats |
 | `DailyRewardService` | Seven-day login calendar |
 | `StatsService` | Lifetime statistics |
-| `RunLedger` | Turns a finished run into rewards, exactly once |
+| `RunLedger` | Turns a run into rewards, exactly once (by run id); checkpoints the run in progress and recovers it if the app never finishes it |
 | `AdsService` + `AdProvider` | Ad policy (caps, rules) + the network adapter |
 | `StoreService` + `StoreProvider` | Purchases and entitlements + the platform adapter |
 | `Analytics` + `AnalyticsProvider` | Event front door + sinks |
@@ -55,11 +55,12 @@ player -> director (spawning) -> boss -> enemies -> weapons -> projectiles
 
 | System | Notes |
 | --- | --- |
-| `EnemySystem` | AI, movement, crowd separation, player contact and the draw instance in one loop. Spatial hash grid for queries. |
+| `EnemySystem` | AI (seek, dasher, shooter, mortar, weaver, bomber), movement, crowd separation, player contact and the draw instance in one loop. Spatial hash grid for queries. |
 | `ProjectileSystem` | All player projectiles in one pool; behaviour is flags (homing, seeking, exploding, splitting) |
 | `BulletSystem`, `HazardSystem`, `PickupSystem` | Enemy fire, telegraphed ground blasts, energy / credits / drops |
 | `Combat` | The only path to enemy health. Crits, bonus rules, stats, and every on-hit / on-kill augment |
-| `Director` | Reads the timeline: spawn tracks, surges, elites, boss, tier scaling |
+| `Director` | Reads the timeline: spawn tracks, set pieces (surge, elite, pack, pincer, line, bombard), boss, tier scaling, and which of those a sector has unlocked or mutated |
+| `RunDiagnostics` | Counters for tests, the simulator and `--perf`: back-to-back choices, queue peaks, anything a safety valve dropped |
 | `Boss` | State machine driving one slot in the `EnemySystem`, so every weapon can hit it with no special cases |
 | `RunBuild`, `UpgradeSystem` | What the player has assembled; rolling and applying the three-card choice |
 | `Weapon` + `weapons/*.gd` | One small script per weapon |
@@ -72,6 +73,19 @@ Rules that keep this safe:
 - **Area damage is queued.** `Combat.blast()` adds to a queue resolved in `flush()`. An explosion whose kills cause more explosions just grows the queue, and a per-step cap turns a huge chain into a visible rolling wave instead of a one-frame spike.
 - **`on_enemy_killed` must not start an overlap query** - the caller may be iterating the shared result buffer.
 - **Gameplay randomness uses `arena.rng`.** A seed reproduces a run exactly (there is a test for it). Visual-only effects may use the global generator.
+- **Nothing loops on a value from data without a bound.** Energy grants are validated and capped per grant, spawn tracks and scripted events have a per-step budget, the explosion queue has a cap scaled to the field, and every pool (`EnemySystem`, `ProjectileSystem`, `PickupSystem`, `HazardSystem`, effects) refuses or merges when full. `RunDiagnostics` counts each time one of these opens.
+- **Nothing hurts without a telegraph.** Blasts go through `HazardSystem`, which draws the full blast circle for the whole fuse and refuses a fuse shorter than `MIN_DELAY`. A data test checks every blast in the tables can be walked out of from its centre.
+
+### The run and the HUD
+
+`Arena` owns the run's state machine (`PLAYING`, `CHOOSING`, `PAUSED`, `DOWNED`, `ENDING`, `ENDED`) and knows nothing about UI: it emits signals and the `Hud` listens. Two separate state machines joined by signals can disagree, and the first device playtest froze because they did ([docs/playtest-1](docs/playtest-1/README.md)). The rules since:
+
+- **Transitions happen between steps.** Level-ups and caches are counted during a step and opened one at a time in `_after_step`; `choose()` deals the next pending hand directly.
+- **Every hand has a serial** (`Arena.choice_serial`). The overlay records the serial it is showing, and a pick is only accepted for the hand still on the table.
+- **Overlays are safe to re-present at any moment.** `LevelUpOverlay.present()` cancels a fade in progress; anything delayed (a fade, the pick confirmation) checks a generation number before it acts. Track and kill any tween whose callback hides something.
+- **`Hud._reconcile()` runs every frame** and proves the two machines agree: choosing means the current hand is on screen, paused means a pause menu exists, downed means a revive is pending. A mismatch is repaired and reported as a `hud_recovered` event. It should never fire; the stability tests assert that it does not.
+
+Input: Godot turns only the first finger on the glass into mouse events, and buttons listen to the mouse. `TouchTaps` (a child of `App`) mirrors that rule and converts a quick tap by any other finger into a click, so buttons work while a thumb is steering. The joystick keeps tracking its finger while disabled, so steering resumes after an overlay without re-touching.
 
 ### Rendering
 
@@ -132,7 +146,9 @@ A stat resolves as `(base + flat) * (1 + percent)`. New content in an existing s
 
 `SaveService` holds the profile as one dictionary and writes it as JSON inside an envelope `{v, sum, body}`. Writes are debounced (2 s), forced on app pause/quit and after purchases, and atomic (temp file, keep previous as `.bak`, swap). A corrupt file falls back to the backup, then to a new profile.
 
-Adding a field needs no migration: `SaveMigrations.defaults()` is merged underneath every loaded profile. For a breaking change, bump `CURRENT_VERSION` and add a `_from_vN` step; steps run in sequence. Unknown keys are preserved, so an older build will not destroy a newer save.
+The `runs` section is `RunLedger`'s: the ids of the last 24 runs paid out (with their summaries, so a repeated claim returns the same numbers and pays nothing) and a snapshot of the run in progress, refreshed every 8 seconds and flushed when the app loses focus. A snapshot still there at launch is a run that never reached its results screen; it is settled then and the player is told.
+
+Adding a field needs no migration: `SaveMigrations.defaults()` is merged underneath every loaded profile. `tests/fixtures/profile_v1_before_playtest_update.save` is a profile written by the build before Player Level gates, upgrade categories and the run ledger existed, and a test loads it to prove nothing in it is lost. For a breaking change, bump `CURRENT_VERSION` and add a `_from_vN` step; steps run in sequence. Unknown keys are preserved, so an older build will not destroy a newer save.
 
 **Cloud save** is a new `SaveBackend` (iCloud / Play Games / own server) plus a conflict rule; `created_at`, `last_seen` and `play_seconds` are already in the profile for that purpose.
 
@@ -144,7 +160,9 @@ Both ads and purchases are split into a *policy* service and a *provider* adapte
 - **Store** - `StoreService.purchase()` -> provider -> `_fulfil()` grants the product's `grants` block. `MockStoreProvider` shows a clearly labelled confirmation and takes no payment.
 - **Analytics** - `Analytics.track(event, props)` with event-name constants. Every event is stamped with session, days since install, account level, app version and A/B group. `LocalLogAnalyticsProvider` writes JSON lines to `user://analytics.jsonl`.
 
-Events emitted today: `session_start`, `session_end`, `game_started`, `game_ended` (includes `run_duration`), `player_death`, `player_revived`, `player_level_up`, `upgrade_selected`, `upgrade_rerolled`, `synergy_found`, `boss_started`, `boss_defeated`, `ad_requested`, `ad_viewed`, `rewarded_ad_completed`, `purchase_started`, `purchase_completed`, `purchase_failed`, `currency_earned`, `currency_spent`, `mission_completed`, `achievement_claimed`, `daily_reward_claimed`, `account_level_up`, `meta_upgrade_purchased`, `item_unlocked`, `tutorial_step`, `screen_view`. Retention falls out of `session_start` + `days_since_install`.
+Events emitted today: `session_start`, `session_end`, `game_started`, `game_ended` (includes `run_duration`), `player_death`, `player_revived`, `player_level_up`, `upgrade_selected`, `upgrade_rerolled`, `synergy_found`, `boss_started`, `boss_defeated`, `ad_requested`, `ad_viewed`, `rewarded_ad_completed`, `purchase_started`, `purchase_completed`, `purchase_failed`, `currency_earned`, `currency_spent`, `mission_completed`, `achievement_claimed`, `daily_reward_claimed`, `account_level_up`, `meta_upgrade_purchased`, `item_unlocked`, `tutorial_step`, `screen_view`, `hud_recovered`. Retention falls out of `session_start` + `days_since_install`.
+
+The local log is also a flight recorder: it is flushed whenever the app loses focus, so after a crash or freeze on a device `Documents/analytics.jsonl` in the app container holds the session's last events. That is how the playtest-1 freeze was diagnosed.
 
 ## Before real money
 
@@ -174,7 +192,10 @@ Everything below is **not done** and must be before a real store or ad provider 
 
 - `test_runner.gd` runs any `test_*` method on the suites.
 - Gameplay tests run the real `Arena` with the `Autopilot`, calling `step()` directly at 30 simulated steps per second: full runs, each weapon in isolation, the boss through all phases, Endless cycling, revive, abandon, the entity caps, seed determinism.
-- UI tests build every screen from a new and a maxed profile, and push synthetic touches through the engine's input pipeline.
+- UI tests build every screen from a new and a maxed profile, and push synthetic touches through the engine's input pipeline. Every list is swiped from a row and from a button: it must scroll, and the swipe must not buy, claim or select anything.
+- Progression tests cover the Player Level, Credits, banking exactly once, recovery of an interrupted run, permanent upgrades, and loading a save from before those features existed.
+- Threat tests cover what each sector contains, the mutators, and that every new danger can be avoided - a bombardment is run against a planner that looks for any safe direction, and must always find one.
+- Stability tests replay the playtest freeze, sabotage the HUD to exercise its recovery, and push the simulation to 1,000 enemies, hundreds of simultaneous explosions and a long Overdrive soak.
 - `sim_runner.gd` is the balance tool; `shot_tour.gd` captures every screen for visual review.
 - `src/app/device_check.gd` ships in the build and stays dormant unless the app is launched with `--device-check`. It is the only way to test what a Mac cannot: real safe-area insets, the device renderer, audio output, storage and frame rate under load. See the README for how to run it.
 
@@ -182,4 +203,5 @@ Everything below is **not done** and must be before a real store or ad provider 
 
 - Strictly typed GDScript. This engine version treats inference from an untyped value as an error, so read from dictionaries through `GameData.num/text/dict/...` or with an explicit type.
 - Use `set_anchors_and_offsets_preset()` to make a control fill its parent; the anchors-only variant keeps the current (zero) size.
+- Put scrolling content in `UiKit.scroll()`, never in a bare `ScrollContainer`. On a touch screen a list scrolls only if the drag reaches it, and every button and every `PanelContainer` (what rows are made of) has a mouse filter of STOP and keeps the touch. A mouse wheel is exempt, so a bare list scrolls on a Mac and barely moves on a phone - build 0.2.0 shipped that way. `ScrollList` sets everything inside it to PASS, including rows added later, and has a deadzone so a tap with a little wobble is still a tap. Buttons outside a list must stay STOP, or the touch falls through to the joystick.
 - After adding a file with `class_name`, run `godot --headless --path . --import` once so the class is registered.

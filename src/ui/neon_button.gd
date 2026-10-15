@@ -132,6 +132,13 @@ func _on_resized() -> void:
 	pivot_offset = size * 0.5
 
 
+func _notification(what: int) -> void:
+	# The list this button sits in has started to scroll: the engine drops the
+	# press, so the squash has to let go as well.
+	if what == NOTIFICATION_SCROLL_BEGIN and _row != null and scale != Vector2.ONE:
+		_spring(1.0, 0.16)
+
+
 func _on_down() -> void:
 	_spring(0.94, 0.06)
 

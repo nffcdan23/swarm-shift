@@ -88,6 +88,11 @@ func handle_back() -> bool:
 	return true
 
 
+## True from the moment the dialog starts to animate away.
+func is_closing() -> bool:
+	return _closing
+
+
 func close() -> void:
 	if _closing:
 		return

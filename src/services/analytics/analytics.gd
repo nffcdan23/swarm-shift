@@ -35,6 +35,9 @@ const SESSION_START := "session_start"
 const SESSION_END := "session_end"
 const TUTORIAL_STEP := "tutorial_step"
 const SCREEN_VIEW := "screen_view"
+## The HUD found itself out of step with the run and repaired it. Should never
+## fire; if it does, the props say which overlay and when.
+const HUD_RECOVERED := "hud_recovered"
 
 var enabled := true
 var session_id := ""

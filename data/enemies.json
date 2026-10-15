@@ -4,34 +4,34 @@
       "name": "Swarmer", "sprite": "enemy_swarmer", "color": "#ff4d6d",
       "radius": 14, "size": 46, "hp": 9, "speed": 105, "damage": 8, "xp": 1,
       "ai": "seek", "wobble": 0.35, "mass": 1.0,
-      "credit_chance": 0.035, "credit_value": 1
+      "credit_chance": 0.06, "credit_value": 1
     },
     "brute": {
       "name": "Brute", "sprite": "enemy_brute", "color": "#ff9a3d",
       "radius": 26, "size": 84, "hp": 70, "speed": 62, "damage": 16, "xp": 5,
       "ai": "seek", "wobble": 0.1, "mass": 3.5,
-      "credit_chance": 0.2, "credit_value": 3
+      "credit_chance": 0.3, "credit_value": 3
     },
     "dasher": {
       "name": "Dasher", "sprite": "enemy_dasher", "color": "#ffe14d",
       "radius": 15, "size": 52, "hp": 26, "speed": 92, "damage": 14, "xp": 3,
       "ai": "dasher", "wobble": 0.2, "mass": 1.2,
       "dash": { "trigger_range": 330, "telegraph": 0.55, "speed": 580, "duration": 0.45, "cooldown": 2.6 },
-      "credit_chance": 0.08, "credit_value": 2
+      "credit_chance": 0.14, "credit_value": 2
     },
     "shooter": {
       "name": "Shooter", "sprite": "enemy_shooter", "color": "#c77dff",
       "radius": 17, "size": 58, "hp": 32, "speed": 80, "damage": 8, "xp": 4,
       "ai": "shooter", "wobble": 0.0, "mass": 1.4,
       "shoot": { "range": 430, "keep_min": 270, "cooldown": 2.4, "telegraph": 0.35, "bullet_speed": 250, "bullet_damage": 12 },
-      "credit_chance": 0.1, "credit_value": 2
+      "credit_chance": 0.16, "credit_value": 2
     },
     "splitter": {
       "name": "Splitter", "sprite": "enemy_splitter", "color": "#7dff8a",
       "radius": 22, "size": 72, "hp": 48, "speed": 72, "damage": 12, "xp": 4,
       "ai": "seek", "wobble": 0.15, "mass": 2.2,
       "split": { "into": "splitling", "count": 3 },
-      "credit_chance": 0.1, "credit_value": 2
+      "credit_chance": 0.16, "credit_value": 2
     },
     "splitling": {
       "name": "Splitling", "sprite": "enemy_splitling", "color": "#7dff8a",
@@ -44,6 +44,27 @@
       "radius": 40, "size": 128, "hp": 420, "speed": 40, "damage": 28, "xp": 25,
       "ai": "seek", "wobble": 0.0, "mass": 30.0,
       "credit_chance": 1.0, "credit_value": 10
+    },
+    "weaver": {
+      "name": "Weaver", "sprite": "enemy_weaver", "color": "#5cf0ff",
+      "radius": 13, "size": 48, "hp": 16, "speed": 150, "damage": 8, "xp": 2,
+      "ai": "weaver", "wobble": 0.0, "mass": 0.8,
+      "weave": { "orbit_range": 300, "inward": 0.38, "strike_range": 120, "strike_speed": 1.15 },
+      "credit_chance": 0.1, "credit_value": 2
+    },
+    "mortar": {
+      "name": "Mortar", "sprite": "enemy_mortar", "color": "#ff8a5c",
+      "radius": 19, "size": 64, "hp": 44, "speed": 66, "damage": 10, "xp": 5,
+      "ai": "mortar", "wobble": 0.0, "mass": 1.8,
+      "lob": { "range": 520, "keep_min": 330, "cooldown": 4.2, "windup": 0.5, "flight": 1.15, "blast_radius": 92, "damage": 14, "lead": 0.35 },
+      "credit_chance": 0.2, "credit_value": 3
+    },
+    "bomber": {
+      "name": "Bomber", "sprite": "enemy_bomber", "color": "#ff6a3d",
+      "radius": 16, "size": 56, "hp": 30, "speed": 118, "damage": 6, "xp": 3,
+      "ai": "bomber", "wobble": 0.0, "mass": 1.0,
+      "bomb": { "trigger_range": 105, "fuse": 0.85, "blast_radius": 114, "damage": 22 },
+      "credit_chance": 0.14, "credit_value": 2
     }
   },
 
@@ -53,7 +74,7 @@
     "damage_mult": 1.4,
     "speed_mult": 1.05,
     "xp_mult": 10.0,
-    "credit_value": 25,
+    "credit_value": 30,
     "tint": "#ffd15c",
     "affixes": {
       "swift": { "name": "SWIFT", "speed_mult": 1.5 },

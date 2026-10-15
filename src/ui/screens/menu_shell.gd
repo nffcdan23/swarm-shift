@@ -154,7 +154,7 @@ func request_play(mode: String) -> void:
 
 func _on_account_level(level: int, _rewards: Dictionary) -> void:
 	if _active:
-		toast("Account level %d" % level, Palette.CYAN, "star")
+		toast("Player Level %d" % level, Palette.CYAN, "star")
 
 
 func _announce_achievements() -> void:

@@ -1,0 +1,18 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+    > test_level_up_one_step_after_a_cache_pick_is_shown
+    [freeze] run stuck at t=0.050 in state CHOOSING: overlay visible=false alpha=1.00, pause available=false
+    > test_elite_drop_never_strands_the_upgrade_screen
+    [freeze] seed 3: stuck at t=0.254, level 16, upgrade screen hidden
+    [freeze] seed 7: stuck at t=0.242, level 16, upgrade screen hidden
+    [freeze] seed 11: stuck at t=0.265, level 16, upgrade screen hidden
+    [freeze] seed 23: stuck at t=0.258, level 16, upgrade screen hidden
+    > test_reroll_after_a_pick_keeps_the_chosen_card
+  stability   3 tests,   15 checks, 5 failed
+
+  FAIL  test_level_up_one_step_after_a_cache_pick_is_shown: the level-up screen is on screen while the run waits for it
+  FAIL  test_level_up_one_step_after_a_cache_pick_is_shown: the player can make the choice
+  FAIL  test_elite_drop_never_strands_the_upgrade_screen: no run was left waiting on a hidden upgrade screen (stuck seeds: [3, 7, 11, 23])
+  FAIL  test_reroll_after_a_pick_keeps_the_chosen_card: the card that was tapped is the one that was applied (expected weapon:scatter, got passive:precision)
+  FAIL  test_reroll_after_a_pick_keeps_the_chosen_card: and the late reroll was not spent (expected 3, got 2)
+FAILED - 15 checks, 5 failed (27.4s)

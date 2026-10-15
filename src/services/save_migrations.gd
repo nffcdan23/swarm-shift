@@ -41,7 +41,9 @@ static func defaults() -> Dictionary:
 		},
 		"purchases": {"entitlements": [], "history": []},
 		"ads": {"last_interstitial_at": 0, "runs_since_interstitial": 0, "shop_credits_day": -1, "shop_credits_count": 0},
-		"tutorial": {"moved": false, "levelled": false},
+		"tutorial": {"moved": false, "levelled": false, "pickups": false},
+		# Which runs have been paid out, and the run in progress (see RunLedger).
+		"runs": {"settled": {}, "order": [], "pending": {}},
 		"ab": {"group": ""},
 	}
 

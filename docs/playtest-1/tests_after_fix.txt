@@ -1,0 +1,22 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+  scripts     1 tests,  107 checks, 0 failed
+  data       10 tests,  258 checks, 0 failed
+  services   21 tests,  141 checks, 0 failed
+    [perf] 495 enemies: 1.01 ms per step (headless, includes draw buffer writes)
+  gameplay   14 tests,  808 checks, 0 failed
+  ui         19 tests,  190 checks, 0 failed
+  progression 13 tests,  431 checks, 0 failed
+  threats    10 tests,  144 checks, 0 failed
+    [load] 500-enemy wall: 1.99 ms per step, worst 2.7 ms (step 0), 610 alive at the end
+    [load] 1000-enemy wall: 4.98 ms per step, worst 6.0 ms (step 140)
+    [load] 1000 enemies vs max build: 1.00 ms per step, worst 24.3 ms, 1885 kills, choices 29 (quick 13, shortest gap 0.033s)  levels/step 4  blast queue peak 1028 (dropped 0)  merged drops 1063  hud recoveries 0
+    [load] 300 explosions + chain: drained in 63 steps, worst step 6.3 ms, queue peak 806
+    [load] everything build, 500 cap, 60 s: 0.61 ms per step, worst 15.8 ms, 1699 kills, level 24
+           choices 24 (quick 11, shortest gap 0.033s)  levels/step 2  blast queue peak 517 (dropped 0)  merged drops 833  hud recoveries 0
+    [load] boss on a 400-enemy field: arrival 1.11 ms per step (worst 4.7), fight 0.49 ms (worst 1.4)
+    [soak] 10 simulated minutes of Overdrive: cycle 1, level 31, 5938 kills, slowest minute 0.66 ms per step, worst step 2.4 ms, memory +0.1 MB, objects +1
+           choices 35 (quick 2, shortest gap 0.033s)  levels/step 1  blast queue peak 29 (dropped 0)  merged drops 3022  hud recoveries 0
+  stability  20 tests,  292 checks, 0 failed
+
+PASSED - 2371 checks, 0 failed (73.3s)

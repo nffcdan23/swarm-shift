@@ -4,6 +4,8 @@ extends RefCounted
 ## as "dodge this" against the player's thin, fast bolts.
 
 var count := 0
+## Enemy shots fired since the run began.
+var spawned_total := 0
 
 var x := PackedFloat32Array()
 var y := PackedFloat32Array()
@@ -44,6 +46,7 @@ func spawn(sx: float, sy: float, svx: float, svy: float, dmg: float) -> void:
 		return
 	var i := count
 	count += 1
+	spawned_total += 1
 	x[i] = sx
 	y[i] = sy
 	vx[i] = svx

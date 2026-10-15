@@ -1,19 +1,40 @@
-# Godot 4
+# Godot 4 (4.7.2)
+# Keep: project.godot, export_presets.cfg (no secrets in it), *.import and
+# *.uid files - Godot needs them to reimport assets identically.
 .godot/
-*.translation
 .import/
+*.translation
+export_credentials.cfg
+.mono/
+data_*/
+mono_crash.*.json
 
-# Build outputs
+# Build outputs (Xcode project, derived data, exports, phone backups)
 build/
 *.apk
 *.aab
 *.ipa
+*.pck
 *.xcarchive
+*.dSYM/
 android/
+
+# Signing material and credentials - never commit
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+*.keystore
+*.jks
+*.pem
+*.key
+.env
+.env.*
 
 # OS / editor
 .DS_Store
 *.swp
+*~
 .vscode/
 .idea/
 

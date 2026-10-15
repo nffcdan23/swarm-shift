@@ -3,14 +3,27 @@ extends Control
 ## The level-up choice: three cards, pick one. Also used for elite caches.
 ##
 ## Because the player's thumb is already on the glass steering when this
-## appears, the cards ignore input for a moment and until the screen has been
-## released - otherwise the first pick of every run would be an accident.
+## appears, the cards ignore input for a moment - otherwise the first pick of
+## every run would be an accident. A press only counts if it starts on a card
+## after that moment, so a thumb that is still down from steering cannot pick.
+##
+## Two choices can arrive within a frame of each other (an elite's cache and
+## the level its energy gives). `present()` therefore has to be safe to call at
+## any time, including while the previous screen is still fading out: it cancels
+## the fade, and every delayed step checks `_generation` before it acts. The
+## first device playtest froze because that fade used to finish afterwards and
+## hide the new screen while the run sat waiting for a choice.
 
 signal picked(index: int)
 signal reroll_pressed
 signal ad_reroll_pressed
 
 const INPUT_GUARD := 0.45
+const PICK_HOLD := 0.3
+const FADE_OUT := 0.14
+
+## `Arena.choice_serial` of the hand on screen; 0 when nothing is shown.
+var serial := 0
 
 var _arena: Arena
 var _scrim: ColorRect
@@ -24,6 +37,11 @@ var _strip_holder: Control
 var _armed := false
 var _guard := 0.0
 var _resolved := false
+var _fade: Tween
+var _resolved_for := 0.0
+## Bumped by every present() and dismiss(). Anything that waits (the pick
+## animation, the fade) remembers the value and gives up if it has moved on.
+var _generation := 0
 
 
 func _init(arena: Arena) -> void:
@@ -61,11 +79,15 @@ func _ready() -> void:
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	_reroll = NeonButton.make("REROLL", NeonButton.Kind.SECONDARY, Palette.CYAN, "reroll", 76.0, UiTheme.SMALL)
 	_reroll.min_width = 250.0
-	_reroll.pressed.connect(func() -> void: reroll_pressed.emit())
+	_reroll.pressed.connect(func() -> void:
+		if not _resolved:
+			reroll_pressed.emit())
 	buttons.add_child(_reroll)
 	_ad_reroll = NeonButton.make("REROLL", NeonButton.Kind.SECONDARY, Palette.AMBER, "ad", 76.0, UiTheme.SMALL)
 	_ad_reroll.min_width = 250.0
-	_ad_reroll.pressed.connect(func() -> void: ad_reroll_pressed.emit())
+	_ad_reroll.pressed.connect(func() -> void:
+		if not _resolved:
+			ad_reroll_pressed.emit())
 	buttons.add_child(_ad_reroll)
 	_column.add_child(buttons)
 
@@ -73,16 +95,24 @@ func _ready() -> void:
 	_column.add_child(_strip_holder)
 
 
-func present(offers: Array, is_cache: bool) -> void:
+func present(offers: Array, is_cache: bool, p_serial: int = 0) -> void:
+	_generation += 1
+	serial = p_serial
 	_resolved = false
+	_resolved_for = 0.0
 	_armed = false
 	_guard = INPUT_GUARD
+	# A previous screen may still be fading out; this one replaces it.
+	if _fade != null and _fade.is_valid():
+		_fade.kill()
+	_fade = null
+	modulate.a = 1.0
 	visible = true
 	for card in _cards:
 		card.queue_free()
 	_cards.clear()
 
-	_title.text = "ELITE CACHE" if is_cache else "LEVEL %d" % _arena.level
+	_title.text = "ELITE CACHE" if is_cache else "RUN LEVEL %d" % _arena.choice_level()
 	_title.add_theme_color_override("font_color", Palette.GOLD if is_cache else Palette.GREEN)
 	_subtitle.text = "CHOOSE YOUR REWARD" if is_cache else "CHOOSE AN UPGRADE"
 
@@ -112,40 +142,94 @@ func _refresh_rerolls() -> void:
 	var free := _arena.rerolls_left
 	_reroll.visible = free > 0
 	_reroll.set_label("REROLL  x%d" % free)
+	_reroll.set_enabled(true)
 	# The ad option only appears once the free rerolls are spent.
 	_ad_reroll.visible = free <= 0 and _arena.ad_rerolls_left > 0 and App.ads.rewarded_available(AdsService.REROLL)
 	_ad_reroll.set_label("FREE REROLL")
+	_ad_reroll.set_enabled(true)
 
 
 func _process(delta: float) -> void:
-	if not visible or _armed:
+	if _resolved:
+		_resolved_for += delta
+	if not visible or _armed or _resolved:
 		return
 	_guard -= delta
-	if _guard <= 0.0 and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+	if _guard <= 0.0:
 		_armed = true
 		for card in _cards:
 			card.disabled = false
 
 
+## True while a hand is on screen and has not been answered or dismissed.
+func is_open() -> bool:
+	return visible and not is_closing()
+
+
+func is_closing() -> bool:
+	return _fade != null and _fade.is_valid()
+
+
+## True once a card has been tapped and its confirmation is playing.
+func is_resolved() -> bool:
+	return _resolved
+
+
+## True if a card was tapped but the run never took the pick: the screen is
+## still up, with its cards locked, well after the confirmation should have
+## ended. The HUD deals the hand again when it sees this.
+func is_stalled() -> bool:
+	return visible and _resolved and _resolved_for > PICK_HOLD + 0.8
+
+
+func card_count() -> int:
+	return _cards.size()
+
+
+func card(index: int) -> UpgradeCard:
+	return _cards[index] if index >= 0 and index < _cards.size() else null
+
+
+## True once the cards accept taps.
+func is_armed() -> bool:
+	return _armed
+
+
 func _on_card(index: int) -> void:
-	if not _armed or _resolved:
+	if not _armed or _resolved or index < 0 or index >= _cards.size():
 		return
 	_resolved = true
+	var generation := _generation
 	App.audio.play("upgrade_pick")
 	App.haptics.medium()
+	# The choice is made: nothing else on this screen may change it.
+	_reroll.set_enabled(false)
+	_ad_reroll.set_enabled(false)
 	for i in _cards.size():
 		_cards[i].disabled = true
 		if i == index:
 			_cards[i].celebrate()
 		else:
 			_cards[i].dismiss()
-	await get_tree().create_timer(0.3).timeout
+	await get_tree().create_timer(PICK_HOLD).timeout
+	if generation != _generation or not is_inside_tree():
+		return
 	picked.emit(index)
 
 
 func dismiss() -> void:
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.14)
-	tween.tween_callback(func() -> void:
+	if not visible:
+		return
+	_generation += 1
+	serial = 0
+	if _fade != null and _fade.is_valid():
+		_fade.kill()
+	var generation := _generation
+	_fade = create_tween()
+	_fade.tween_property(self, "modulate:a", 0.0, FADE_OUT)
+	_fade.tween_callback(func() -> void:
+		_fade = null
+		if generation != _generation:
+			return
 		visible = false
 		modulate.a = 1.0)

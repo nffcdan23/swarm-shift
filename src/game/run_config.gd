@@ -20,6 +20,8 @@ var rng_seed := 0
 var autopilot := false
 var autopilot_skill := 0.7
 var show_tutorial := false
+## 0 uses the balance table. Stress tests raise it far past the shipped cap.
+var max_enemies := 0
 
 
 static func from_profile(app: AppRoot, p_mode: String = CampaignService.MODE_SECTOR) -> RunConfig:

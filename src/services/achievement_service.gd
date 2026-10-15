@@ -2,7 +2,7 @@ class_name AchievementService
 extends RefCounted
 ## Achievements are thresholds over lifetime stats, so "is it complete" is
 ## derived rather than stored - only the claimed flag is persisted. They are the
-## main free source of Crystals.
+## main free source of Crystals, and each one also pays Player XP.
 
 signal changed
 
@@ -33,6 +33,7 @@ func all() -> Array[Dictionary]:
 			"complete": current >= target,
 			"claimed": claimed.has(def.get("id")),
 			"crystals": GameData.integer(def, "crystals"),
+			"xp": GameData.integer(def, "xp"),
 		})
 	return out
 
@@ -47,6 +48,7 @@ func claim(id: String) -> int:
 		section["claimed"] = claimed
 		_app.save.mark_dirty()
 		_app.economy.grant(Economy.CRYSTALS, int(entry.crystals), "achievement")
+		_app.account.add_xp(int(entry.xp), "achievement")
 		_app.analytics.track(Analytics.ACHIEVEMENT_CLAIMED, {"id": id})
 		changed.emit()
 		return int(entry.crystals)

@@ -30,6 +30,8 @@ var config: RunConfig
 var rng := RandomNumberGenerator.new()
 
 var state := State.PLAYING
+## Identifies this run to the ledger, so it can only ever be paid out once.
+var run_id := ""
 var time := 0.0
 var step_count := 0
 var level := 1
@@ -72,12 +74,18 @@ var autopilot: Autopilot
 var weapons: Array[Weapon] = []
 var current_offers: Array[Dictionary] = []
 var choosing_cache := false
+## Counts every hand of cards dealt (level-ups, caches and rerolls). The HUD
+## compares it with the hand it is showing to prove the two agree.
+var choice_serial := 0
+var diag := RunDiagnostics.new()
 
 var _weapon_by_id: Dictionary = {}
 var _run_cfg: Dictionary
 var _feel: Dictionary
 var _pending_levels := 0
 var _pending_caches := 0
+var _levels_this_step := 0
+var _last_choice_closed := -1.0
 var _hitstop := 0.0
 var _time_scale := 1.0
 var _end_timer := 0.0
@@ -92,6 +100,8 @@ var _zoom_target := 0.88
 var _shake_scale := 1.0
 var _src_reactive := 0
 var _finished := false
+var _mutator_note := ""
+var _mutator_note_at := 0.0
 
 
 # ---------------------------------------------------------------------- setup
@@ -103,8 +113,10 @@ func setup(p_app: AppRoot, p_config: RunConfig) -> void:
 	_run_cfg = data.run_cfg()
 	_feel = GameData.dict(data.game, "feel")
 	rng.seed = config.rng_seed if config.rng_seed != 0 else int(Time.get_ticks_usec()) ^ hash(p_app.analytics.session_id)
+	# Not drawn from `rng`: the id must be unique even when the seed is fixed.
+	run_id = "%s-%x-%04x" % [p_app.analytics.session_id, Time.get_ticks_usec(), randi() % 65536]
 
-	var max_enemies := GameData.integer(_run_cfg, "max_enemies", 420)
+	var max_enemies := max_enemy_count()
 	var enemy_capacity := max_enemies + 110
 
 	background = ArenaBackground.new()
@@ -131,6 +143,7 @@ func setup(p_app: AppRoot, p_config: RunConfig) -> void:
 
 	enemies = EnemySystem.new()
 	enemies.setup(self, enemy_capacity)
+	combat.max_queued_blasts = enemy_capacity + Combat.BLAST_QUEUE_HEADROOM
 	projectiles = ProjectileSystem.new()
 	projectiles.setup(self)
 	bullets = BulletSystem.new()
@@ -184,7 +197,22 @@ func start() -> void:
 		announce("OVERDRIVE", "title")
 	else:
 		announce("SECTOR %02d" % config.tier, "title")
+	_queue_mutator_note()
 	_update_camera(0.0)
+
+
+## Names the sector's mutators once the opening banner has cleared.
+func _queue_mutator_note() -> void:
+	var names: PackedStringArray = []
+	for id in director.mutator_ids():
+		names.append(GameData.text(app.campaign.mutator_def(id), "name", id.to_upper()))
+	_mutator_note = "  +  ".join(names)
+	_mutator_note_at = time + 2.6
+
+
+## The most enemies the director will keep alive at once.
+func max_enemy_count() -> int:
+	return config.max_enemies if config.max_enemies > 0 else GameData.integer(_run_cfg, "max_enemies", 420)
 
 
 func _xp_for(for_level: int) -> float:
@@ -265,6 +293,9 @@ func step(dt: float) -> void:
 
 	if enemies.count > peak_enemies:
 		peak_enemies = enemies.count
+	if _levels_this_step > diag.levels_in_one_step:
+		diag.levels_in_one_step = _levels_this_step
+	_levels_this_step = 0
 	_after_step(dt)
 	var cost := float(Time.get_ticks_usec() - started) / 1000.0
 	step_ms = cost if step_ms == 0.0 else lerpf(step_ms, cost, 0.05)
@@ -284,6 +315,9 @@ func _after_step(dt: float) -> void:
 	if _vacuum_at >= 0.0 and time >= _vacuum_at:
 		_vacuum_at = -1.0
 		pickups.magnetise_all()
+	if not _mutator_note.is_empty() and time >= _mutator_note_at:
+		announce(_mutator_note, "warning")
+		_mutator_note = ""
 	if _victory_timer >= 0.0:
 		_victory_timer -= dt
 		player.invulnerable_for = maxf(player.invulnerable_for, 0.5)
@@ -302,14 +336,28 @@ func is_playing() -> bool:
 
 # ------------------------------------------------------------------ progress
 
+## Most levels one grant of energy can give. Far above anything a real run
+## produces; it exists so that a corrupt amount can never spin the loop below.
+const MAX_LEVELS_PER_GRANT := 40
+
+## Adds run energy. Each level gained is queued as a pending choice, opened one
+## at a time at the end of a step - never from inside the simulation.
 func add_xp(amount: float) -> void:
+	if not is_finite(amount) or amount <= 0.0:
+		diag.xp_rejected += 1
+		return
 	xp += amount
-	while xp >= xp_needed:
+	var gained := 0
+	while xp >= xp_needed and gained < MAX_LEVELS_PER_GRANT:
 		xp -= xp_needed
 		level += 1
-		xp_needed = _xp_for(level)
+		xp_needed = maxf(_xp_for(level), 1.0)
 		_pending_levels += 1
+		gained += 1
 		app.analytics.track(Analytics.PLAYER_LEVEL_UP, {"level": level, "time": time})
+	if xp >= xp_needed:
+		xp = xp_needed - 1.0
+	_levels_this_step += gained
 
 
 func add_credits(amount: float) -> void:
@@ -320,10 +368,38 @@ func open_cache() -> void:
 	_pending_caches += 1
 
 
+## Upgrade screens still owed to the player (not counting one that is open).
+func pending_choices() -> int:
+	return _pending_levels + _pending_caches
+
+
+## The Run Level the hand on the table belongs to. When several levels were
+## gained at once, each hand is headed by its own level, not by the last one.
+func choice_level() -> int:
+	if state != State.CHOOSING or choosing_cache:
+		return level
+	return level - maxi(_pending_levels - 1, 0)
+
+
 func _begin_choice(is_cache: bool) -> void:
+	if state != State.PLAYING:
+		return
+	var offers := upgrades.roll(GameData.integer(_run_cfg, "elite_cache_choices", 3) if is_cache else 3, is_cache)
+	if offers.is_empty():
+		# Nothing to offer: never wait on a choice that cannot be made.
+		_pending_caches = maxi(_pending_caches - (1 if is_cache else 0), 0)
+		_pending_levels = maxi(_pending_levels - (0 if is_cache else 1), 0)
+		return
 	state = State.CHOOSING
 	choosing_cache = is_cache
-	current_offers = upgrades.roll(GameData.integer(_run_cfg, "elite_cache_choices", 3) if is_cache else 3, is_cache)
+	current_offers = offers
+	choice_serial += 1
+	diag.choices += 1
+	if _last_choice_closed >= 0.0:
+		var gap := time - _last_choice_closed
+		diag.shortest_choice_gap = minf(diag.shortest_choice_gap, gap)
+		if gap <= RunDiagnostics.QUICK_WINDOW:
+			diag.quick_choices += 1
 	sfx("cache_open" if is_cache else "level_up")
 	haptic("success")
 	if not is_cache:
@@ -346,18 +422,23 @@ func choose(index: int) -> void:
 		"run_level": level, "time": time, "cache": choosing_cache,
 	})
 	if choosing_cache:
-		_pending_caches -= 1
+		_pending_caches = maxi(_pending_caches - 1, 0)
 	else:
-		_pending_levels -= 1
+		_pending_levels = maxi(_pending_levels - 1, 0)
+	state = State.PLAYING
 	if _pending_caches > 0 or _pending_levels > 0:
-		state = State.PLAYING
+		# More waiting: deal the next hand straight away. The screen never
+		# closes in between, so this is not a "quick" reopen.
+		_last_choice_closed = -1.0
 		_begin_choice(_pending_caches > 0)
-		return
+		if state == State.CHOOSING:
+			return
 	_resume_from_choice()
 
 
 func _resume_from_choice() -> void:
 	state = State.PLAYING
+	_last_choice_closed = time
 	app.audio.set_muffled(false)
 	# Coming back from a menu into a wall of enemies is not fun: clear some room.
 	var radius := GameData.num(_run_cfg, "levelup_shockwave_radius", 230.0)
@@ -391,6 +472,7 @@ func reroll_from_ad() -> bool:
 
 func _reroll_offers(source: String) -> void:
 	current_offers = upgrades.roll(current_offers.size(), choosing_cache)
+	choice_serial += 1
 	sfx("reroll")
 	app.analytics.track(Analytics.UPGRADE_REROLLED, {"source": source, "run_level": level})
 	choice_started.emit(current_offers, choosing_cache)
@@ -470,6 +552,11 @@ func on_player_down() -> void:
 		player_downed.emit(true)
 	else:
 		_finish(false)
+
+
+## True while a free revive is counting down to bring the player back.
+func is_reviving() -> bool:
+	return state == State.DOWNED and _auto_revive >= 0.0
 
 
 ## Brings the player back (free revive, or after a rewarded ad).
@@ -574,6 +661,7 @@ func on_boss_killed(x: float, y: float) -> void:
 	if config.mode == CampaignService.MODE_ENDLESS:
 		director.begin_next_cycle()
 		announce("CYCLE %d" % (director.cycle + 1), "title")
+		_queue_mutator_note()
 	else:
 		announce("SECTOR CLEARED", "good")
 		_victory_timer = 2.8
@@ -666,6 +754,7 @@ func build_result(cleared: bool, died: bool, abandoned: bool) -> Dictionary:
 		if combat.damage_by_source[i] > 0.0:
 			by_source[combat.source_names[i]] = combat.damage_by_source[i]
 	return {
+		"run_id": run_id,
 		"mode": config.mode, "tier": config.tier, "effective_tier": director.effective_tier(), "core": config.core,
 		"time": time, "kills": combat.kills, "elites": combat.elites_killed, "bosses": combat.bosses_killed,
 		"level": level, "level_ups": level - 1, "damage": combat.total_damage,

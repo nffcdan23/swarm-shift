@@ -1,8 +1,14 @@
 class_name CampaignService
 extends RefCounted
-## Sector progression. Every sector reuses the same timeline, scaled by tier,
-## so new "content" is a number until bespoke timelines are worth authoring.
-## Clearing sector N unlocks N+1; clearing the configured sector opens Endless.
+## Sector progression. Clearing sector N unlocks N+1; clearing the configured
+## sector opens Endless (Overdrive).
+##
+## Sectors share one timeline but are not the same fight with bigger numbers:
+##   - the first sectors each add enemies and set pieces (`min_sector` in
+##     stages.json), so Sector 1 teaches the basics and 2 and 3 add mechanics;
+##   - from `mutator_start` every sector carries a mutator from a rotation,
+##     and later sectors carry two - a rule change, shown in the lobby;
+##   - underneath, health/damage/spawn rate scale with the tier.
 
 signal changed
 
@@ -56,6 +62,82 @@ func theme(tier: int) -> Dictionary:
 	if themes.is_empty():
 		return {}
 	return themes[posmod(tier - 1, themes.size())]
+
+
+# ------------------------------------------------------- sector character
+
+func _sectors() -> Dictionary:
+	return GameData.dict(_app.data.stages, "sectors")
+
+
+## Mutator ids in force for a sector. Overdrive passes its cycle count: the
+## first cycle is clean, then each cycle rotates in one mutator.
+func mutator_ids(mode: String, tier: int, cycle: int = 0) -> Array[String]:
+	var out: Array[String] = []
+	var cfg := _sectors()
+	var rotation := GameData.list(cfg, "rotation")
+	if rotation.is_empty():
+		return out
+	if mode == MODE_ENDLESS:
+		if cycle >= 1:
+			out.append(str(rotation[(cycle - 1) % rotation.size()]))
+		return out
+	var first := GameData.integer(cfg, "mutator_start", 4)
+	if tier < first:
+		return out
+	out.append(str(rotation[(tier - first) % rotation.size()]))
+	var second := GameData.integer(cfg, "second_mutator_start", 10)
+	if tier >= second and rotation.size() > 1:
+		# Half a rotation away, so the pair is never the same mutator twice.
+		@warning_ignore("integer_division")
+		out.append(str(rotation[(tier - first + rotation.size() / 2) % rotation.size()]))
+	return out
+
+
+func mutator_def(id: String) -> Dictionary:
+	return GameData.dict(GameData.dict(_sectors(), "mutators"), id)
+
+
+## The combined effect of a set of mutators, in the shape the Director reads:
+## {"speed", "hp", "spawn", "tracks": {enemy: mult}, "every": [...], "elite_affix"}.
+func mutator_effects(ids: Array[String]) -> Dictionary:
+	var out := {"speed": 1.0, "hp": 1.0, "spawn": 1.0, "tracks": {}, "every": [], "elite_affix": ""}
+	for id in ids:
+		var def := mutator_def(id)
+		out.speed = float(out.speed) * GameData.num(def, "speed", 1.0)
+		out.hp = float(out.hp) * GameData.num(def, "hp", 1.0)
+		out.spawn = float(out.spawn) * GameData.num(def, "spawn", 1.0)
+		var tracks := GameData.dict(def, "tracks")
+		for enemy_id: String in tracks:
+			out.tracks[enemy_id] = float(out.tracks.get(enemy_id, 1.0)) * float(tracks[enemy_id])
+		var every := GameData.dict(def, "every")
+		if not every.is_empty():
+			(out.every as Array).append(every)
+		if not GameData.text(def, "elite_affix").is_empty():
+			out.elite_affix = GameData.text(def, "elite_affix")
+	return out
+
+
+## What the lobby says about a sector: its name, a one-line brief, the enemies
+## it introduces and its mutators ({"id", "name", "desc", "color"}).
+func sector_brief(tier: int) -> Dictionary:
+	var out := {"name": "", "brief": "", "new": [], "mutators": []}
+	for entry: Dictionary in GameData.list(_sectors(), "briefs"):
+		if GameData.integer(entry, "sector") == tier:
+			out.name = GameData.text(entry, "name")
+			out.brief = GameData.text(entry, "brief")
+			for enemy_id: String in GameData.list(entry, "new"):
+				(out.new as Array).append(GameData.text(GameData.dict(_app.data.enemy_types(), enemy_id), "name", enemy_id))
+	for id in mutator_ids(MODE_SECTOR, tier):
+		var def := mutator_def(id)
+		(out.mutators as Array).append({"id": id, "name": GameData.text(def, "name", id.to_upper()),
+			"desc": GameData.text(def, "desc"), "color": GameData.color(def, "color", Color("ffc247"))})
+	if str(out.brief).is_empty():
+		var descs: PackedStringArray = []
+		for mutator: Dictionary in out.mutators:
+			descs.append(str(mutator.desc))
+		out.brief = ". ".join(descs) if not descs.is_empty() else "Everything the swarm has, harder."
+	return out
 
 
 ## Multipliers applied to a run at the given (possibly fractional) tier.

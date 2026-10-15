@@ -35,3 +35,50 @@ func fresh_profile() -> MemorySaveBackend:
 	var backend := MemorySaveBackend.new()
 	app.boot(backend)
 	return backend
+
+
+# ---------------------------------------------------------------------------
+# Helpers for tests that drive the real scene tree.
+
+func wait_frames(count: int) -> void:
+	for i in count:
+		await host.get_tree().process_frame
+
+
+func wait_seconds(seconds: float) -> void:
+	await host.get_tree().create_timer(seconds).timeout
+
+
+## Mouse press or release at a viewport position, pushed through the engine's
+## GUI input path (hit-testing, filtering and layering included).
+func press_at(at: Vector2, down: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = down
+	event.position = at
+	event.global_position = at
+	host.get_viewport().push_input(event, true)
+
+
+func tap_at(at: Vector2) -> void:
+	press_at(at, true)
+	await wait_frames(1)
+	press_at(at, false)
+	await wait_frames(1)
+
+
+## One finger going down or lifting, as the screen reports it. Unlike
+## `press_at` this does not move the "mouse": use it for second fingers.
+func touch_at(index: int, at: Vector2, down: bool) -> void:
+	var event := InputEventScreenTouch.new()
+	event.index = index
+	event.pressed = down
+	event.position = at
+	host.get_viewport().push_input(event, true)
+
+
+func drag_to(index: int, at: Vector2) -> void:
+	var event := InputEventScreenDrag.new()
+	event.index = index
+	event.position = at
+	host.get_viewport().push_input(event, true)

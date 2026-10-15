@@ -14,8 +14,17 @@ extends RefCounted
 ## across the swarm instead of a one-frame spike.
 
 const MAX_BLASTS_PER_STEP := 16
+## Headroom, on top of one explosion per enemy that can exist, before the
+## queue refuses more. A chain adds at most one per kill, so a whole field
+## dying at once still fits; the limit is a backstop that turns a runaway (a
+## bad data edit, a future weapon) into dropped effects instead of a hang.
+const BLAST_QUEUE_HEADROOM := 256
 
 var total_damage := 0.0
+## Area hits resolved so far (tests use it to check the per-step budget).
+var blasts_resolved := 0
+## Longest the explosion queue may get. Set by the arena from the enemy cap.
+var max_queued_blasts := 512 + BLAST_QUEUE_HEADROOM
 var kills := 0
 var elites_killed := 0
 var bosses_killed := 0
@@ -177,8 +186,15 @@ func hit(i: int, base_damage: float, src: int, kb_x: float = 0.0, kb_y: float = 
 ## Queues an area hit. Resolved in `flush()`.
 func blast(x: float, y: float, radius: float, base_damage: float, src: int, color: Color,
 		kb: float = 140.0, chill_time: float = 0.0, can_crit: bool = false) -> void:
+	if radius <= 0.0 or not (is_finite(x) and is_finite(y) and is_finite(radius)):
+		return
+	if _blasts.size() >= max_queued_blasts:
+		_a.diag.blasts_dropped += 1
+		return
 	_blasts.append({"x": x, "y": y, "r": radius, "dmg": base_damage, "src": src, "color": color,
 		"kb": kb, "chill": chill_time, "crit": can_crit})
+	if _blasts.size() > _a.diag.blast_queue_peak:
+		_a.diag.blast_queue_peak = _blasts.size()
 
 
 func flush() -> void:
@@ -206,6 +222,7 @@ func flush() -> void:
 			if chill_time > 0.0:
 				enemies.apply_cold(e, chill_time)
 			hit(e, float(b.dmg), int(b.src), dx / d * kb, dy / d * kb, bool(b.crit))
+	blasts_resolved += processed
 	if processed >= _blasts.size():
 		_blasts.clear()
 	else:

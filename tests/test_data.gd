@@ -65,3 +65,53 @@ func test_weapon_levels_have_descriptions() -> void:
 		for i in levels.size():
 			var level: Dictionary = levels[i]
 			check(not GameData.text(level, "desc").is_empty(), "weapon '%s' level %d has a description" % [id, i + 1])
+
+
+## "Avoid unavoidable damage": every blast in the tables gives enough warning
+## for a player moving at base speed to walk from its centre to safety, with a
+## margin for reacting to it.
+func test_every_blast_can_be_outrun_from_its_centre() -> void:
+	var player := GameData.dict(app.data.game, "player")
+	var speed := GameData.num(GameData.dict(player, "base_stats"), "move_speed", 250.0)
+	var body := GameData.num(player, "radius", 17.0)
+	var reaction := 0.25
+	var blasts: Array[Array] = []
+	var types := app.data.enemy_types()
+	var lob := GameData.dict(GameData.dict(types, "mortar"), "lob")
+	blasts.append(["Mortar shell", GameData.num(lob, "blast_radius"), GameData.num(lob, "flight")])
+	var bomb := GameData.dict(GameData.dict(types, "bomber"), "bomb")
+	blasts.append(["Bomber", GameData.num(bomb, "blast_radius"), GameData.num(bomb, "fuse")])
+	var volatile := GameData.dict(GameData.dict(GameData.dict(app.data.enemies, "elite"), "affixes"), "volatile")
+	blasts.append(["Volatile elite", GameData.num(volatile, "death_blast_radius"), GameData.num(volatile, "death_blast_delay")])
+	var bombard := GameData.dict(GameData.dict(app.data.stages, "timeline"), "bombard")
+	blasts.append(["Bombardment shell", GameData.num(bombard, "radius"), GameData.num(bombard, "delay")])
+	for boss_id: String in GameData.dict(app.data.stages, "bosses"):
+		var zones := GameData.dict(GameData.dict(GameData.dict(app.data.stages, "bosses")[boss_id], "attacks"), "zones")
+		if not zones.is_empty():
+			blasts.append(["%s ground blast" % boss_id, GameData.num(zones, "radius"), GameData.num(zones, "telegraph")])
+	for entry in blasts:
+		var radius := float(entry[1])
+		var warning := float(entry[2])
+		var needed := (radius + body) / speed + reaction
+		check(warning >= HazardSystem.MIN_DELAY, "%s gives at least the minimum warning (%.2f s)" % [str(entry[0]), warning])
+		check(warning >= needed, "%s: %.2f s of warning covers the %.2f s needed to react and walk out" % [str(entry[0]), warning, needed])
+	for type_id: String in ["dasher"]:
+		var dash := GameData.dict(GameData.dict(types, type_id), "dash")
+		check(GameData.num(dash, "telegraph") >= 0.4, "%s shows its lane before charging (%.2f s)" % [type_id, GameData.num(dash, "telegraph")])
+
+
+func test_upgrade_table_is_well_formed() -> void:
+	fresh_profile()
+	var total := 0
+	for id: String in app.meta.ids():
+		var levels := app.meta.max_level(id)
+		for step in levels:
+			total += app.meta.cost_at(id, step)
+		var gate := app.meta.unlock_level(id)
+		check(gate >= 0 and gate <= 30, "upgrade '%s' unlocks at a reachable Player Level (%d)" % [id, gate])
+	check(total > 50000 and total < 400000, "buying everything is a long-term goal, not an impossible one (%d Credits)" % total)
+	var first_buys := 0
+	for id: String in app.meta.ids():
+		if app.meta.unlock_level(id) <= 1 and app.meta.cost_at(id, 0) <= 250:
+			first_buys += 1
+	check(first_buys >= 6, "a new player has several upgrades within reach of a first run or two (%d)" % first_buys)

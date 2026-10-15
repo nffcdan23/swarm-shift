@@ -15,6 +15,8 @@ var velocity := Vector2.ZERO
 var aim_angle := 0.0
 var invulnerable_for := 0.0
 var damage_taken := 0.0
+## Hits that got through (not ones absorbed by invulnerability).
+var hits_taken := 0
 
 # Resolved stats (see game.json -> player.base_stats).
 var move_speed := 250.0
@@ -189,6 +191,7 @@ func take_hit(amount: float, from_x: float, from_y: float) -> bool:
 	var dealt := maxf(amount - armor, amount * _armor_min)
 	hp -= dealt
 	damage_taken += dealt
+	hits_taken += 1
 	invulnerable_for = _iframes
 	_flash = 1.0
 	_a.on_player_hit(dealt, from_x, from_y)

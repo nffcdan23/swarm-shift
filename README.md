@@ -2,9 +2,9 @@
 
 A portrait, one-thumb roguelite swarm survivor for iOS and Android. Drag to move, weapons fire on their own, collect energy, pick one of three upgrades, survive to the boss.
 
-| Home | Level-up | Late run | Boss |
+| Home | Level-up | Sector 3 | Boss |
 | --- | --- | --- | --- |
-| ![Home](docs/screenshots/home.png) | ![Level-up](docs/screenshots/level_up.png) | ![Late run](docs/screenshots/late_run.png) | ![Boss](docs/screenshots/boss.png) |
+| ![Home](docs/screenshots/home.png) | ![Level-up](docs/screenshots/level_up.png) | ![Sector 3](docs/screenshots/sector_3_bombardment.png) | ![Boss](docs/screenshots/boss.png) |
 
 More in [docs/screenshots](docs/screenshots). They are produced by the screenshot tour described below, so they can be regenerated after any visual change.
 
@@ -12,6 +12,7 @@ Built with **Godot 4.7.2** and GDScript. No backend, no third-party SDKs yet - a
 
 - [GAME_DESIGN.md](GAME_DESIGN.md) - what the game is and how it is tuned
 - [ARCHITECTURE.md](ARCHITECTURE.md) - how the code is organised, how to extend it, and what must happen before real money is switched on
+- [docs/playtest-1](docs/playtest-1/README.md) - the freeze found in the first device playtest: cause, evidence and fix
 
 ## Requirements
 
@@ -36,9 +37,11 @@ Useful launch options (everything after `--`):
 | --- | --- |
 | `--play` | Skip the menu, start a run |
 | `--autoplay` | Let the built-in bot play (attract mode / soak test) |
-| `--perf` | Frame-time and entity-count overlay in a run |
+| `--perf` | Frame-time, entity-count and run-diagnostics overlay in a run |
 | `--seed=N` | Reproducible run |
 | `--log-analytics` | Print every analytics event |
+| `--profile=<name>` | Play on a separate save file, leaving the real profile alone |
+| `--snap=<file.png>` | Save a screenshot after `--snap-after` seconds (default 3) and quit |
 
 Open the project in the editor with `godot --path . --editor`.
 
@@ -49,13 +52,32 @@ godot --headless --path . --import          # once after adding files
 godot --headless --path . -- --test
 ```
 
-57 tests, about 1,390 checks, around ten seconds. Suites: `scripts` (every file compiles), `data` (tables load and cross-reference), `services` (save, economy, progression, ads/store policy), `gameplay` (whole runs played by the bot, every weapon, the boss, determinism), `ui` (every screen builds; real synthetic taps and drags).
+111 tests, about 2,430 checks, a little over a minute (most of it the stability suite).
+
+| Suite | Covers |
+| --- | --- |
+| `scripts` | Every script compiles |
+| `data` | Tables load and cross-reference; every blast gives enough warning to walk out of |
+| `services` | Save, economy, missions, achievements, ads and store policy |
+| `gameplay` | Whole runs played by the bot, every weapon, the boss, determinism |
+| `ui` | Every screen builds; real synthetic taps and drags; the lobby, upgrades, pause and results flows |
+| `progression` | Player Level, Credits, banking exactly once, recovery of an interrupted run, permanent upgrades, and a save from before those features |
+| `threats` | What each sector contains, mutators, and that Mortars, Bombers and bombardments can always be avoided |
+| `stability` | The playtest-1 freeze, HUD recovery, multi-touch, and overload: 1,000 enemies, hundreds of explosions, a long Overdrive soak |
 
 Run one suite or one test:
 
 ```bash
 godot --headless --path . -- --test=gameplay --only=boss --trace
 ```
+
+The soak test simulates ten minutes of Overdrive by default; ask for longer with `--soak`:
+
+```bash
+godot --headless --path . -- --test=stability --only=long_session --soak=30
+```
+
+The stability suite asserts on step times, so run it on an otherwise idle machine.
 
 ## Balance and performance tools
 
@@ -66,6 +88,9 @@ godot --headless --path . -- --sim=20 --sector=4 --meta=0.3 --skill=0.6
 # Per-30-second trace of one run
 godot --headless --path . -- --sim=1 --timeline
 
+# Minute-by-minute pressure: hits taken, enemies, speed, charges, shots, blast zones
+godot --headless --path . -- --sim=30 --sector=2 --meta=0.15 --pressure
+
 # Worst-case load with a per-system time breakdown
 godot --headless --path . -- --bench
 
@@ -73,7 +98,17 @@ godot --headless --path . -- --bench
 godot --path . --resolution 540x1170 -- --shots=/absolute/output/folder
 ```
 
-All balance values live in `data/*.json`. Change a number, re-run the simulation, compare.
+All balance values live in `data/*.json`. Change a number, re-run the simulation, compare. Every simulation also reports the average Credits and Player XP a run pays, and how often an upgrade screen opens within a moment of the previous one closing.
+
+## When something goes wrong on a device
+
+The game writes a local event log and flushes it whenever the app loses focus, so the last events before a crash or freeze survive it. Pull it from a connected iPhone without disturbing the app:
+
+```bash
+xcrun devicectl device copy from --device <udid> --domain-type appDataContainer --domain-identifier com.starscale.swarmshift --source Documents/analytics.jsonl --destination analytics.jsonl
+```
+
+Each line is one event with the run time it happened at. A `hud_recovered` event means the interface found itself out of step with the run and repaired it - worth a bug report even though the player was not stuck. A run that was cut short is paid out at the next launch, with a dialog saying so.
 
 ## Regenerate art and audio
 
@@ -176,6 +211,6 @@ src/game     The run: arena, enemies, weapons, boss, effects
 src/ui       Design system, HUD, menu screens
 tools/       Art and audio generators, iOS deploy script
 tests/       Test suites, balance simulator, screenshot tour
-docs/        Reference screenshots (ignored by the engine)
+docs/        Reference screenshots and the playtest-1 investigation (ignored by the engine)
 build/       Export output (ignored by git)
 ```

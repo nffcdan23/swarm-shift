@@ -12,6 +12,8 @@ extends Node
 ##   --play             skip the menu and start a run
 ##   --autoplay         let the bot play (attract mode / soak test)
 ##   --perf             show the frame-time overlay in a run
+##   --profile=<name>   use a separate save file instead of the real profile
+##   --snap=<file.png>  save a screenshot after --snap-after seconds (default 3), then quit
 
 var menu: MenuShell
 var arena: Arena
@@ -23,6 +25,11 @@ var _fade_layer: CanvasLayer
 var _fade: ColorRect
 var _last_mode := CampaignService.MODE_SECTOR
 var _busy := false
+var _checkpoint_in := CHECKPOINT_SECONDS
+
+## How often the run in progress is written to the profile, so that its
+## rewards survive the app being closed or killed mid-fight.
+const CHECKPOINT_SECONDS := 8.0
 
 
 func _ready() -> void:
@@ -54,13 +61,47 @@ func _ready() -> void:
 	menu.play_pressed.connect(start_run)
 	App.audio.play_music("menu")
 
+	# A run that was cut short last time (app closed or killed) is paid out now.
+	var recovered := {} if App.cli.has("device-check") else RunLedger.recover_pending(App)
+
 	if App.cli.has("shots"):
 		_run_tool("res://tests/shot_tour.gd")
 	elif App.cli.has("device-check"):
 		add_child(DeviceCheck.new(self))
 	elif App.cli.has("play") or App.cli.has("autoplay"):
 		start_run(App.cli_text("mode", CampaignService.MODE_SECTOR))
+	elif not recovered.is_empty():
+		menu.open_dialog(RecoveredRunModal.new(recovered))
+		menu.refresh_current()
+	if App.cli.has("snap"):
+		_snap_later(App.cli_text("snap"), float(App.cli_text("snap-after", "3")))
 	await _fade_to(0.0, 0.5)
+
+
+## Development aid: capture whatever is on screen after a delay, then quit.
+func _snap_later(path: String, seconds: float) -> void:
+	await get_tree().create_timer(maxf(seconds, 0.1)).timeout
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png(path)
+	get_tree().quit()
+
+
+func _process(delta: float) -> void:
+	if not _run_in_progress():
+		return
+	_checkpoint_in -= delta
+	if _checkpoint_in <= 0.0:
+		_checkpoint_in = CHECKPOINT_SECONDS
+		_checkpoint(false)
+
+
+func _run_in_progress() -> bool:
+	return in_run() and arena.state != Arena.State.ENDING and arena.state != Arena.State.ENDED
+
+
+func _checkpoint(flush: bool) -> void:
+	if _run_in_progress() and arena.autopilot == null:
+		RunLedger.checkpoint(App, arena.build_result(false, false, true), flush)
 
 
 func _run_tool(path: String) -> bool:
@@ -98,6 +139,7 @@ func start_run(mode: String = CampaignService.MODE_SECTOR) -> void:
 	hud.quit_requested.connect(arena.abandon)
 	arena.run_ended.connect(_on_run_ended)
 	arena.start()
+	_checkpoint_in = CHECKPOINT_SECONDS
 	_busy = false
 	await _fade_to(0.0, 0.3)
 
@@ -155,8 +197,12 @@ func _fade_to(alpha: float, seconds: float) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		_go_back()
+	match what:
+		NOTIFICATION_WM_GO_BACK_REQUEST:
+			_go_back()
+		NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST:
+			# The app may not come back: bank the run as it stands, on disk, now.
+			_checkpoint(true)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

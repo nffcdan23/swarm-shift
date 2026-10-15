@@ -64,12 +64,27 @@ func _run() -> void:
 		App.stats.add("runs", 9.0)
 		App.missions.apply_run({"kills": 620, "time": 310, "bosses": 1, "level_ups": 24, "level": 25, "damage": 61000, "credits": 340, "elites": 4, "runs": 1})
 		menu.set_active(true)
-		await _wait(0.7)
+		# Let the "Player Level" toasts from the grants above clear first.
+		await _wait(3.6)
 		await _shot("02_menu_home")
+		# A later sector: its mutator is named before the run is started.
+		App.campaign.select(4)
+		menu.refresh_current()
+		await _wait(0.4)
+		await _shot("02_menu_home_sector_4")
+		App.campaign.select(1)
 		for tab: String in ["upgrades", "arsenal", "missions", "shop"]:
 			menu.show_tab(tab)
 			await _wait(0.6)
 			await _shot("03_menu_%s" % tab)
+		menu.show_tab("upgrades")
+		var upgrades := menu.screen("upgrades") as UpgradesScreen
+		upgrades._quantity.select(1)
+		upgrades._on_quantity(1)
+		await _wait(0.5)
+		await _shot("03_menu_upgrades_x5")
+		upgrades._quantity.select(0)
+		upgrades._on_quantity(0)
 		(menu.screen("missions") as MissionsScreen).show_achievements()
 		menu.show_tab("missions")
 		await _wait(0.6)
@@ -84,6 +99,8 @@ func _run() -> void:
 			dialog.close()
 			await _wait(0.4)
 
+	if _wants("sector"):
+		await _sector_three()
 	if not (_wants("run") or _wants("boss") or _wants("levelup") or _wants("results") or _wants("pause")):
 		return
 	App.cli["autoplay"] = "1"
@@ -118,6 +135,11 @@ func _run() -> void:
 	hud.open_pause()
 	await _wait(0.8)
 	await _shot("15_pause")
+	hud._pause._show_confirm()
+	await _wait(0.4)
+	await _shot("15_pause_end_run")
+	hud.handle_back()
+	await _wait(0.2)
 	hud.handle_back()
 	await _wait(0.4)
 
@@ -148,8 +170,38 @@ func _run() -> void:
 	arena.player.take_hit(1000000.0, arena.player.x, arena.player.y)
 	await _wait(0.5)
 	await _shot("20_death")
-	await _wait(4.2)
+	await _wait(3.2)
+	await _shot("21_results_collecting")
+	await _wait(6.0)
 	await _shot("21_results")
+
+
+## Sector 3 adds Weavers, Mortars, Bombers and bombardments: show them.
+func _sector_three() -> void:
+	App.cli["autoplay"] = "1"
+	App.cli["seed"] = "9"
+	App.campaign.record_run(CampaignService.MODE_SECTOR, 1, true, 312.0)
+	App.campaign.record_run(CampaignService.MODE_SECTOR, 2, true, 298.0)
+	App.campaign.select(3)
+	_main.start_run(CampaignService.MODE_SECTOR)
+	await _wait(1.2)
+	var arena: Arena = _main.arena
+	for weapon_id: String in ["pulse", "orbit", "nova"]:
+		arena.grant_weapon(weapon_id, 3)
+	await _advance(arena, 4.0)
+	await _shot("30_sector_3_start")
+	await _advance(arena, 141.5)
+	await _shot("31_sector_3_bombardment")
+	await _advance(arena, 150.0)
+	await _shot("32_sector_3_mid")
+	await _advance(arena, 205.0)
+	await _shot("33_sector_3_mortars")
+	await _advance(arena, 264.5)
+	await _shot("34_sector_3_bombers")
+	_main._teardown_run()
+	_main.menu.set_active(true)
+	await _wait(0.5)
+	App.campaign.select(1)
 
 
 ## Runs the simulation flat out until `target` seconds of run time, then lets a

@@ -1,7 +1,7 @@
 {
   "title": "SWARM//SHIFT",
   "tagline": "ONE CORE. ENDLESS SWARM.",
-  "version": "0.1.0",
+  "version": "0.2.1",
 
   "currencies": {
     "credits": { "name": "Credits", "icon": "credit", "color": "#ffd15c" },
@@ -43,6 +43,7 @@
     "base_rerolls": 1,
     "max_enemies": 420,
     "max_pickups": 340,
+    "max_credit_pickups": 70,
     "camera_zoom": 0.88,
     "boss_camera_zoom": 0.74,
     "levelup_shockwave_radius": 230,

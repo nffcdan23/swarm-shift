@@ -10,6 +10,10 @@ extends Node
 ##   godot --headless --path . -- --sim=5 --mode=endless --limit=1200
 ##   godot --headless --path . -- --sim=1 --timeline
 ##       also prints a line every 30 simulated seconds for the first run.
+##   godot --headless --path . -- --sim=30 --sector=2 --pressure
+##       also prints, minute by minute and averaged over the runs, how hard the
+##       sector pushes: hits taken, enemies alive, their speed, and how many
+##       charges, shots and blast zones the player had to deal with.
 ##   godot --headless --path . -- --bench
 ##       worst-case load scenarios with a per-system time breakdown.
 ##
@@ -48,6 +52,16 @@ func _play(config: RunConfig, limit: float, traced: bool = false) -> Dictionary:
 	var out: Dictionary = {}
 	arena.run_ended.connect(func(result: Dictionary) -> void: out["result"] = result)
 	var wall := Time.get_ticks_msec()
+	var minutes: Array[Dictionary] = []
+	var minute_end := 60.0
+	var m_hits := 0
+	var m_damage := 0.0
+	var m_dashes := 0
+	var m_shots := 0
+	var m_zones := 0
+	var m_alive := 0.0
+	var m_speed := 0.0
+	var m_steps := 0
 	var next_mark := 30.0
 	var last_kills := 0
 	var last_damage := 0.0
@@ -57,6 +71,28 @@ func _play(config: RunConfig, limit: float, traced: bool = false) -> Dictionary:
 		arena.step(DT)
 		alive_sum += float(arena.enemies.count)
 		alive_samples += 1
+		m_alive += float(arena.enemies.count)
+		m_speed += arena.enemies.speed_mult
+		m_steps += 1
+		if arena.time >= minute_end or arena.state == Arena.State.ENDED:
+			# One row per minute of the run; a part-minute counts if the run ended in it.
+			minutes.append({
+				"hits": arena.player.hits_taken - m_hits,
+				"damage": (arena.player.damage_taken - m_damage) / maxf(arena.player.max_hp, 1.0),
+				"dashes": arena.enemies.dashes_total - m_dashes, "shots": arena.bullets.spawned_total - m_shots,
+				"zones": arena.hazards.spawned_total - m_zones,
+				"alive": m_alive / float(maxi(m_steps, 1)), "speed": m_speed / float(maxi(m_steps, 1)),
+				"survived": arena.state != Arena.State.ENDED or bool(out.get("result", {}).get("cleared", false)),
+			})
+			m_hits = arena.player.hits_taken
+			m_damage = arena.player.damage_taken
+			m_dashes = arena.enemies.dashes_total
+			m_shots = arena.bullets.spawned_total
+			m_zones = arena.hazards.spawned_total
+			m_alive = 0.0
+			m_speed = 0.0
+			m_steps = 0
+			minute_end += 60.0
 		if traced and arena.time >= next_mark:
 			print("    %5s  lvl %2d  hp %3d%%  alive %3d (avg %3.0f)  kills/s %4.1f  dps %5.0f  hp_mult %.2f  weapons %s" % [
 				Fmt.time_mmss(arena.time), arena.level, int(arena.player.hp_fraction() * 100.0), arena.enemies.count,
@@ -77,6 +113,8 @@ func _play(config: RunConfig, limit: float, traced: bool = false) -> Dictionary:
 	out["profile"] = arena.profile_usec.duplicate()
 	out["boss_hp"] = arena.boss.hp_fraction() if arena.boss.active else -1.0
 	out["hp"] = arena.player.hp_fraction()
+	out["diag"] = arena.diag
+	out["minutes"] = minutes
 	remove_child(arena)
 	arena.free()
 	return out
@@ -101,6 +139,14 @@ func _sim() -> void:
 	var boss_reached := 0
 	var weapon_damage: Dictionary = {}
 	var weapon_picks: Dictionary = {}
+	var credits := 0.0
+	var credits_cleared := 0.0
+	var player_xp := 0.0
+	var pressure: Array[Dictionary] = []
+	var choices := 0
+	var quick_choices := 0
+	var runs_with_quick := 0
+	var recoveries := 0
 	var share_sum: Dictionary = {}
 	var share_runs: Dictionary = {}
 	for i in runs:
@@ -125,6 +171,28 @@ func _sim() -> void:
 		if int(r.bosses) > 0 or float(out.boss_hp) >= 0.0:
 			boss_reached += 1
 		times.append(seconds)
+		var payout := RunLedger.compute(App, r)
+		credits += float(payout.credits)
+		player_xp += float(payout.account_xp)
+		if bool(r.cleared):
+			credits_cleared += float(payout.credits)
+		var per_minute: Array = out.minutes
+		for m in per_minute.size():
+			if m >= pressure.size():
+				pressure.append({"runs": 0, "hits": 0.0, "damage": 0.0, "dashes": 0.0, "shots": 0.0, "zones": 0.0, "alive": 0.0, "speed": 0.0, "survived": 0})
+			var row: Dictionary = per_minute[m]
+			var total: Dictionary = pressure[m]
+			total.runs = int(total.runs) + 1
+			for key: String in ["hits", "damage", "dashes", "shots", "zones", "alive", "speed"]:
+				total[key] = float(total[key]) + float(row[key])
+			if bool(row.survived):
+				total.survived = int(total.survived) + 1
+		var diag: RunDiagnostics = out.diag
+		choices += diag.choices
+		quick_choices += diag.quick_choices
+		recoveries += diag.hud_recoveries + diag.blasts_dropped
+		if diag.quick_choices > 0:
+			runs_with_quick += 1
 		levels += float(r.level)
 		kills += float(r.kills)
 		var loadout := ""
@@ -147,6 +215,21 @@ func _sim() -> void:
 	var median := times[times.size() / 2]
 	print("  clear rate %d/%d (%.0f%%)   reached boss %d/%d   median time %s   avg level %.1f   avg kills %.0f" % [
 		clears, runs, 100.0 * float(clears) / float(runs), boss_reached, runs, Fmt.time_mmss(median), levels / float(runs), kills / float(runs)])
+	print("  payout per run: %.0f Credits, %.0f Player XP   (cleared runs: %.0f Credits)   [no Credit or XP upgrades applied]" % [
+		credits / float(runs), player_xp / float(runs), credits_cleared / float(maxi(clears, 1))])
+	# How often an upgrade screen opens while the previous one would still be
+	# fading out. Each of these froze the game before the playtest-1 fix.
+	print("  upgrade screens %d, of which %d (%.1f%%) opened within %.2fs of the previous one closing - in %d of %d runs   safety valves used: %d" % [
+		choices, quick_choices, 100.0 * float(quick_choices) / float(maxi(choices, 1)), RunDiagnostics.QUICK_WINDOW, runs_with_quick, runs, recoveries])
+	if App.cli.has("pressure"):
+		print("  pressure by minute (averages over the runs still alive at its start; the boss arrives at 5:00)")
+		print("    minute   runs  survived   hits  health lost   enemies  speed   charges  shots  blast zones")
+		for m in pressure.size():
+			var row: Dictionary = pressure[m]
+			var n := float(maxi(int(row.runs), 1))
+			print("    %d:00-%d:00  %3d   %5.0f%%   %5.1f   %8.0f%%   %7.0f   x%.2f   %6.1f  %5.1f   %8.1f" % [
+				m, m + 1, int(row.runs), 100.0 * float(row.survived) / n, float(row.hits) / n, 100.0 * float(row.damage) / n,
+				float(row.alive) / n, float(row.speed) / n, float(row.dashes) / n, float(row.shots) / n, float(row.zones) / n])
 	var total := 0.0
 	for source_name: String in weapon_damage:
 		total += float(weapon_damage[source_name])

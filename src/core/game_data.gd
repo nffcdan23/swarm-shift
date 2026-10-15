@@ -221,15 +221,44 @@ func validate() -> PackedStringArray:
 		if not enemy_ids.has(text(track, "enemy")):
 			out.append("stage track: unknown enemy '%s'" % text(track, "enemy"))
 	for event: Dictionary in list(timeline, "events"):
-		var etype := text(event, "type")
-		if etype == "elite" and not enemy_ids.has(text(event, "enemy")):
-			out.append("stage event @%s: unknown elite enemy '%s'" % [str(event.get("t")), text(event, "enemy")])
-		for group_key: String in ["spawns", "escort"]:
-			for enemy_id: String in dict(event, group_key):
-				if not enemy_ids.has(enemy_id):
-					out.append("stage event @%s: unknown enemy '%s'" % [str(event.get("t")), enemy_id])
+		_check_event(event, "stage event @%s" % str(event.get("t")), out)
 	if not dict(stages, "bosses").has(text(timeline, "boss")):
 		out.append("timeline: unknown boss '%s'" % text(timeline, "boss"))
+
+	# Sector briefs and mutators.
+	var sectors := dict(stages, "sectors")
+	var mutators := dict(sectors, "mutators")
+	for mutator_id: String in list(sectors, "rotation"):
+		if not mutators.has(mutator_id):
+			out.append("sectors.rotation: unknown mutator '%s'" % mutator_id)
+	for mutator_id: String in mutators:
+		var mutator: Dictionary = mutators[mutator_id]
+		for enemy_id: String in dict(mutator, "tracks"):
+			if not enemy_ids.has(enemy_id):
+				out.append("mutator '%s': unknown enemy '%s'" % [mutator_id, enemy_id])
+		var every := dict(mutator, "every")
+		if not every.is_empty():
+			_check_event(dict(every, "event"), "mutator '%s' event" % mutator_id, out)
+		var affix := text(mutator, "elite_affix")
+		if not affix.is_empty() and not dict(dict(enemies, "elite"), "affixes").has(affix):
+			out.append("mutator '%s': unknown elite affix '%s'" % [mutator_id, affix])
+	for brief: Dictionary in list(sectors, "briefs"):
+		for enemy_id: String in list(brief, "new"):
+			if not enemy_ids.has(enemy_id):
+				out.append("sector %s brief: unknown enemy '%s'" % [str(brief.get("sector")), enemy_id])
+
+	# Permanent upgrades.
+	var categories := dict(meta, "upgrade_categories")
+	for id: String in meta_upgrades():
+		var upgrade: Dictionary = meta_upgrades()[id]
+		if not categories.has(text(upgrade, "category")):
+			out.append("upgrade '%s': unknown category '%s'" % [id, text(upgrade, "category")])
+		if dict(upgrade, "mods").size() != 1:
+			out.append("upgrade '%s': must have exactly one modifier" % id)
+		if not text(upgrade, "format") in ["percent", "number"]:
+			out.append("upgrade '%s': format must be 'percent' or 'number'" % id)
+		if integer(upgrade, "unlock_level") > integer(dict(meta, "account"), "max_level", 100):
+			out.append("upgrade '%s': unlock level is above the level cap" % id)
 
 	var rarities := dict(game, "rarities")
 	for group_key: String in ["passives", "augments"]:
@@ -269,6 +298,20 @@ func validate() -> PackedStringArray:
 		if not ResourceLoader.exists("res://assets/audio/music/%s.wav" % file):
 			out.append("audio: missing music file '%s.wav'" % file)
 	return out
+
+
+## One scripted set piece: its type must be known and its enemies must exist.
+func _check_event(event: Dictionary, owner: String, out: PackedStringArray) -> void:
+	var enemy_ids := enemy_types()
+	var etype := text(event, "type")
+	if not etype in ["surge", "elite", "pack", "pincer", "line", "bombard"]:
+		out.append("%s: unknown event type '%s'" % [owner, etype])
+	if etype in ["elite", "pack", "pincer", "line"] and not enemy_ids.has(text(event, "enemy")):
+		out.append("%s: unknown enemy '%s'" % [owner, text(event, "enemy")])
+	for group_key: String in ["spawns", "escort"]:
+		for enemy_id: String in dict(event, group_key):
+			if not enemy_ids.has(enemy_id):
+				out.append("%s: unknown enemy '%s'" % [owner, enemy_id])
 
 
 func _check_token(token: String, owner: String, out: PackedStringArray) -> void:

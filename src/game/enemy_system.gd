@@ -17,6 +17,9 @@ const AI_SEEK := 0
 const AI_DASHER := 1
 const AI_SHOOTER := 2
 const AI_NONE := 3
+const AI_MORTAR := 4     ## keeps its distance and shells where the player is heading
+const AI_WEAVER := 5     ## circles in from the side instead of running straight at you
+const AI_BOMBER := 6     ## runs in, plants itself and detonates after a short fuse
 
 const F_ELITE := 1
 const F_BIG := 2
@@ -81,6 +84,8 @@ var touch_damage := 0.0
 var nearest_idx := -1
 var nearest_dist := INF
 var killed_total := 0
+## Dasher charges begun since the run began.
+var dashes_total := 0
 
 var type_ids: Array[String] = []
 var type_defs: Array[Dictionary] = []
@@ -98,6 +103,8 @@ var _tp_c := PackedFloat32Array()
 var _tp_d := PackedFloat32Array()
 var _tp_e := PackedFloat32Array()
 var _tp_f := PackedFloat32Array()
+var _tp_g := PackedFloat32Array()
+var _tp_h := PackedFloat32Array()
 
 var _elite_cfg: Dictionary
 var _affixes: Dictionary
@@ -159,7 +166,7 @@ func setup(arena: Arena, p_capacity: int) -> void:
 		type_defs.append(def)
 		type_colors.append(GameData.color(def, "color", Color.WHITE))
 		var ai_name := GameData.text(def, "ai", "seek")
-		var params := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+		var params := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 		var ai_code := AI_SEEK
 		var directional := 0
 		if ai_name == "dasher":
@@ -167,14 +174,33 @@ func setup(arena: Arena, p_capacity: int) -> void:
 			directional = 1
 			var dash := GameData.dict(def, "dash")
 			params = PackedFloat32Array([GameData.num(dash, "trigger_range", 320.0), GameData.num(dash, "telegraph", 0.5),
-				GameData.num(dash, "speed", 560.0), GameData.num(dash, "duration", 0.45), GameData.num(dash, "cooldown", 2.6), 0.0])
+				GameData.num(dash, "speed", 560.0), GameData.num(dash, "duration", 0.45), GameData.num(dash, "cooldown", 2.6), 0.0, 0.0, 0.0])
 		elif ai_name == "shooter":
 			ai_code = AI_SHOOTER
 			directional = 1
 			var shoot := GameData.dict(def, "shoot")
 			params = PackedFloat32Array([GameData.num(shoot, "range", 420.0), GameData.num(shoot, "keep_min", 270.0),
 				GameData.num(shoot, "cooldown", 2.4), GameData.num(shoot, "telegraph", 0.35),
-				GameData.num(shoot, "bullet_speed", 250.0), GameData.num(shoot, "bullet_damage", 12.0)])
+				GameData.num(shoot, "bullet_speed", 250.0), GameData.num(shoot, "bullet_damage", 12.0), 0.0, 0.0])
+		elif ai_name == "mortar":
+			ai_code = AI_MORTAR
+			directional = 1
+			var lob := GameData.dict(def, "lob")
+			params = PackedFloat32Array([GameData.num(lob, "range", 520.0), GameData.num(lob, "keep_min", 330.0),
+				GameData.num(lob, "cooldown", 3.6), GameData.num(lob, "windup", 0.5),
+				GameData.num(lob, "flight", 1.15), GameData.num(lob, "blast_radius", 92.0),
+				GameData.num(lob, "damage", 16.0), GameData.num(lob, "lead", 0.35)])
+		elif ai_name == "weaver":
+			ai_code = AI_WEAVER
+			directional = 1
+			var weave := GameData.dict(def, "weave")
+			params = PackedFloat32Array([GameData.num(weave, "orbit_range", 300.0), GameData.num(weave, "inward", 0.38),
+				GameData.num(weave, "strike_range", 120.0), GameData.num(weave, "strike_speed", 1.15), 0.0, 0.0, 0.0, 0.0])
+		elif ai_name == "bomber":
+			ai_code = AI_BOMBER
+			var bomb := GameData.dict(def, "bomb")
+			params = PackedFloat32Array([GameData.num(bomb, "trigger_range", 105.0), GameData.num(bomb, "fuse", 0.75),
+				GameData.num(bomb, "blast_radius", 118.0), GameData.num(bomb, "damage", 22.0), 0.0, 0.0, 0.0, 0.0])
 		elif type_id == "swarmer":
 			directional = 1
 		_t_ai.append(ai_code)
@@ -186,6 +212,8 @@ func setup(arena: Arena, p_capacity: int) -> void:
 		_tp_d.append(params[3])
 		_tp_e.append(params[4])
 		_tp_f.append(params[5])
+		_tp_g.append(params[6])
+		_tp_h.append(params[7])
 
 
 func type_of(type_id: String) -> int:
@@ -390,6 +418,7 @@ func update(dt: float) -> void:
 					tm = _tp_b[t_idx]
 					dir_x[i] = nx
 					dir_y[i] = ny
+					dashes_total += 1
 					a.sfx("dash_warn")
 			elif st == 1:
 				face_x = dir_x[i]
@@ -440,6 +469,73 @@ func update(dt: float) -> void:
 					tm = _tp_d[t_idx]
 			astate[i] = st
 			atimer[i] = tm
+		elif mode == AI_MORTAR:
+			var st := astate[i]
+			var tm := atimer[i] - dt * (1.0 if slow > 0.0 else 0.0)
+			if st == 1:
+				# Winding up: it glows, then the shell is already on its way.
+				aflash[i] = maxf(aflash[i], 0.6)
+				if tm <= 0.0:
+					# Aimed a little ahead of the player, so neither standing still
+					# nor running in a straight line is the answer - a turn is.
+					var lead := _tp_h[t_idx]
+					a.hazards.add(px + player.velocity.x * lead, py + player.velocity.y * lead, _tp_f[t_idx], _tp_e[t_idx],
+						_tp_g[t_idx] * damage_mult, type_colors[t_idx], ex, ey)
+					a.sfx("enemy_shoot", 0.7)
+					st = 0
+					tm = _tp_c[t_idx] * a.rng.randf_range(0.85, 1.15)
+			else:
+				var reach := _tp_a[t_idx]
+				if d > reach:
+					mvx = nx * spd
+					mvy = ny * spd
+				elif d < _tp_b[t_idx]:
+					mvx = -nx * spd * 0.9
+					mvy = -ny * spd * 0.9
+				else:
+					var side := 1.0 if aphase[i] > PI else -1.0
+					mvx = -ny * spd * 0.45 * side
+					mvy = nx * spd * 0.45 * side
+				if tm <= 0.0 and d < reach * 1.1:
+					st = 1
+					tm = _tp_d[t_idx]
+			astate[i] = st
+			atimer[i] = tm
+		elif mode == AI_WEAVER:
+			if d < _tp_c[t_idx]:
+				# Close enough: commit to the strike.
+				mvx = nx * spd * _tp_d[t_idx]
+				mvy = ny * spd * _tp_d[t_idx]
+			else:
+				# Circle in. Far out it mostly closes the distance; inside its
+				# orbit it mostly slides sideways, arriving from the flank.
+				var side := 1.0 if aphase[i] > PI else -1.0
+				var inward := _tp_b[t_idx] if d < _tp_a[t_idx] else 0.78
+				var wx := -ny * side * (1.0 - inward) + nx * inward
+				var wy := nx * side * (1.0 - inward) + ny * inward
+				var wl := sqrt(wx * wx + wy * wy) + 0.0001
+				face_x = wx / wl
+				face_y = wy / wl
+				mvx = face_x * spd
+				mvy = face_y * spd
+		elif mode == AI_BOMBER:
+			if astate[i] == 0:
+				pulse = sin(now * 5.0 + aphase[i])
+				mvx = nx * spd
+				mvy = ny * spd
+				if d < _tp_a[t_idx]:
+					# Plant and arm. The blast circle is the telegraph: it shows
+					# exactly where not to be and how long there is to leave.
+					astate[i] = 1
+					atimer[i] = _tp_b[t_idx]
+					a.hazards.add(ex, ey, _tp_c[t_idx], _tp_b[t_idx], _tp_d[t_idx] * damage_mult, type_colors[t_idx])
+					a.sfx("dash_warn", 1.3)
+			else:
+				var fuse := atimer[i] - dt
+				atimer[i] = fuse
+				aflash[i] = maxf(aflash[i], 0.35 + 0.65 * absf(sin(now * 26.0)))
+				if fuse <= 0.0:
+					expire(i)
 
 		var kvx := akx[i]
 		var kvy := aky[i]
@@ -657,6 +753,17 @@ func hurt(i: int, amount: float, kb_x: float = 0.0, kb_y: float = 0.0) -> bool:
 		return true
 	hp[i] = health
 	return false
+
+
+## Removes an enemy that destroyed itself (a Bomber going off). Not a kill:
+## nothing is dropped and the player's kill count is untouched.
+func expire(i: int) -> void:
+	if hp[i] <= 0.0:
+		return
+	hp[i] = -1.0
+	_dead[_dead_count] = i
+	_dead_count += 1
+	_a.fx.death(x[i], y[i], type_colors[type[i]], radius[i])
 
 
 ## Slows an enemy; `freeze_time` > 0 also stops it dead.

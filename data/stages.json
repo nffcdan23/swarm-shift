@@ -1,5 +1,5 @@
 {
-  "_doc": "A run follows one timeline. Rates are spawns/second as [time, value] keyframes (linear interpolation). Sector tier and endless cycle scale the whole thing via 'scaling': multiplier = 1 + per_tier * n + per_tier_sq * n^2, where n = tier - 1. The squared term keeps late sectors ahead of a fully upgraded player.",
+  "_doc": "A run follows one timeline. Rates are spawns/second as [time, value] keyframes (linear interpolation). Sector tier and endless cycle scale the whole thing via 'scaling': multiplier = 1 + per_tier * n + per_tier_sq * n^2, where n = tier - 1. The squared term keeps late sectors ahead of a fully upgraded player. A track or event with 'min_sector' only exists from that sector on, which is how later sectors add new enemies and set pieces instead of only bigger numbers; from 'mutator_start' each sector also carries one or two mutators (see 'sectors').",
 
   "sector_count": 20,
   "endless_unlock_sector": 3,
@@ -35,14 +35,19 @@
 
     "hp_curve": [[0, 1.0], [60, 1.5], [120, 2.3], [180, 3.4], [240, 4.8], [300, 6.5]],
     "damage_curve": [[0, 1.0], [300, 1.5]],
+    "_speed_doc": "Enemies spawned later in a run are faster: the last minutes cannot be stood through, they have to be moved through.",
+    "speed_curve": [[0, 1.0], [120, 1.0], [240, 1.1], [300, 1.18]],
 
     "tracks": [
       { "enemy": "swarmer", "rate": [[0, 1.7], [30, 2.4], [60, 3.5], [120, 6.0], [180, 8.5], [240, 11.0], [300, 13.0]] },
       { "enemy": "brute", "rate": [[40, 0.0], [45, 0.08], [120, 0.22], [240, 0.5], [300, 0.65]] },
-      { "enemy": "dasher", "rate": [[75, 0.0], [80, 0.1], [180, 0.3], [300, 0.5]] },
+      { "enemy": "dasher", "rate": [[75, 0.0], [80, 0.1], [120, 0.2], [180, 0.36], [300, 0.58]] },
       { "enemy": "splitter", "rate": [[120, 0.0], [125, 0.07], [240, 0.2], [300, 0.26]] },
-      { "enemy": "shooter", "rate": [[150, 0.0], [155, 0.06], [240, 0.18], [300, 0.24]] },
-      { "enemy": "tank", "rate": [[200, 0.0], [205, 0.02], [300, 0.05]] }
+      { "enemy": "shooter", "rate": [[130, 0.0], [135, 0.07], [240, 0.22], [300, 0.3]] },
+      { "enemy": "tank", "rate": [[200, 0.0], [205, 0.02], [300, 0.05]] },
+      { "enemy": "weaver", "min_sector": 2, "rate": [[70, 0.0], [75, 0.08], [180, 0.2], [300, 0.32]] },
+      { "enemy": "mortar", "min_sector": 2, "rate": [[110, 0.0], [115, 0.035], [240, 0.09], [300, 0.13]] },
+      { "enemy": "bomber", "min_sector": 3, "rate": [[90, 0.0], [95, 0.05], [200, 0.12], [300, 0.18]] }
     ],
 
     "events": [
@@ -55,10 +60,47 @@
       { "t": 225, "type": "elite", "enemy": "splitter", "escort": { "splitter": 3 } },
       { "t": 240, "type": "surge", "label": "BLITZ SURGE", "pattern": "ring", "spawns": { "swarmer": 60, "dasher": 10 } },
       { "t": 270, "type": "elite", "enemy": "tank", "escort": { "brute": 4 } },
-      { "t": 276, "type": "surge", "label": "FINAL SWARM", "pattern": "ring", "spawns": { "swarmer": 80 } }
+      { "t": 276, "type": "surge", "label": "FINAL SWARM", "pattern": "ring", "spawns": { "swarmer": 80 } },
+
+      { "t": 150, "type": "pack", "label": "DASHER PACK", "enemy": "dasher", "count": 5 },
+      { "t": 205, "type": "pincer", "label": "PINCER", "enemy": "swarmer", "count": 36 },
+      { "t": 255, "type": "line", "label": "FIRING LINE", "enemy": "shooter", "count": 5 },
+
+      { "t": 100, "type": "pack", "label": "WEAVER PACK", "enemy": "weaver", "count": 7, "min_sector": 2 },
+      { "t": 232, "type": "line", "label": "MORTAR BATTERY", "enemy": "mortar", "count": 3, "min_sector": 2 },
+
+      { "t": 140, "type": "bombard", "label": "BOMBARDMENT", "count": 4, "min_sector": 3 },
+      { "t": 215, "type": "bombard", "label": "BOMBARDMENT", "count": 6, "min_sector": 3 },
+      { "t": 262, "type": "pack", "label": "BOMBER WING", "enemy": "bomber", "count": 5, "min_sector": 3 },
+      { "t": 288, "type": "bombard", "label": "BOMBARDMENT", "count": 7, "min_sector": 3 }
     ],
 
+    "bombard": { "radius": 84, "spread": 250, "delay": 1.25, "interval": 0.4, "damage": 20 },
+
     "boss_phase_spawn_rate": 0.0
+  },
+
+  "sectors": {
+    "_doc": "What each sector adds. 'briefs' are shown in the lobby. From 'mutator_start' a sector takes one mutator from 'rotation' (by sector number), and from 'second_mutator_start' a second, different one. Mutator fields: speed / hp / spawn multiply the whole field; 'tracks' multiplies one enemy's spawn rate; 'every' repeats an event on a timer between 'from' and the boss; 'elite_affix' forces the affix elites spawn with.",
+    "briefs": [
+      { "sector": 1, "name": "FIRST CONTACT", "brief": "The swarm at its simplest. Keep moving and learn its shapes." },
+      { "sector": 2, "name": "CROSSFIRE", "brief": "Weavers flank and Mortars shell the ground you stand on.", "new": ["weaver", "mortar"] },
+      { "sector": 3, "name": "MELTDOWN", "brief": "Bombers and orbital bombardments. Watch the floor.", "new": ["bomber"] }
+    ],
+    "mutator_start": 4,
+    "second_mutator_start": 10,
+    "rotation": ["blitz", "artillery", "hunters", "elite_guard", "volatile", "horde"],
+    "mutators": {
+      "blitz": { "name": "BLITZ", "desc": "Everything moves 12% faster", "color": "#ffe14d", "speed": 1.12, "hp": 0.92 },
+      "artillery": { "name": "ARTILLERY", "desc": "More Mortars and regular bombardments", "color": "#ff8a5c", "tracks": { "mortar": 1.6 },
+        "every": { "seconds": 42, "from": 75, "event": { "type": "bombard", "label": "BOMBARDMENT", "count": 4 } } },
+      "hunters": { "name": "HUNTERS", "desc": "Packs of Dashers and Weavers hunt you down", "color": "#5cf0ff", "tracks": { "dasher": 1.6, "weaver": 1.6 },
+        "every": { "seconds": 38, "from": 60, "event": { "type": "pack", "label": "HUNTER PACK", "enemy": "dasher", "count": 6 } } },
+      "elite_guard": { "name": "ELITE GUARD", "desc": "Elites arrive twice as often", "color": "#ffd15c",
+        "every": { "seconds": 48, "from": 55, "event": { "type": "elite", "enemy": "brute", "escort": { "swarmer": 6 } } } },
+      "volatile": { "name": "VOLATILE", "desc": "Bomber wings, and every elite explodes", "color": "#ff6a3d", "tracks": { "bomber": 2.0 }, "elite_affix": "volatile" },
+      "horde": { "name": "HORDE", "desc": "A quarter more enemies, each a little weaker", "color": "#ff4d6d", "spawn": 1.25, "hp": 0.88 }
+    }
   },
 
   "bosses": {

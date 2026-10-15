@@ -1,5 +1,5 @@
 {
-  "_doc": "Permanent (between-run) progression. Upgrade cost for the next level = round_to_5(cost_base * cost_growth ^ current_level).",
+  "_doc": "Permanent (between-run) progression. Upgrade cost for level n+1 = round_to_5(cost_base * cost_growth ^ n). Each upgrade has exactly one modifier; 'stat' and 'format' (percent | number) say how to show its total. 'unlock_level' is the Player Level needed before it can be bought.",
 
   "account": {
     "max_level": 100,
@@ -13,20 +13,33 @@
     "crystal_amount": 25
   },
 
+  "upgrade_categories": {
+    "offence": {"name": "OFFENCE", "color": "#ff5c7a", "blurb": "Hit harder, faster, and more often."},
+    "defence": {"name": "DEFENCE", "color": "#5cffb1", "blurb": "Take more punishment and recover from it."},
+    "utility": {"name": "UTILITY", "color": "#2de2ff", "blurb": "Move, gather and level up faster in a run."},
+    "economy": {"name": "ECONOMY", "color": "#ffd15c", "blurb": "Bring more home from every run."}
+  },
+
   "upgrades": {
-    "m_damage": { "name": "Weapon Calibration", "icon": "damage", "desc": "+4% damage", "max_level": 10, "cost_base": 120, "cost_growth": 1.45, "mods": { "damage_pct": 0.04 } },
-    "m_hp": { "name": "Hull Reinforcement", "icon": "heart", "desc": "+6% max health", "max_level": 10, "cost_base": 100, "cost_growth": 1.45, "mods": { "max_hp_pct": 0.06 } },
-    "m_credits": { "name": "Salvage Protocol", "icon": "credit", "desc": "+6% Credits earned", "max_level": 10, "cost_base": 150, "cost_growth": 1.5, "mods": { "credit_gain_pct": 0.06 } },
-    "m_speed": { "name": "Thruster Tuning", "icon": "speed", "desc": "+2% move speed", "max_level": 5, "cost_base": 200, "cost_growth": 1.7, "mods": { "move_speed_pct": 0.02 } },
-    "m_crit": { "name": "Targeting Suite", "icon": "crit", "desc": "+2% critical chance", "max_level": 5, "cost_base": 250, "cost_growth": 1.7, "mods": { "crit_chance": 0.02 } },
-    "m_xp": { "name": "Neural Uplink", "icon": "xp", "desc": "+5% energy gained in runs", "max_level": 5, "cost_base": 300, "cost_growth": 1.7, "mods": { "xp_gain_pct": 0.05 } },
-    "m_pickup": { "name": "Tractor Field", "icon": "magnet", "desc": "+10% pickup radius", "max_level": 5, "cost_base": 150, "cost_growth": 1.6, "mods": { "pickup_radius_pct": 0.1 } },
-    "m_regen": { "name": "Repair Nanites", "icon": "regen", "desc": "+0.2 health per second", "max_level": 5, "cost_base": 250, "cost_growth": 1.7, "mods": { "regen": 0.2 } },
-    "m_luck": { "name": "Probability Engine", "icon": "luck", "desc": "+5% luck", "max_level": 5, "cost_base": 300, "cost_growth": 1.7, "mods": { "luck": 0.05 } },
-    "m_armor": { "name": "Ablative Plating", "icon": "shield", "desc": "+1 armour", "max_level": 3, "cost_base": 600, "cost_growth": 2.2, "mods": { "armor": 1 } },
-    "m_reroll": { "name": "Reroute Buffer", "icon": "reroll", "desc": "+1 upgrade reroll per run", "max_level": 3, "cost_base": 400, "cost_growth": 2.5, "mods": { "run.rerolls": 1 } },
-    "m_startlvl": { "name": "Pre-Charged Arsenal", "icon": "upgrade", "desc": "Starting weapon begins +1 level higher", "max_level": 2, "cost_base": 2500, "cost_growth": 3.0, "mods": { "run.start_weapon_level": 1 } },
-    "m_revive": { "name": "Emergency Reboot", "icon": "revive", "desc": "Revive once per run at 50% health", "max_level": 1, "cost_base": 5000, "cost_growth": 1.0, "mods": { "run.revives": 1 } }
+    "m_damage": {"name": "Weapon Calibration", "icon": "damage", "category": "offence", "desc": "+4% damage", "stat": "Damage", "format": "percent", "max_level": 10, "cost_base": 120, "cost_growth": 1.45, "mods": {"damage_pct": 0.04}},
+    "m_firerate": {"name": "Rapid Cyclers", "icon": "speed", "category": "offence", "desc": "+3% attack speed", "stat": "Attack speed", "format": "percent", "max_level": 10, "cost_base": 140, "cost_growth": 1.45, "unlock_level": 3, "mods": {"fire_rate_pct": 0.03}},
+    "m_crit": {"name": "Targeting Suite", "icon": "crit", "category": "offence", "desc": "+2% critical chance", "stat": "Critical chance", "format": "percent", "max_level": 5, "cost_base": 250, "cost_growth": 1.7, "mods": {"crit_chance": 0.02}},
+    "m_critdmg": {"name": "Overcharge Coils", "icon": "crit", "category": "offence", "desc": "+5% critical damage", "stat": "Critical damage", "format": "percent", "max_level": 8, "cost_base": 220, "cost_growth": 1.55, "unlock_level": 4, "mods": {"crit_mult": 0.05}},
+    "m_startlvl": {"name": "Pre-Charged Arsenal", "icon": "upgrade", "category": "offence", "desc": "Starting weapon begins +1 level higher", "stat": "Starting weapon level", "format": "number", "max_level": 2, "cost_base": 2500, "cost_growth": 3.0, "unlock_level": 6, "mods": {"run.start_weapon_level": 1}},
+
+    "m_hp": {"name": "Hull Reinforcement", "icon": "heart", "category": "defence", "desc": "+6% max health", "stat": "Max health", "format": "percent", "max_level": 10, "cost_base": 100, "cost_growth": 1.45, "mods": {"max_hp_pct": 0.06}},
+    "m_armor": {"name": "Ablative Plating", "icon": "shield", "category": "defence", "desc": "+1 armour", "stat": "Armour", "format": "number", "max_level": 3, "cost_base": 600, "cost_growth": 2.2, "mods": {"armor": 1}},
+    "m_regen": {"name": "Repair Nanites", "icon": "regen", "category": "defence", "desc": "+0.2 health per second", "stat": "Health per second", "format": "number", "max_level": 5, "cost_base": 250, "cost_growth": 1.7, "mods": {"regen": 0.2}},
+    "m_revive": {"name": "Emergency Reboot", "icon": "revive", "category": "defence", "desc": "Revive once per run at 50% health", "stat": "Revives per run", "format": "number", "max_level": 1, "cost_base": 5000, "cost_growth": 1.0, "unlock_level": 8, "mods": {"run.revives": 1}},
+
+    "m_speed": {"name": "Thruster Tuning", "icon": "speed", "category": "utility", "desc": "+2% move speed", "stat": "Move speed", "format": "percent", "max_level": 5, "cost_base": 200, "cost_growth": 1.7, "mods": {"move_speed_pct": 0.02}},
+    "m_pickup": {"name": "Tractor Field", "icon": "magnet", "category": "utility", "desc": "+10% pickup radius", "stat": "Pickup radius", "format": "percent", "max_level": 5, "cost_base": 150, "cost_growth": 1.6, "mods": {"pickup_radius_pct": 0.1}},
+    "m_xp": {"name": "Neural Uplink", "icon": "xp", "category": "utility", "desc": "+5% run energy from green crystals", "stat": "Run energy gained", "format": "percent", "max_level": 5, "cost_base": 300, "cost_growth": 1.7, "mods": {"xp_gain_pct": 0.05}},
+    "m_luck": {"name": "Probability Engine", "icon": "luck", "category": "utility", "desc": "+5% luck", "stat": "Luck", "format": "percent", "max_level": 5, "cost_base": 300, "cost_growth": 1.7, "unlock_level": 5, "mods": {"luck": 0.05}},
+    "m_reroll": {"name": "Reroute Buffer", "icon": "reroll", "category": "utility", "desc": "+1 upgrade reroll per run", "stat": "Rerolls per run", "format": "number", "max_level": 3, "cost_base": 400, "cost_growth": 2.5, "mods": {"run.rerolls": 1}},
+
+    "m_credits": {"name": "Salvage Protocol", "icon": "credit", "category": "economy", "desc": "+6% Credits earned", "stat": "Credits earned", "format": "percent", "max_level": 10, "cost_base": 150, "cost_growth": 1.5, "mods": {"credit_gain_pct": 0.06}},
+    "m_account_xp": {"name": "Combat Recorder", "icon": "xp", "category": "economy", "desc": "+5% Player XP from every run", "stat": "Player XP earned", "format": "percent", "max_level": 10, "cost_base": 160, "cost_growth": 1.5, "unlock_level": 2, "mods": {"account_xp_pct": 0.05}}
   },
 
   "cores": {

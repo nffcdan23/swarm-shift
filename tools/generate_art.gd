@@ -26,9 +26,14 @@ const C_SPLITTER := Color("7dff8a")
 const C_TANK := Color("6fb7ff")
 const C_ELITE := Color("ffd15c")
 const C_BOSS := Color("ff3d6e")
+const C_WEAVER := Color("5cf0ff")
+const C_MORTAR := Color("ff8a5c")
+const C_BOMBER := Color("ff6a3d")
+# Run energy is always green, whatever the size of the crystal: green is
+# "this run", gold is "yours to keep". Bigger crystals are brighter, not bluer.
 const C_XP_S := Color("5cffb1")
-const C_XP_M := Color("4db8ff")
-const C_XP_L := Color("c77dff")
+const C_XP_M := Color("3dff8f")
+const C_XP_L := Color("7dffbc")
 const C_CREDIT := Color("ffd15c")
 const C_REPAIR := Color("5cff8a")
 const C_MAGNET := Color("ff4d5e")
@@ -40,6 +45,7 @@ const WHITE := Color(1, 1, 1, 1)
 var POLY_SWARMER := PackedVector2Array([Vector2(0.62, 0.0), Vector2(-0.44, -0.42), Vector2(-0.2, 0.0), Vector2(-0.44, 0.42)])
 var POLY_DASHER := PackedVector2Array([Vector2(0.64, 0.0), Vector2(-0.06, -0.3), Vector2(-0.5, -0.4), Vector2(-0.26, 0.0), Vector2(-0.5, 0.4), Vector2(-0.06, 0.3)])
 var POLY_SHOOTER := PackedVector2Array([Vector2(0.6, 0.0), Vector2(0.0, -0.42), Vector2(-0.5, 0.0), Vector2(0.0, 0.42)])
+var POLY_WEAVER := PackedVector2Array([Vector2(0.62, 0.0), Vector2(0.02, -0.5), Vector2(-0.46, -0.56), Vector2(-0.1, -0.2), Vector2(-0.3, 0.0), Vector2(-0.1, 0.2), Vector2(-0.46, 0.56), Vector2(0.02, 0.5)])
 var POLY_GEM_S := PackedVector2Array([Vector2(0.0, -0.52), Vector2(0.36, 0.0), Vector2(0.0, 0.52), Vector2(-0.36, 0.0)])
 var POLY_MISSILE := PackedVector2Array([Vector2(0.58, 0.0), Vector2(0.26, -0.13), Vector2(-0.26, -0.13), Vector2(-0.5, -0.3), Vector2(-0.42, 0.0), Vector2(-0.5, 0.3), Vector2(-0.26, 0.13), Vector2(0.26, 0.13)])
 var POLY_DRONE := PackedVector2Array([Vector2(0.56, 0.0), Vector2(-0.1, -0.2), Vector2(-0.4, -0.5), Vector2(-0.24, 0.0), Vector2(-0.4, 0.5), Vector2(-0.1, 0.2)])
@@ -97,6 +103,9 @@ func _jobs() -> Array:
 	j.append({"name": "enemy_shooter", "size": 128, "dir": ATLAS_DIR, "fn": _spr_shooter})
 	j.append({"name": "enemy_splitter", "size": 128, "dir": ATLAS_DIR, "fn": _spr_splitter})
 	j.append({"name": "enemy_splitling", "size": 128, "dir": ATLAS_DIR, "fn": _spr_splitling})
+	j.append({"name": "enemy_weaver", "size": 128, "dir": ATLAS_DIR, "fn": _spr_weaver})
+	j.append({"name": "enemy_mortar", "size": 128, "dir": ATLAS_DIR, "fn": _spr_mortar})
+	j.append({"name": "enemy_bomber", "size": 128, "dir": ATLAS_DIR, "fn": _spr_bomber})
 	j.append({"name": "enemy_brute", "size": 256, "dir": ATLAS_DIR, "fn": _spr_brute})
 	j.append({"name": "enemy_tank", "size": 256, "dir": ATLAS_DIR, "fn": _spr_tank})
 	j.append({"name": "elite_aura", "size": 256, "dir": ATLAS_DIR, "fn": _spr_elite_aura})
@@ -328,6 +337,39 @@ func _spr_splitling(p: Vector2, px: float) -> Color:
 	var d := sd_rbox(rot(p, PI * 0.25), Vector2(0.4, 0.4), 0.1)
 	neon(d, px, C_SPLITTER, 0.05, 0.12, 0.3)
 	px_add(Color(0.92, 1.0, 0.94), mask(sd_circle(p, 0.1), px) * 0.9)
+	return px_out()
+
+
+## A swept crescent: reads as something that travels sideways.
+func _spr_weaver(p: Vector2, px: float) -> Color:
+	px_reset(C_WEAVER)
+	var d := sd_poly(p, POLY_WEAVER) - 0.02
+	neon(d, px, C_WEAVER, 0.035, 0.1, 0.22)
+	px_add(Color(0.9, 1.0, 1.0), mask(sd_circle(p - Vector2(0.2, 0.0), 0.075), px) * 0.95)
+	return px_out()
+
+
+## A squat emplacement with a barrel: it stands off and fires over the swarm.
+func _spr_mortar(p: Vector2, px: float) -> Color:
+	px_reset(C_MORTAR)
+	var body := sd_ngon(p - Vector2(-0.08, 0.0), 0.5, 6, 0.0)
+	var barrel := sd_rbox(p - Vector2(0.4, 0.0), Vector2(0.2, 0.11), 0.04)
+	var d := minf(body, barrel)
+	neon(d, px, C_MORTAR, 0.04, 0.11, 0.24)
+	var bore := absf(sd_circle(p - Vector2(-0.08, 0.0), 0.2)) - 0.03
+	px_add(C_MORTAR.lerp(WHITE, 0.7), mask(bore, px) * 0.9)
+	px_add(WHITE, mask(sd_circle(p - Vector2(-0.08, 0.0), 0.08), px))
+	return px_out()
+
+
+## A spiked mine with a hot core: the one enemy that should look like a bomb.
+func _spr_bomber(p: Vector2, px: float) -> Color:
+	px_reset(C_BOMBER)
+	var d := sd_star(p, 0.6, 0.38, 6, 0.0) - 0.02
+	neon(d, px, C_BOMBER, 0.04, 0.12, 0.3, 0.95)
+	var ring := absf(sd_circle(p, 0.2)) - 0.03
+	px_add(C_BOMBER.lerp(WHITE, 0.75), mask(ring, px) * 0.9)
+	px_add(Color(1.0, 0.97, 0.8), mask(sd_circle(p, 0.1), px))
 	return px_out()
 
 

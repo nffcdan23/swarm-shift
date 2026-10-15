@@ -14,6 +14,9 @@ const KIND_CACHE := 5
 
 var count := 0
 var collected_xp := 0.0
+## Energy put on the field, before the player's gain multiplier. With
+## `collected_xp` and `field_xp()` this proves nothing is lost when gems merge.
+var dropped_xp := 0.0
 
 var x := PackedFloat32Array()
 var y := PackedFloat32Array()
@@ -30,6 +33,8 @@ var _a: Arena
 var _batch: SpriteBatch
 var _capacity := 0
 var _soft_cap := 340
+var _credit_cap := 70
+var _credit_count := 0
 var _collect_r := 26.0
 var _magnet_speed := 620.0
 var _magnet_accel := 2600.0
@@ -46,6 +51,7 @@ func setup(arena: Arena) -> void:
 	_batch = arena.gfx.pickups
 	var cfg := GameData.dict(arena.data.game, "pickups")
 	_soft_cap = GameData.integer(arena.data.run_cfg(), "max_pickups", 340)
+	_credit_cap = GameData.integer(arena.data.run_cfg(), "max_credit_pickups", 70)
 	_capacity = _soft_cap + 24
 	_collect_r = GameData.num(cfg, "collect_radius", 26.0)
 	_magnet_speed = GameData.num(cfg, "magnet_speed", 620.0)
@@ -66,31 +72,122 @@ func capacity() -> int:
 
 
 func drop_xp(sx: float, sy: float, amount: float) -> void:
-	if amount <= 0.0:
+	if amount <= 0.0 or not is_finite(amount):
 		return
+	dropped_xp += amount
 	if count >= _soft_cap:
 		# Field is saturated: fold the energy into an existing gem instead of
 		# losing it. The gem grows a tier if that pushes it over a threshold.
-		var target := _a.rng.randi_range(0, count - 1)
-		for attempt in 6:
-			if kind[target] == KIND_XP:
-				break
-			target = (target + 1) % count
-		if kind[target] == KIND_XP:
+		var target := _find(KIND_XP)
+		if target >= 0:
 			value[target] += amount
 			_style_gem(target)
+			_a.diag.pickups_merged += 1
 			return
 	var i := _add(sx, sy, KIND_XP, amount, 110.0)
 	if i >= 0:
 		_style_gem(i)
+	else:
+		# No room and no gem to fold into: hand it over rather than lose it.
+		collected_xp += amount * _a.player.xp_gain
+		_a.add_xp(amount * _a.player.xp_gain)
+		_a.diag.pickups_merged += 1
 
 
+## Drops anything that is not energy. Nothing the player has earned is ever
+## discarded because the field is full: Credits merge into a pile that is
+## already there, and a cache or helper takes the place of an energy gem.
 func drop(drop_kind: int, sx: float, sy: float, amount: float = 1.0) -> void:
+	if drop_kind == KIND_CREDIT and (_credit_count >= _credit_cap or count >= _capacity):
+		var pile := _find(KIND_CREDIT)
+		_a.diag.pickups_merged += 1
+		if pile >= 0:
+			value[pile] += amount
+			_style_credit(pile)
+		else:
+			_a.add_credits(amount)
+		return
+	if count >= _capacity:
+		_make_room()
 	var i := _add(sx, sy, drop_kind, amount, 150.0)
 	if i < 0:
+		# Could not free a slot (no energy on the field at all).
+		if drop_kind == KIND_CACHE:
+			_a.open_cache()
 		return
 	cell[i] = float(_special_cells.get(drop_kind, 0.0))
-	size[i] = 40.0 if drop_kind == KIND_CREDIT else (64.0 if drop_kind == KIND_CACHE else 50.0)
+	size[i] = 64.0 if drop_kind == KIND_CACHE else 50.0
+	if drop_kind == KIND_CREDIT:
+		_style_credit(i)
+
+
+## A pickup of that kind, starting the search at a random slot. -1 if none.
+func _find(wanted: int) -> int:
+	if count == 0:
+		return -1
+	var start := _a.rng.randi_range(0, count - 1)
+	for k in count:
+		var i := (start + k) % count
+		if kind[i] == wanted:
+			return i
+	return -1
+
+
+## Frees one slot by folding an energy gem into another one.
+func _make_room() -> void:
+	var victim := _find(KIND_XP)
+	if victim < 0:
+		return
+	var energy := value[victim]
+	_remove(victim)
+	var into := _find(KIND_XP)
+	if into >= 0:
+		value[into] += energy
+		_style_gem(into)
+	else:
+		collected_xp += energy * _a.player.xp_gain
+		_a.add_xp(energy * _a.player.xp_gain)
+	_a.diag.pickups_merged += 1
+
+
+func _remove(i: int) -> void:
+	if kind[i] == KIND_CREDIT:
+		_credit_count -= 1
+	count -= 1
+	var last := count
+	x[i] = x[last]
+	y[i] = y[last]
+	vx[i] = vx[last]
+	vy[i] = vy[last]
+	value[i] = value[last]
+	age[i] = age[last]
+	size[i] = size[last]
+	cell[i] = cell[last]
+	kind[i] = kind[last]
+	pulled[i] = pulled[last]
+
+
+## Energy lying on the field, before the player's gain multiplier.
+func field_xp() -> float:
+	var total := 0.0
+	for i in count:
+		if kind[i] == KIND_XP:
+			total += value[i]
+	return total
+
+
+## Credits lying on the field, before the player's gain multiplier.
+func field_credits() -> float:
+	var total := 0.0
+	for i in count:
+		if kind[i] == KIND_CREDIT:
+			total += value[i]
+	return total
+
+
+func _style_credit(i: int) -> void:
+	# A bigger pile reads as a bigger coin.
+	size[i] = clampf(36.0 + sqrt(maxf(value[i], 0.0)) * 3.0, 38.0, 62.0)
 
 
 func _add(sx: float, sy: float, drop_kind: int, amount: float, pop: float) -> int:
@@ -108,6 +205,8 @@ func _add(sx: float, sy: float, drop_kind: int, amount: float, pop: float) -> in
 	age[i] = 0.0
 	kind[i] = drop_kind
 	pulled[i] = 0
+	if drop_kind == KIND_CREDIT:
+		_credit_count += 1
 	return i
 
 
@@ -168,18 +267,7 @@ func update(dt: float) -> void:
 			vy[i] *= friction
 		if d2 < collect2:
 			_collect(i)
-			count -= 1
-			var last := count
-			x[i] = x[last]
-			y[i] = y[last]
-			vx[i] = vx[last]
-			vy[i] = vy[last]
-			value[i] = value[last]
-			age[i] = age[last]
-			size[i] = size[last]
-			cell[i] = cell[last]
-			kind[i] = kind[last]
-			pulled[i] = pulled[last]
+			_remove(i)
 		else:
 			x[i] = gx
 			y[i] = gy
@@ -241,3 +329,4 @@ func _collect(i: int) -> void:
 
 func clear() -> void:
 	count = 0
+	_credit_count = 0

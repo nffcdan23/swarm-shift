@@ -14,7 +14,7 @@ var _display_scale := 1.0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	custom_minimum_size = Vector2(0, 300)
+	custom_minimum_size = Vector2(0, 150)
 	_pivot = Node2D.new()
 	add_child(_pivot)
 	var additive := CanvasItemMaterial.new()

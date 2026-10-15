@@ -5,6 +5,7 @@
   "atlas": [
     "enemy_brute", "enemy_tank", "elite_aura", "hole",
     "enemy_swarmer", "enemy_dasher", "enemy_shooter", "enemy_splitter", "enemy_splitling",
+    "enemy_weaver", "enemy_mortar", "enemy_bomber",
     "gem_s", "gem_m", "gem_l", "credit", "repair", "magnet", "bomb", "cache",
     "bolt", "pellet", "orb", "glow", "flare", "missile", "blade", "mine", "drone", "beam", "shard", "bullet"
   ]

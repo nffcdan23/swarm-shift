@@ -163,11 +163,10 @@ static func set_badge(panel: PanelContainer, count: int) -> void:
 	(panel.get_node("Count") as Label).text = str(mini(count, 99))
 
 
-static func scroll(content: Control) -> ScrollContainer:
-	var s := ScrollContainer.new()
-	s.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	s.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+## A vertical list that can be dragged from anywhere on it, including from a
+## row or a button (see ScrollList for why a plain ScrollContainer cannot).
+static func scroll(content: Control) -> ScrollList:
+	var s := ScrollList.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	s.add_child(content)
 	return s

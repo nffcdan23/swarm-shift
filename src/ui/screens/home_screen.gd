@@ -1,14 +1,25 @@
 class_name HomeScreen
 extends MenuScreen
-## The front door. One job: get the player into a run. Title, the selected
-## core, which sector to play, and a very large PLAY button - with the daily
-## reward and achievements one tap away.
+## The front door. One job: get the player into a run - and show, at a glance,
+## the three things that carry over between runs: the Player Level and how far
+## it is from the next one, what that next level unlocks, and how close the
+## Credits balance is to the next permanent upgrade. Below that: the selected
+## core, which sector to play (and what is different about it), and PLAY.
 
 var _preview: CorePreview
 var _core_name: Label
+var _player_level: Label
+var _player_xp: Label
+var _player_bar: MeterBar
+var _player_next: Label
+var _goal_name: Label
+var _goal_amount: Label
+var _goal_bar: MeterBar
+var _goal_button: Button
 var _sector_title: Label
 var _sector_info: Label
 var _sector_reward: Label
+var _sector_tags: HBoxContainer
 var _prev: NeonButton
 var _next: NeonButton
 var _mode: SegmentedControl
@@ -20,13 +31,13 @@ var _endless := false
 
 
 func _build() -> void:
-	var column := UiKit.vbox(12)
+	var column := UiKit.vbox(10)
 	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(column)
 
-	column.add_child(UiKit.gap(6))
 	column.add_child(_logo())
 	column.add_child(UiKit.caption(GameData.text(App.data.game, "tagline"), UiTheme.TINY, Palette.MUTED, HORIZONTAL_ALIGNMENT_CENTER))
+	column.add_child(_progress_card())
 
 	_preview = CorePreview.new()
 	_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -54,6 +65,9 @@ func _build() -> void:
 	middle.add_child(_sector_info)
 	_sector_reward = UiKit.caption("", UiTheme.TINY, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
 	middle.add_child(_sector_reward)
+	_sector_tags = UiKit.hbox(8)
+	_sector_tags.alignment = BoxContainer.ALIGNMENT_CENTER
+	middle.add_child(_sector_tags)
 	row.add_child(middle)
 	_next = NeonButton.make("", NeonButton.Kind.GHOST, Palette.CYAN, "arrow_right", 84.0)
 	_next.min_width = 78.0
@@ -80,6 +94,57 @@ func _build() -> void:
 	extras.add_child(trophies)
 	column.add_child(extras)
 	column.add_child(UiKit.gap(2))
+
+
+## Permanent progress, always in view: PLAYER LEVEL with its XP numbers and
+## bar, the next unlock, and the next permanent upgrade against the balance.
+func _progress_card() -> PanelContainer:
+	var card := UiKit.card(Palette.CYAN, 14, 6)
+	var body := UiKit.card_body(card)
+
+	var head := UiKit.hbox(10)
+	head.add_child(IconGlyph.make("star", 30.0, Palette.CYAN, true))
+	_player_level = UiKit.label("PLAYER LEVEL 1", UiTheme.BODY, Palette.TEXT, HORIZONTAL_ALIGNMENT_LEFT, true)
+	_player_level.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(_player_level)
+	_player_xp = UiKit.label("0 / 0 XP", UiTheme.SMALL, Palette.CYAN, HORIZONTAL_ALIGNMENT_RIGHT, true)
+	head.add_child(_player_xp)
+	body.add_child(head)
+	_player_bar = MeterBar.make(Palette.CYAN, 14.0)
+	_player_bar.back_color = Color(0.1, 0.15, 0.24, 0.95)
+	body.add_child(_player_bar)
+	_player_next = UiKit.caption("", UiTheme.TINY, Palette.MUTED)
+	_player_next.clip_text = true
+	body.add_child(_player_next)
+
+	# Credits always have a visible purpose: the cheapest upgrade still to buy.
+	_goal_button = Button.new()
+	_goal_button.flat = true
+	_goal_button.focus_mode = Control.FOCUS_NONE
+	_goal_button.custom_minimum_size = Vector2(0, 50)
+	for state: String in ["normal", "hover", "pressed", "focus"]:
+		_goal_button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	_goal_button.pressed.connect(func() -> void:
+		App.audio.play("ui_click")
+		shell.show_tab("upgrades"))
+	var goal := UiKit.vbox(4)
+	goal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var goal_row := UiKit.hbox(8)
+	goal_row.add_child(IconGlyph.make("credit", 24.0, Palette.CREDITS))
+	_goal_name = UiKit.caption("", UiTheme.TINY, Palette.MUTED)
+	_goal_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_goal_name.clip_text = true
+	goal_row.add_child(_goal_name)
+	_goal_amount = UiKit.label("", UiTheme.TINY, Palette.CREDITS, HORIZONTAL_ALIGNMENT_RIGHT, true)
+	goal_row.add_child(_goal_amount)
+	goal.add_child(goal_row)
+	_goal_bar = MeterBar.make(Palette.CREDITS, 8.0)
+	_goal_bar.back_color = Color(0.1, 0.15, 0.24, 0.95)
+	goal.add_child(_goal_bar)
+	_goal_button.add_child(goal)
+	body.add_child(UiKit.divider())
+	body.add_child(_goal_button)
+	return card
 
 
 ## The title, coloured in three parts around the slashes.
@@ -115,6 +180,7 @@ func _corner_badge(button: Control) -> PanelContainer:
 
 
 func refresh() -> void:
+	_refresh_progress()
 	var core_id := App.arsenal.selected_core()
 	var core := GameData.dict(App.data.cores(), core_id)
 	_preview.set_color(App.arsenal.player_color())
@@ -130,6 +196,8 @@ func refresh() -> void:
 	_mode_hint.visible = not unlocked
 	_mode_hint.text = "CLEAR SECTOR %d TO UNLOCK OVERDRIVE" % unlock_sector
 
+	for child in _sector_tags.get_children():
+		child.queue_free()
 	if _endless:
 		_sector_title.text = "OVERDRIVE"
 		var best := App.campaign.endless_best()
@@ -139,17 +207,51 @@ func refresh() -> void:
 		_next.set_enabled(false)
 	else:
 		var tier := App.campaign.selected()
-		var theme_def := App.campaign.theme(tier)
+		var brief := App.campaign.sector_brief(tier)
 		_sector_title.text = "SECTOR %02d" % tier
 		var best := App.campaign.best_time(tier)
 		var status := "CLEARED  -  BEST %s" % Fmt.time_mmss(best) if best > 0.0 else "NOT YET CLEARED"
-		_sector_info.text = "%s  -  %s" % [GameData.text(theme_def, "name", ""), status]
+		var sector_name := str(brief.name) if not str(brief.name).is_empty() else GameData.text(App.campaign.theme(tier), "name", "")
+		_sector_info.text = "%s  -  %s" % [sector_name, status]
 		var bonus := float(App.campaign.scaling(float(tier)).reward) - 1.0
 		_sector_reward.text = "+%d%% REWARDS" % int(round(bonus * 100.0)) if bonus > 0.001 else "DEFEAT THE BOSS TO CLEAR"
+		for mutator: Dictionary in brief.mutators:
+			_sector_tags.add_child(UiKit.tag(str(mutator.name), mutator.color))
+		var fresh: Array = brief.new
+		if not fresh.is_empty():
+			_sector_tags.add_child(UiKit.tag("NEW: " + ", ".join(PackedStringArray(fresh)), Palette.CYAN))
 		_prev.set_enabled(tier > 1)
 		_next.set_enabled(tier < App.campaign.max_selectable())
 	UiKit.set_badge(_daily_badge, 1 if App.daily.can_claim() else 0)
 	UiKit.set_badge(_trophy_badge, App.achievements.claimable_count())
+
+
+func _refresh_progress() -> void:
+	var account := App.account
+	_player_level.text = "PLAYER LEVEL %d" % account.level()
+	_player_bar.set_value(account.progress())
+	if account.is_max():
+		_player_xp.text = "MAX LEVEL"
+		_player_next.text = "EVERYTHING IS UNLOCKED"
+	else:
+		_player_xp.text = "%s / %s XP" % [Fmt.commas(account.xp()), Fmt.commas(account.xp_needed(account.level()))]
+		var ahead := account.next_unlock()
+		if int(ahead.level) > 0:
+			_player_next.text = "NEXT UNLOCK  -  LV %d: %s" % [int(ahead.level), ", ".join(PackedStringArray(ahead.names))]
+		else:
+			_player_next.text = "%s XP TO PLAYER LEVEL %d" % [Fmt.commas(account.xp_to_next()), account.level() + 1]
+
+	var goal := App.meta.next_goal()
+	if str(goal.id).is_empty():
+		_goal_name.text = "EVERY UPGRADE INSTALLED"
+		_goal_amount.text = ""
+		_goal_bar.set_value(1.0)
+	else:
+		var balance := App.economy.balance(Economy.CREDITS)
+		_goal_name.text = ("READY: %s" if bool(goal.affordable) else "NEXT UPGRADE: %s") % str(goal.name)
+		_goal_name.add_theme_color_override("font_color", Palette.CREDITS if bool(goal.affordable) else Palette.MUTED)
+		_goal_amount.text = "%s / %s" % [Fmt.compact(float(mini(balance, int(goal.cost)))), Fmt.compact(float(goal.cost))]
+		_goal_bar.set_value(float(goal.progress))
 
 
 func _step_sector(by: int) -> void:

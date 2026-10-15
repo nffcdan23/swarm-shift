@@ -46,7 +46,14 @@ func _ready() -> void:
 	_parse_cli()
 	headless = DisplayServer.get_name() == "headless"
 	automated = headless or cli.has("test") or cli.has("sim") or cli.has("bench") or cli.has("shots")
-	boot(MemorySaveBackend.new() if automated else null)
+	var taps := TouchTaps.new()
+	taps.name = "TouchTaps"
+	add_child(taps)
+	var backend: SaveBackend = MemorySaveBackend.new() if automated else null
+	# `--profile=<name>` plays on a separate save file, leaving the real one alone.
+	if backend == null and cli.has("profile") and not cli_text("profile").validate_filename().is_empty():
+		backend = LocalSaveBackend.new("user://profile_%s.save" % cli_text("profile").validate_filename())
+	boot(backend)
 
 
 ## (Re)builds every service. Tests call this with a fresh MemorySaveBackend to

@@ -1,6 +1,6 @@
 class_name TopBar
 extends HBoxContainer
-## Always-visible strip above the menu screens: account level and progress on
+## Always-visible strip above the menu screens: Player Level and progress on
 ## the left, both currencies and the settings gear on the right.
 
 signal profile_pressed
@@ -36,7 +36,7 @@ func _ready() -> void:
 	var stack := UiKit.vbox(5)
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	_level = UiKit.caption("LEVEL 1", UiTheme.SMALL, Palette.TEXT)
+	_level = UiKit.caption("PLAYER LV 1", UiTheme.SMALL, Palette.TEXT)
 	stack.add_child(_level)
 	_xp = MeterBar.make(Palette.CYAN, 9.0)
 	stack.add_child(_xp)
@@ -86,7 +86,7 @@ func _pill(icon_id: String, color: Color) -> Label:
 
 
 func refresh() -> void:
-	_level.text = "LEVEL %d" % App.account.level()
+	_level.text = "PLAYER LV %d" % App.account.level()
 	_xp.set_value(App.account.progress())
 	_set_amount(Economy.CREDITS, _credits, false)
 	_set_amount(Economy.CRYSTALS, _crystals, false)

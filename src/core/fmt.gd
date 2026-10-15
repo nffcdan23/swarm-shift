@@ -38,6 +38,15 @@ static func percent(v: float) -> String:
 	return "%d%%" % int(round(v * 100.0))
 
 
+## A number without needless decimals: 12.0 -> "12", 0.6 -> "0.6", 1.25 -> "1.25".
+static func trim(v: float) -> String:
+	var rounded := snappedf(v, 0.01)
+	if is_equal_approx(rounded, round(rounded)):
+		return str(int(round(rounded)))
+	var text := "%.2f" % rounded
+	return text.trim_suffix("0")
+
+
 static func hex(code: String, fallback: Color = Color.WHITE) -> Color:
 	if code.is_empty() or not Color.html_is_valid(code):
 		return fallback

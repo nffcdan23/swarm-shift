@@ -14,6 +14,9 @@ const SUITES := {
 	"services": "res://tests/test_services.gd",
 	"gameplay": "res://tests/test_gameplay.gd",
 	"ui": "res://tests/test_ui.gd",
+	"progression": "res://tests/test_progression.gd",
+	"threats": "res://tests/test_threats.gd",
+	"stability": "res://tests/test_stability.gd",
 }
 
 
