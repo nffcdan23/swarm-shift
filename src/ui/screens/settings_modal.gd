@@ -25,7 +25,7 @@ func _build(into: VBoxContainer) -> void:
 	into.add_child(_toggle("vibrate", "HAPTICS", SettingsService.HAPTICS, true))
 	into.add_child(_toggle("damage", "DAMAGE NUMBERS", SettingsService.DAMAGE_NUMBERS, true))
 	into.add_child(_toggle("area", "REDUCED EFFECTS", SettingsService.LOW_EFFECTS, false))
-	into.add_child(_slider("shockwave", "SCREEN SHAKE", SettingsService.SCREEN_SHAKE))
+	into.add_child(_shake_choice())
 	into.add_child(UiKit.divider())
 	_build_help(into)
 	into.add_child(UiKit.divider())
@@ -54,6 +54,19 @@ func _slider(icon_id: String, text: String, key: String) -> HBoxContainer:
 	# A blip on release so the new level can be judged by ear.
 	slider.drag_ended.connect(func(_changed: bool) -> void: App.audio.play("ui_click"))
 	row.add_child(slider)
+	return row
+
+
+## Off / Low / Normal. Low is the default on phones and tablets.
+func _shake_choice() -> HBoxContainer:
+	var row := UiKit.hbox(14)
+	row.add_child(IconGlyph.make("shockwave", 34.0, Palette.MUTED))
+	row.add_child(UiKit.caption("SCREEN SHAKE", UiTheme.SMALL, Palette.TEXT))
+	var choice := SegmentedControl.make(PackedStringArray(["OFF", "LOW", "NORMAL"]), maxi(SettingsService.SHAKE_LEVELS.find(App.settings.shake_level()), 0))
+	choice.name = "ShakeLevel"
+	choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	choice.changed.connect(func(index: int) -> void: App.settings.set_value(SettingsService.SHAKE_LEVEL, SettingsService.SHAKE_LEVELS[index]))
+	row.add_child(choice)
 	return row
 
 

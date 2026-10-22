@@ -181,7 +181,7 @@ func update(dt: float) -> void:
 				_state = S.CHARGE_RUN
 				_timer = GameData.num(cfg, "duration", 0.7)
 				_a.sfx("boss_charge")
-				_a.fx.shake(0.25)
+				_a.fx.shake(FxSystem.Shake.MEDIUM)
 		S.CHARGE_RUN:
 			var cfg := GameData.dict(_attacks, "charge")
 			var speed := GameData.num(cfg, "speed", 760.0)
@@ -197,6 +197,7 @@ func update(dt: float) -> void:
 				x = clamped.x
 				y = clamped.y
 				_a.fx.explosion(x, y, 150.0, C_BODY, 1.6)
+				_a.fx.shake(FxSystem.Shake.MEDIUM)
 				_a.sfx("explosion_l")
 			if _timer <= 0.0 or hit_wall:
 				_state = S.CHARGE_REST
@@ -360,7 +361,8 @@ func _drop_zones() -> void:
 	var spread := GameData.num(cfg, "spread", 260.0)
 	var amount := GameData.integer(cfg, "count", 6) + phase
 	# The first is always under the player: standing still is never safe.
-	_a.hazards.add(player.x, player.y, radius, delay, dmg, C_BODY)
+	# One shake per volley, from the blast under the player.
+	_a.hazards.add(player.x, player.y, radius, delay, dmg, C_BODY, NAN, NAN, FxSystem.Shake.MEDIUM)
 	for k in amount - 1:
 		var angle := _a.rng.randf() * TAU
 		var dist := sqrt(_a.rng.randf()) * spread

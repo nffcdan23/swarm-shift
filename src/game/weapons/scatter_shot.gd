@@ -52,6 +52,5 @@ func update(dt: float) -> void:
 			_speed * rng.randf_range(0.82, 1.1), _range, _radius, _cell, 50.0, _pierce, _kb)
 	_a.fx.flash(player.x + cos(aim) * 30.0, player.y + sin(aim) * 30.0, 90.0, color, 0.09)
 	_a.gfx.particles.burst(player.x, player.y, 6, 200.0, 520.0, 0.1, 0.22, 10.0, 1.0, color, 5.0, 2.0, aim, _spread)
-	_a.fx.shake(0.05)
 	_a.sfx("shoot_scatter")
 	player.aim_angle = aim

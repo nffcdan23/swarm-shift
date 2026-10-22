@@ -10,14 +10,31 @@ const MAX_RINGS := 64
 const MAX_FLASHES := 72
 const MAX_BOLTS := 40
 
-## 0..1, decays over time. Camera offset scales with trauma squared.
-var trauma := 0.0
+## Camera shake tiers, weakest first. Request with `shake(tier)`.
+enum Shake { LIGHT, MEDIUM, HEAVY, EPIC }
+const SHAKE_NAMES: PackedStringArray = ["light", "medium", "heavy", "epic"]
+
+## Shakes started and requests turned away, for tests and diagnostics.
+var shakes_started := 0
+var shakes_refused := 0
+## Chain reactions recognised (each gets at most one shake).
+var chains := 0
 
 var _g: ArenaGfx
 var _glow_cell := 0.0
 var _flare_cell := 0.0
 var _beam_cell := 0.0
-var _shake_decay := 2.6
+var _shake_cfg: Dictionary = {}
+var _clock := 0.0
+var _shake_tier := -1
+var _shake_strength := 0.0
+var _shake_duration := 0.0
+var _shake_left := 0.0
+var _last_start: PackedFloat32Array = [-INF, -INF, -INF, -INF]
+var _recent_starts := PackedFloat32Array()
+var _blast_times := PackedFloat32Array()
+var _last_blast := -INF
+var _in_chain := false
 
 var _ring_n := 0
 var _ring_x := PackedFloat32Array()
@@ -47,9 +64,9 @@ var _bolt_width := PackedFloat32Array()
 var _bolt_color: Array[Color] = []
 
 
-func setup(gfx: ArenaGfx, shake_decay: float) -> void:
+func setup(gfx: ArenaGfx, shake_cfg: Dictionary) -> void:
 	_g = gfx
-	_shake_decay = shake_decay
+	_shake_cfg = shake_cfg
 	_glow_cell = gfx.cell("glow")
 	_flare_cell = gfx.cell("flare")
 	_beam_cell = gfx.cell("beam")
@@ -124,8 +141,75 @@ func lightning(x0: float, y0: float, x1: float, y1: float, color: Color, width: 
 	flash(x1, y1, 46.0, color, 0.12)
 
 
-func shake(amount: float) -> void:
-	trauma = minf(trauma + amount, 1.0)
+# ---------------------------------------------------------------------- shake
+#
+# Shake is an event, not a quantity: nothing adds up. A request starts a shake
+# only when no shake of the same or a higher tier is running, the tier's
+# cooldown has passed and the start budget for the window is not spent (an
+# epic shake skips the budget). So repeated requests can never restart or
+# extend the camera's movement, and a chain of hundreds of explosions shakes
+# once. Strength and duration are capped by `max_strength` / `max_duration`.
+
+## Asks for a shake of `tier` (Shake.*). Returns true if it started.
+func shake(tier: int) -> bool:
+	tier = clampi(tier, Shake.LIGHT, Shake.EPIC)
+	var cfg := GameData.dict(GameData.dict(_shake_cfg, "tiers"), SHAKE_NAMES[tier])
+	var strength := minf(GameData.num(cfg, "strength", 0.2), GameData.num(_shake_cfg, "max_strength", 1.0))
+	var duration := minf(GameData.num(cfg, "duration", 0.3), GameData.num(_shake_cfg, "max_duration", 0.6))
+	var refused := strength <= 0.0 or duration <= 0.0
+	refused = refused or (_shake_left > 0.0 and tier <= _shake_tier)
+	refused = refused or _clock - _last_start[tier] < GameData.num(cfg, "cooldown", 0.0)
+	if not refused and tier != Shake.EPIC:
+		var window := GameData.num(_shake_cfg, "window", 2.0)
+		var recent := 0
+		for at in _recent_starts:
+			if _clock - at < window:
+				recent += 1
+		refused = recent >= GameData.integer(_shake_cfg, "max_starts", 3)
+	if refused:
+		shakes_refused += 1
+		return false
+	_shake_tier = tier
+	_shake_strength = strength
+	_shake_duration = duration
+	_shake_left = duration
+	_last_start[tier] = _clock
+	_recent_starts.append(_clock)
+	if _recent_starts.size() > 16:
+		_recent_starts = _recent_starts.slice(_recent_starts.size() - 16)
+	shakes_started += 1
+	return true
+
+
+## How far the camera is displaced right now, 0..1 of the maximum offset,
+## before the player's Screen Shake setting. Fades out over the shake.
+func shake_amount() -> float:
+	if _shake_left <= 0.0 or _shake_duration <= 0.0:
+		return 0.0
+	return _shake_strength * _shake_left / _shake_duration
+
+
+## Every resolved explosion reports here instead of shaking. Enough of them
+## close together is a chain reaction, which gets one shake; the chain lasts
+## until `quiet` seconds pass without an explosion.
+func note_explosion() -> void:
+	var chain := GameData.dict(_shake_cfg, "chain")
+	var window := GameData.num(chain, "window", 0.4)
+	_last_blast = _clock
+	_blast_times.append(_clock)
+	var keep := 0
+	while keep < _blast_times.size() and _clock - _blast_times[keep] > window:
+		keep += 1
+	if keep > 0:
+		_blast_times = _blast_times.slice(keep)
+	if not _in_chain and _blast_times.size() >= GameData.integer(chain, "explosions", 8):
+		_in_chain = true
+		chains += 1
+		shake(maxi(SHAKE_NAMES.find(GameData.text(chain, "tier", "light")), 0))
+
+
+func in_chain() -> bool:
+	return _in_chain
 
 
 # -------------------------------------------------------------------- recipes
@@ -143,13 +227,15 @@ func death(x: float, y: float, color: Color, radius: float) -> void:
 		ring(x, y, radius * 0.6, radius * 2.6, 0.3, color, 0.2)
 
 
-func explosion(x: float, y: float, radius: float, color: Color, strength: float = 1.0) -> void:
+## Rings, flashes and particles only - an explosion never shakes the camera.
+## `_strength` is kept for callers; it no longer does anything.
+func explosion(x: float, y: float, radius: float, color: Color, _strength: float = 1.0) -> void:
 	ring(x, y, radius * 0.3, radius, 0.26, color, 0.2, 0.3)
 	flash(x, y, radius * 2.7, color, 0.16)
 	flash(x, y, radius * 1.3, Color(1, 1, 1, 0.9), 0.09)
 	var amount := clampi(int(radius * 0.16), 4, 22)
 	_g.particles.burst(x, y, amount, radius * 2.0, radius * 5.5, 0.22, 0.5, 11.0, 1.5, color, 5.5, 1.8)
-	shake(clampf(radius / 900.0, 0.02, 0.3) * strength)
+	# Explosions never shake on their own; see note_explosion() and shake().
 
 
 func shockwave(x: float, y: float, radius: float, color: Color) -> void:
@@ -173,7 +259,13 @@ func text(x: float, y: float, message: String, color: Color, scale: float = 1.1)
 # --------------------------------------------------------------------- update
 
 func update(delta: float) -> void:
-	trauma = maxf(trauma - _shake_decay * delta, 0.0)
+	_clock += delta
+	_shake_left = maxf(_shake_left - delta, 0.0)
+	if _shake_left <= 0.0:
+		_shake_tier = -1
+	if _in_chain and _clock - _last_blast >= GameData.num(GameData.dict(_shake_cfg, "chain"), "quiet", 1.0):
+		_in_chain = false
+		_blast_times.resize(0)
 
 	var i := 0
 	while i < _ring_n:
@@ -250,4 +342,7 @@ func clear() -> void:
 	_ring_n = 0
 	_flash_n = 0
 	_bolt_n = 0
-	trauma = 0.0
+	_shake_left = 0.0
+	_shake_tier = -1
+	_in_chain = false
+	_blast_times.resize(0)

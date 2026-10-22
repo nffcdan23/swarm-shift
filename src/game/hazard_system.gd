@@ -28,6 +28,8 @@ var _damage := PackedFloat32Array()
 var _from_x := PackedFloat32Array()
 var _from_y := PackedFloat32Array()
 var _has_origin := PackedByteArray()
+## FxSystem.Shake tier to request on detonation, or -1 (most zones: none).
+var _shake := PackedInt32Array()
 var _color: Array[Color] = []
 var _glow_cell := 0.0
 var _orb_cell := 0.0
@@ -38,6 +40,7 @@ func setup(arena: Arena) -> void:
 	for arr: PackedFloat32Array in [_x, _y, _radius, _delay, _age, _damage, _from_x, _from_y]:
 		arr.resize(MAX)
 	_has_origin.resize(MAX)
+	_shake.resize(MAX)
 	_color.resize(MAX)
 	_glow_cell = arena.gfx.cell("glow")
 	_orb_cell = arena.gfx.cell("orb")
@@ -45,8 +48,10 @@ func setup(arena: Arena) -> void:
 
 ## Adds a zone that detonates after `delay` seconds. Pass `from_x`/`from_y`
 ## to draw a shell arcing in from that point.
+## `shake_tier` (an FxSystem.Shake) makes the detonation shake the camera;
+## only boss attacks use it. Mortars, Bombers and bombardments do not.
 func add(x: float, y: float, radius: float, delay: float, damage: float, color: Color,
-		from_x: float = NAN, from_y: float = NAN) -> void:
+		from_x: float = NAN, from_y: float = NAN, shake_tier: int = -1) -> void:
 	if count >= MAX or not (is_finite(x) and is_finite(y)) or radius <= 0.0:
 		return
 	var i := count
@@ -63,6 +68,7 @@ func add(x: float, y: float, radius: float, delay: float, damage: float, color: 
 	_has_origin[i] = 1 if is_finite(from_x) and is_finite(from_y) else 0
 	_from_x[i] = from_x if _has_origin[i] != 0 else x
 	_from_y[i] = from_y if _has_origin[i] != 0 else y
+	_shake[i] = shake_tier
 
 
 func x_of(i: int) -> float:
@@ -92,6 +98,8 @@ func update(dt: float) -> void:
 		var color := _color[i]
 		if age >= _delay[i]:
 			_a.fx.explosion(_x[i], _y[i], r, color, 1.4)
+			if _shake[i] >= 0:
+				_a.fx.shake(_shake[i])
 			_a.sfx("explosion_m")
 			var dx := player.x - _x[i]
 			var dy := player.y - _y[i]
@@ -108,6 +116,7 @@ func update(dt: float) -> void:
 			_from_x[i] = _from_x[last]
 			_from_y[i] = _from_y[last]
 			_has_origin[i] = _has_origin[last]
+			_shake[i] = _shake[last]
 			_color[i] = _color[last]
 			continue
 		_age[i] = age

@@ -55,7 +55,7 @@ godot --headless --path . --import          # once after adding files
 godot --headless --path . -- --test
 ```
 
-138 tests, about 2,700 checks, two to three minutes (most of it the stability suite).
+145 tests, about 2,740 checks, two to three minutes (most of it the stability suite).
 
 | Suite | Covers |
 | --- | --- |
@@ -63,6 +63,7 @@ godot --headless --path . -- --test
 | `data` | Tables load and cross-reference; every blast gives enough warning to walk out of |
 | `services` | Save, economy, missions, achievements, ads and store policy |
 | `upgrades` | Upgrade cards: a person-like player picking and rerolling at random over six runs, maxed weapons and passives never offered, over-cap and stale cards refused, a full build still dealt a fair hand, pause during a choice |
+| `shake` | Camera shake: one subtle shake for a chain of hundreds of exploding enemies, none for ordinary explosions or weapon fire, no request can extend a shake, big moments still land, and the Off / Low / Normal setting |
 | `pickups` | Rewards on the floor: hundreds of deaths in one step, a saturated field, merging that keeps energy and Credits apart and exact, collection after merging, explosions, long heavy runs |
 | `ads` | AdMob provider and consent flow against a scripted stand-in for the native bridge: consent timing, preloading, retries, rewards only on the reward callback, timeouts |
 | `gameplay` | Whole runs played by the bot, every weapon, the boss, determinism |

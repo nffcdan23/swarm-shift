@@ -123,8 +123,23 @@
   },
 
   "feel": {
-    "shake_decay": 2.6,
     "shake_max_offset": 22,
+    "shake": {
+      "_doc": "Camera shake is requested by tier and never accumulates. A request starts a shake only if no shake of the same or a higher tier is running, its tier's cooldown has passed, and fewer than max_starts shakes began in the last window seconds (epic is exempt). Strength is a share of shake_max_offset, eased out over the duration, then scaled by the player's Screen Shake setting (levels). Ordinary explosions never shake: `explosions` of them within `window` seconds start a chain, which gets one shake of `tier`; it ends after `quiet` seconds with none.",
+      "tiers": {
+        "light": { "strength": 0.18, "duration": 0.25, "cooldown": 1.5 },
+        "medium": { "strength": 0.3, "duration": 0.3, "cooldown": 0.9 },
+        "heavy": { "strength": 0.55, "duration": 0.45, "cooldown": 0.6 },
+        "epic": { "strength": 1.0, "duration": 0.6, "cooldown": 0.0 }
+      },
+      "max_strength": 1.0,
+      "max_duration": 0.6,
+      "max_starts": 3,
+      "window": 2.0,
+      "chain": { "explosions": 8, "window": 0.4, "quiet": 1.0, "tier": "light" },
+      "big_hit_fraction": 0.2,
+      "levels": { "off": 0.0, "low": 0.5, "normal": 1.0 }
+    },
     "hitstop_boss_phase": 0.12,
     "hitstop_player_hit": 0.06,
     "death_slowmo_time": 1.1,

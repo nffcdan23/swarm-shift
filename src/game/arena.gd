@@ -131,10 +131,10 @@ func setup(p_app: AppRoot, p_config: RunConfig) -> void:
 		GameData.integer(GameData.dict(data.enemies, "bullets"), "max", 260), GameData.integer(_feel, "damage_number_cap", 44))
 	gfx.numbers.enabled = app.settings.enabled(SettingsService.DAMAGE_NUMBERS)
 	gfx.particles.density = 0.5 if app.settings.enabled(SettingsService.LOW_EFFECTS, false) else 1.0
-	_shake_scale = app.settings.number(SettingsService.SCREEN_SHAKE, 1.0)
+	_shake_scale = app.settings.shake_scale()
 
 	fx = FxSystem.new()
-	fx.setup(gfx, GameData.num(_feel, "shake_decay", 2.6))
+	fx.setup(gfx, GameData.dict(_feel, "shake"))
 
 	build = RunBuild.new(data, config.base_mods)
 	combat = Combat.new()
@@ -517,7 +517,7 @@ func on_synergy(synergy_id: String) -> void:
 	sfx("synergy")
 	haptic("success")
 	fx.shockwave(player.x, player.y, 320.0, Color(1.0, 0.76, 0.28))
-	fx.shake(0.3)
+	fx.shake(FxSystem.Shake.LIGHT)
 	app.analytics.track(Analytics.SYNERGY_FOUND, {"id": synergy_id, "run_level": level})
 	synergy_activated.emit({"id": synergy_id, "name": GameData.text(def, "name"), "desc": GameData.text(def, "desc")})
 
@@ -527,7 +527,9 @@ func on_synergy(synergy_id: String) -> void:
 func on_player_hit(amount: float, _from_x: float, _from_y: float) -> void:
 	var cfg := GameData.dict(data.game, "player")
 	var radius := GameData.num(cfg, "hit_shockwave_radius", 130.0)
-	fx.shake(0.4)
+	# A big hit is worth a noticeable shake; chip damage in a swarm only a light one.
+	var big := amount >= player.max_hp * GameData.num(GameData.dict(_feel, "shake"), "big_hit_fraction", 0.2)
+	fx.shake(FxSystem.Shake.MEDIUM if big else FxSystem.Shake.LIGHT)
 	fx.shockwave(player.x, player.y, radius, C_HURT)
 	gfx.particles.burst(player.x, player.y, 12, 120.0, 380.0, 0.2, 0.45, 12.0, 2.0, C_HURT, 5.0, 1.5)
 	fx.text(player.x, player.y - 40.0, "-%d" % int(ceilf(amount)), C_HURT, 1.15)
@@ -544,7 +546,7 @@ func on_player_down() -> void:
 	state = State.DOWNED
 	sfx("player_death")
 	haptic("heavy")
-	fx.shake(0.8)
+	fx.shake(FxSystem.Shake.HEAVY)
 	fx.explosion(player.x, player.y, 180.0, C_HURT)
 	app.analytics.track(Analytics.PLAYER_DEATH, {"time": time, "level": level, "kills": combat.kills, "boss_active": boss.active})
 	if free_revives_left > 0:
@@ -619,7 +621,7 @@ func spawn_boss(boss_id: String, hp_scale: float, damage_scale: float) -> void:
 	_vacuum_at = time + 1.4
 	_zoom_target = GameData.num(_run_cfg, "boss_camera_zoom", 0.74)
 	fx.shockwave(at.x, at.y, 700.0, Boss.C_BODY)
-	fx.shake(0.7)
+	fx.shake(FxSystem.Shake.HEAVY)
 	sfx("boss_spawn")
 	haptic("heavy")
 	app.analytics.track(Analytics.BOSS_STARTED, {"boss": boss_id, "time": time, "level": level, "cycle": director.cycle})
@@ -629,7 +631,7 @@ func spawn_boss(boss_id: String, hp_scale: float, damage_scale: float) -> void:
 func on_boss_phase(phase_index: int) -> void:
 	announce("PHASE %d" % (phase_index + 1), "boss")
 	fx.shockwave(boss.x, boss.y, 380.0, Boss.C_BODY)
-	fx.shake(0.55)
+	fx.shake(FxSystem.Shake.HEAVY)
 	bullets.clear()
 	_hitstop = GameData.num(_feel, "hitstop_boss_phase", 0.12)
 	sfx("boss_phase")
@@ -644,7 +646,7 @@ func on_boss_killed(x: float, y: float) -> void:
 	_purge_radius = 0.0
 	_zoom_target = GameData.num(_run_cfg, "camera_zoom", 0.88)
 	fx.shockwave(x, y, 900.0, Color(1.0, 0.85, 0.5))
-	fx.shake(1.0)
+	fx.shake(FxSystem.Shake.EPIC)
 	_hitstop = 0.2
 	sfx("boss_die")
 	haptic("heavy")
@@ -801,7 +803,7 @@ func _update_camera(delta: float) -> void:
 	_zoom = lerpf(_zoom, _zoom_target, 1.0 - exp(-delta * 2.5)) if delta > 0.0 else _zoom
 	camera.zoom = Vector2(_zoom, _zoom)
 	var max_offset := GameData.num(_feel, "shake_max_offset", 22.0) * _shake_scale
-	var shake := fx.trauma * fx.trauma * max_offset
+	var shake := fx.shake_amount() * max_offset
 	camera.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * shake
 	var view := get_viewport_rect().size
 	director.view_half = view / (2.0 * _zoom)

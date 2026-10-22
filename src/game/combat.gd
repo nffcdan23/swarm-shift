@@ -210,6 +210,7 @@ func flush() -> void:
 		var r := float(b.r)
 		var color: Color = b.color
 		a.fx.explosion(bx, by, r, color)
+		a.fx.note_explosion()
 		a.sfx("explosion_l" if r > 150.0 else ("explosion_m" if r > 75.0 else "explosion_s"))
 		var found := enemies.overlap(bx, by, r)
 		var kb := float(b.kb)
@@ -280,13 +281,11 @@ func on_enemy_killed(i: int) -> void:
 	if elite:
 		elites_killed += 1
 		a.sfx("elite_die")
-		a.fx.shake(0.3)
+		a.fx.shake(FxSystem.Shake.LIGHT)
 		a.haptic("heavy")
 		a.fx.explosion(ex, ey, r * 3.0, Color(1.0, 0.85, 0.4))
 	else:
 		a.sfx("enemy_die")
-		if r > 24.0:
-			a.fx.shake(0.07)
 
 	if (f & EnemySystem.F_NO_DROPS) == 0:
 		_drops(i, ex, ey, def, elite)
@@ -375,7 +374,7 @@ func detonate_bomb() -> void:
 	var player := a.player
 	blast(player.x, player.y, _bomb_radius, _bomb_damage / maxf(player.damage, 0.01), _src_other, Color(1.0, 0.7, 0.3), 380.0)
 	a.bullets.clear_circle(player.x, player.y, _bomb_radius)
-	a.fx.shake(0.7)
+	a.fx.shake(FxSystem.Shake.HEAVY)
 	a.haptic("heavy")
 
 

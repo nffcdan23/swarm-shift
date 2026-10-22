@@ -112,7 +112,7 @@ func update(dt: float) -> void:
 	if _age >= TRAVEL + _life:
 		_active = false
 		a.combat.blast(_x, _y, radius * 0.9, _implosion, src, color, 420.0, 0.0, true)
-		a.fx.shake(0.25)
+		a.fx.shake(FxSystem.Shake.MEDIUM)
 		a.sfx("implosion")
 
 

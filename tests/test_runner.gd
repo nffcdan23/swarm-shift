@@ -15,6 +15,7 @@ const SUITES := {
 	"ads": "res://tests/test_ads.gd",
 	"upgrades": "res://tests/test_upgrades.gd",
 	"pickups": "res://tests/test_pickups.gd",
+	"shake": "res://tests/test_shake.gd",
 	"gameplay": "res://tests/test_gameplay.gd",
 	"ui": "res://tests/test_ui.gd",
 	"progression": "res://tests/test_progression.gd",

@@ -46,5 +46,4 @@ func update(dt: float) -> void:
 	a.fx.ring(player.x, player.y, 12.0, reach * 0.72, 0.26, Color(1, 1, 1, 0.8), 0.07)
 	a.fx.flash(player.x, player.y, reach * 1.5, color, 0.22)
 	a.gfx.particles.burst(player.x, player.y, 16, reach * 1.6, reach * 3.2, 0.25, 0.45, 12.0, 2.0, color, 5.0, 1.0)
-	a.fx.shake(0.06)
 	a.sfx("nova")
