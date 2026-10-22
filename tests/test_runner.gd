@@ -13,6 +13,8 @@ const SUITES := {
 	"data": "res://tests/test_data.gd",
 	"services": "res://tests/test_services.gd",
 	"ads": "res://tests/test_ads.gd",
+	"upgrades": "res://tests/test_upgrades.gd",
+	"pickups": "res://tests/test_pickups.gd",
 	"gameplay": "res://tests/test_gameplay.gd",
 	"ui": "res://tests/test_ui.gd",
 	"progression": "res://tests/test_progression.gd",
