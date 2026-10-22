@@ -12,6 +12,7 @@ Built with **Godot 4.7.2** and GDScript. No backend, no third-party SDKs yet - a
 
 - [GAME_DESIGN.md](GAME_DESIGN.md) - what the game is and how it is tuned
 - [ARCHITECTURE.md](ARCHITECTURE.md) - how the code is organised, how to extend it, and what must happen before real money is switched on
+- [APP_STORE_READINESS.md](APP_STORE_READINESS.md) - commercial release audit: what stands between this build and the App Store
 - [docs/playtest-1](docs/playtest-1/README.md) - the freeze found in the first device playtest: cause, evidence and fix
 
 ## Requirements
