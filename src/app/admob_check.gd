@@ -106,23 +106,10 @@ func _wait(signal_name: String) -> Array:
 
 ## Waits for the first of several signals; returns [name, args...], or [] on timeout.
 func _wait_any(signal_names: Array) -> Array:
-	var state := {"result": []}
-	var handlers := {}
-	for signal_name: String in signal_names:
-		var handler := func(a: Variant = null, b: Variant = null) -> void:
-			if state.result.is_empty():
-				state.result = [signal_name] + [a, b].filter(func(v: Variant) -> bool: return v != null)
-		handlers[signal_name] = handler
-		_ads.connect(signal_name, handler)
-	var waited := 0.0
-	while state.result.is_empty() and waited < STEP_TIMEOUT:
-		await get_tree().create_timer(0.1).timeout
-		waited += 0.1
-	for signal_name: String in signal_names:
-		_ads.disconnect(signal_name, handlers[signal_name])
-	if state.result.is_empty():
+	var result: Array = await SignalRace.first(_ads, signal_names, STEP_TIMEOUT)
+	if result.is_empty():
 		_say("timed out after %d s waiting for %s" % [int(STEP_TIMEOUT), " / ".join(signal_names)])
-	return state.result
+	return result
 
 
 func _error_suffix(args: Array) -> String:

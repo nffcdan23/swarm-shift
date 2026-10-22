@@ -96,7 +96,7 @@ func boot(backend: SaveBackend = null) -> void:
 
 	# Provider selection point: replace the mocks with real SDK adapters here.
 	store = StoreService.new(self, MockStoreProvider.new())
-	ads = AdsService.new(self, MockAdProvider.new())
+	ads = AdsService.new(self, _ad_provider())
 
 	_assign_ab_group()
 	missions.refresh()
@@ -158,6 +158,17 @@ func _apply_remote_config() -> void:
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(REMOTE_CONFIG_PATH))
 	if parsed is Dictionary:
 		data.apply_overrides(parsed)
+
+
+## AdMob wherever the native bridge is in the build (iPhone builds made after
+## tools/build_admob.sh); the mock on the desktop, in tests and simulations, and
+## during `--admob-check`, which drives the bridge itself.
+func _ad_provider() -> AdProvider:
+	if not automated and not cli.has("admob-check") and Engine.has_singleton("AdMob"):
+		var bridge := Engine.get_singleton("AdMob")
+		if bridge.is_supported():
+			return AdMobAdProvider.new(bridge)
+	return MockAdProvider.new()
 
 
 ## Stable 50/50 bucket per install, stamped on every analytics event.

@@ -10,6 +10,7 @@ extends Node
 ##   --shots=<folder>   screenshot tour of every screen    (tests/shot_tour.gd)
 ##   --device-check     on-device self-test, prints a report (src/app/device_check.gd)
 ##   --admob-check      on-device check of the AdMob bridge with test ads (src/app/admob_check.gd)
+##   --consent-reset    forget the stored ad consent so the form shows again (AdMob builds)
 ##   --play             skip the menu and start a run
 ##   --autoplay         let the bot play (attract mode / soak test)
 ##   --perf             show the frame-time overlay in a run
@@ -125,6 +126,8 @@ func start_run(mode: String = CampaignService.MODE_SECTOR) -> void:
 		return
 	_busy = true
 	_last_mode = mode
+	# A quiet moment before the run: the ad network may need its consent form.
+	await App.ads.between_runs()
 	await _fade_to(1.0, 0.22)
 	_teardown_run()
 	menu.set_active(false)
@@ -169,6 +172,7 @@ func _on_play_again() -> void:
 
 func _on_home() -> void:
 	await App.ads.maybe_show_interstitial("post_run")
+	await App.ads.between_runs()
 	await _fade_to(1.0, 0.22)
 	_teardown_run()
 	menu.set_active(true)

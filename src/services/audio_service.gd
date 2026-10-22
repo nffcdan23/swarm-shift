@@ -28,6 +28,7 @@ var _music_id := ""
 var _music_tween: Tween
 var _muffle_effect := -1
 var _silent := false
+var _silenced := false
 
 
 func setup(app: AppRoot) -> void:
@@ -90,8 +91,18 @@ func _on_setting_changed(key: String, _value: Variant) -> void:
 		_apply_volumes()
 
 
+## Mutes everything while something else owns the speaker (a full-screen ad).
+func set_silenced(on: bool) -> void:
+	_silenced = on
+	_apply_volumes()
+
+
+func is_silenced() -> bool:
+	return _silenced
+
+
 func _apply_volumes() -> void:
-	_set_bus_level(0, _app.settings.number(SettingsService.MASTER, 1.0))
+	_set_bus_level(0, 0.0 if _silenced else _app.settings.number(SettingsService.MASTER, 1.0))
 	_set_bus_level(AudioServer.get_bus_index(BUS_MUSIC), _app.settings.number(SettingsService.MUSIC, 0.7))
 	_set_bus_level(AudioServer.get_bus_index(BUS_SFX), _app.settings.number(SettingsService.SFX, 1.0))
 

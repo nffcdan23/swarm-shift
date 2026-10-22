@@ -40,6 +40,24 @@ func is_showing() -> bool:
 	return _showing
 
 
+## Call at quiet moments between runs: before a run starts and on returning to
+## the menu. The provider may show its consent form here.
+func between_runs() -> void:
+	if _showing:
+		return
+	_showing = true
+	await provider.between_runs()
+	_showing = false
+
+
+func privacy_options_required() -> bool:
+	return provider.privacy_options_required()
+
+
+func show_privacy_options() -> void:
+	await provider.show_privacy_options()
+
+
 # ----------------------------------------------------------------- rewarded
 
 func rewarded_available(placement: String) -> bool:
@@ -139,9 +157,12 @@ func maybe_show_interstitial(placement: String) -> bool:
 
 func _begin() -> void:
 	_showing = true
+	# The ad owns the speaker while it is up.
+	_app.audio.set_silenced(true)
 	ad_opened.emit()
 
 
 func _end() -> void:
 	_showing = false
+	_app.audio.set_silenced(false)
 	ad_closed.emit()

@@ -54,13 +54,14 @@ godot --headless --path . --import          # once after adding files
 godot --headless --path . -- --test
 ```
 
-111 tests, about 2,430 checks, a little over a minute (most of it the stability suite).
+122 tests, about 2,480 checks, a little over a minute (most of it the stability suite).
 
 | Suite | Covers |
 | --- | --- |
 | `scripts` | Every script compiles |
 | `data` | Tables load and cross-reference; every blast gives enough warning to walk out of |
 | `services` | Save, economy, missions, achievements, ads and store policy |
+| `ads` | AdMob provider and consent flow against a scripted stand-in for the native bridge: consent timing, preloading, retries, rewards only on the reward callback, timeouts |
 | `gameplay` | Whole runs played by the bot, every weapon, the boss, determinism |
 | `ui` | Every screen builds; real synthetic taps and drags; the lobby, upgrades, pause and results flows |
 | `progression` | Player Level, Credits, banking exactly once, recovery of an interrupted run, permanent upgrades, and a save from before those features |
@@ -162,7 +163,7 @@ open build/ios/SwarmShift.xcodeproj
 
 ### AdMob bridge
 
-The Google Mobile Ads + consent SDKs are reached through a small native extension, `AdMob`, documented in [native/admob/README.md](native/admob/README.md). Every build uses Google's sample app id and test ad units, so only test ads can appear; the game itself still runs on the mock ad provider until the bridge is wired in as its `AdProvider`. To walk the consent form and two test ads on a phone (someone has to tap through them):
+The Google Mobile Ads + consent SDKs are reached through a small native extension, `AdMob`, documented in [native/admob/README.md](native/admob/README.md). Every build uses Google's sample app id and test ad units (`admob` in `data/monetization.json`), so only test ads can appear. On an iPhone build the game's ads go through `AdMobAdProvider`: Google's consent check at every launch, the consent form (and Apple's tracking prompt) at the first quiet moment after the player's first run, then real test ads in every placement. The desktop, tests and simulations keep the mock provider. To see the consent form again on a phone that has already answered, launch with `--consent-reset`. To walk the bridge on its own through the consent form and two test ads (someone has to tap through them):
 
 ```bash
 tools/ios_deploy.sh --admob-check

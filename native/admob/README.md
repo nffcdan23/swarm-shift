@@ -2,7 +2,7 @@
 
 A small GDExtension that exposes the Google Mobile Ads SDK and Google's User Messaging Platform (UMP, the consent SDK) to GDScript as the engine singleton `AdMob`. It holds no ad policy: what to show and when stays in `AdsService`. Phase 2 item 7 of [APP_STORE_READINESS.md](../../APP_STORE_READINESS.md).
 
-Status: built and verified on an iPhone 16 Pro Max with Google's test ads (22 October 2026). The game itself still uses `MockAdProvider`; wiring the bridge in as an `AdProvider` is item 9.
+Status: built and verified on an iPhone 16 Pro Max with Google's test ads (22 October 2026). The game uses it through `AdMobAdProvider` (`src/services/ads/admob_ad_provider.gd`) on any iPhone build that includes the bridge; the desktop, tests and simulations keep `MockAdProvider`.
 
 ## Build
 

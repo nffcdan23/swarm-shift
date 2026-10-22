@@ -20,6 +20,9 @@ const BOSS_DEFEATED := "boss_defeated"
 const AD_REQUESTED := "ad_requested"
 const AD_VIEWED := "ad_viewed"
 const REWARDED_AD_COMPLETED := "rewarded_ad_completed"
+## The ad consent status after a check: at launch, after the form between runs,
+## or after the privacy choices form. Props: moment, status, can_request_ads, tracking.
+const AD_CONSENT := "ad_consent"
 const PURCHASE_STARTED := "purchase_started"
 const PURCHASE_COMPLETED := "purchase_completed"
 const PURCHASE_FAILED := "purchase_failed"

@@ -27,5 +27,21 @@ func show_interstitial(_placement: String) -> bool:
 	return false
 
 
+## A quiet moment between runs (awaited before the next run or the menu).
+## Networks that need a consent form show it here.
+func between_runs() -> void:
+	pass
+
+
+## Whether the player must be offered a way to change their ad privacy choices.
+func privacy_options_required() -> bool:
+	return false
+
+
+## Shows the network's privacy choices form; returns when it closes.
+func show_privacy_options() -> void:
+	pass
+
+
 func describe() -> String:
 	return "null"

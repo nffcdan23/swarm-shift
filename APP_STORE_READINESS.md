@@ -485,8 +485,8 @@ Two work streams for one developer, in this order; the AdMob items can start bef
 
 *Ads and consent (about 2-3 weeks; details in section 6):*
 7. iOS plugin wrapping the Google Mobile Ads SDK and UMP; `GADApplicationIdentifier`, `SKAdNetworkItems`, `NSUserTrackingUsageDescription`, SDK privacy manifest (B-3, B-7). **Done 22 Oct 2026** - [native/admob](native/admob/README.md): consent, tracking prompt, SDK start, test rewarded and interstitial ads verified on an iPhone 16 Pro Max (debug build, test ads only).
-8. Consent and ATT flow gating SDK start-up on `canRequestAds`; decide first launch vs after the first run (B-7).
-9. `AdMobAdProvider` behind `AdProvider`: preload, no fill, timeouts, pause and resume, rewards only on the SDK's reward callback; tests against a fake bridge (B-3).
+8. Consent and ATT flow gating SDK start-up on `canRequestAds`; decide first launch vs after the first run (B-7). **Done 22 Oct 2026** - consent checked at every launch; the form waits for the first quiet moment after the first run (before the next run or on returning to the menu); verified on the iPhone with stored consent wiped.
+9. `AdMobAdProvider` behind `AdProvider`: preload, no fill, timeouts, pause and resume, rewards only on the SDK's reward callback; tests against a fake bridge (B-3). **Done 22 Oct 2026** - 11 tests (52 checks) against a fake bridge; a shop rewarded test ad paid +150 Credits on the iPhone. Game audio is silenced during ads rather than the game being paused: every rewarded placement already sits on a paused screen.
 10. Settings rows: Privacy choices, Report an ad (B-7, 2.5.18).
 11. AdMob console: Privacy & messaging (GDPR, US states, IDFA explainer), max ad content rating, child-directed settings per legal advice, ad units (B-7, M-8).
 

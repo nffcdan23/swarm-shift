@@ -36,7 +36,10 @@ func refresh() -> void:
 	restore.pressed.connect(_restore)
 	_list.add_child(restore)
 	if App.store.provider is MockStoreProvider:
-		_list.add_child(UiKit.paragraph("Development build: purchases and ads are simulated and no payment is taken.", UiTheme.TINY, Palette.DIM.lightened(0.2), HORIZONTAL_ALIGNMENT_CENTER))
+		var note := "Development build: purchases and ads are simulated and no payment is taken."
+		if App.ads.provider is AdMobAdProvider:
+			note = "Development build: purchases are simulated and no payment is taken. Ads are Google test ads."
+		_list.add_child(UiKit.paragraph(note, UiTheme.TINY, Palette.DIM.lightened(0.2), HORIZONTAL_ALIGNMENT_CENTER))
 	_list.add_child(UiKit.gap(8))
 
 

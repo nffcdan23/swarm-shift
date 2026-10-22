@@ -36,6 +36,21 @@
     { "id": "ex_large", "crystals": 200, "credits": 9000 }
   ],
 
+  "admob": {
+    "_doc": "Used by AdMobAdProvider on iOS. These are Google's demo ad units, which only ever serve test ads; C2's real units (and its real app id in addons/admob/admob_export.cfg) need sign-off first - APP_STORE_READINESS.md B-7. max_ad_content_rating must match the App Store age rating once it is set (G, PG, T or MA). age_treatment stays 'unspecified' until the legal advice in M-8 says otherwise.",
+    "ios": {
+      "rewarded": "ca-app-pub-3940256099942544/1712485313",
+      "interstitial": "ca-app-pub-3940256099942544/4411468910"
+    },
+    "consent_form_after_runs": 1,
+    "max_ad_content_rating": "G",
+    "age_treatment": "unspecified",
+    "retry_seconds": [10, 30, 60, 120, 300],
+    "consent_timeout_sec": 30,
+    "show_timeout_sec": 300,
+    "reward_grace_sec": 0.5
+  },
+
   "ads": {
     "rewarded": {
       "revive": { "enabled": true },
