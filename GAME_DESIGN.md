@@ -33,7 +33,7 @@ There are two levels in the game and they are never called just "level". The **R
 
 Energy needed for the next Run Level: `1 + 4L + 0.42L^2`. With the bot at the controls the first level-up arrives 4-8 seconds in and the second by about 15; runs that reach the boss are typically level 25-29.
 
-On level-up the game pauses and offers three cards. Rules: nothing maxed or slotless is offered; the first picks guarantee a new weapon so builds diversify early; owned items are weighted up so builds come together; luck raises the odds of rarer cards. One free reroll per run (more from permanent upgrades), then up to two by rewarded ad. Resuming clears a little space around the player and grants a moment of invulnerability.
+On level-up the game pauses and offers three cards. Rules: nothing maxed or slotless is offered, and the run refuses any card that no longer fits the build; the card that completes an item is marked FINAL UPGRADE; once everything is complete the hand is Field Repair, Salvage (run Credits) and Purge; the first picks guarantee a new weapon so builds diversify early; owned items are weighted up so builds come together; luck raises the odds of rarer cards. One free reroll per run (more from permanent upgrades), then up to two by rewarded ad. Resuming clears a little space around the player and grants a moment of invulnerability.
 
 Limits: 4 weapons (5 levels each), 5 passives, any number of augments.
 
@@ -80,6 +80,8 @@ Seven named combinations switch on automatically when their pieces are owned, wi
 **Every blast is telegraphed.** Mortar shells, Bombers, bombardments, volatile elites and the boss's ground blasts all go through one system that draws the full blast circle for the whole fuse. A data test checks that each gives enough time to react and walk out from its centre, and a bombardment is tested against a planner that must always find a safe direction.
 
 Pickups are colour-coded and the two colours are never mixed: **green crystals are run energy** (this run only), **gold coins are Credits** (kept). Enemies drop Credits at a rate set per type - a Swarmer 6% of the time, a Brute 30%, a Tank always; elites and the boss drop larger piles. Occasional helpers: a repair cell, a magnet that pulls in every crystal and coin, a bomb. A first-run hint and the pause menu both carry the green/gold legend.
+
+The floor holds a limited number of pickups. When it fills up, crystals and coins far from the player are merged into larger ones nearby (crystals with crystals, coins with coins, never helpers), so a kill always leaves its reward where it happened and a merged crystal pays exactly what its parts would have.
 
 ### Boss - The Overseer
 

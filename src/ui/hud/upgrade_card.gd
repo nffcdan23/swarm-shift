@@ -78,8 +78,10 @@ func _status_text() -> String:
 	if kind == UpgradeSystem.KIND_WEAPON or kind == UpgradeSystem.KIND_PASSIVE:
 		if bool(offer.get("is_new", false)):
 			return "NEW"
+		# The pick that completes an item. It used to say "MAX LEVEL", which
+		# playtesters read as "this is already maxed - why is it offered?".
 		if int(offer.get("level", 1)) >= int(offer.get("max_level", 1)):
-			return "MAX LEVEL"
+			return "FINAL UPGRADE"
 		return "LEVEL %d" % int(offer.get("level", 1))
 	if kind == UpgradeSystem.KIND_AUGMENT:
 		return "AUGMENT"

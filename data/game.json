@@ -88,6 +88,10 @@
       { "min_xp": 20, "sprite": "gem_l", "size": 54 }
     ],
     "repair_heal_fraction": 0.25,
+    "_merge_doc": "When the field reaches max_pickups (or max_credit_pickups), pickups farther than merge_keep_radius from the player are merged into a neighbour of the same kind within a grid cell, trying each cell size in turn, until the field is down to merge_target of its cap. New drops then always appear where they were earned. Merging moves value, never changes it.",
+    "merge_keep_radius": 900,
+    "merge_cells": [140, 280, 560, 1120],
+    "merge_target": 0.8,
     "special_drops": {
       "repair": { "chance": 0.006, "min_interval": 25 },
       "magnet": { "chance": 0.004, "min_interval": 40 },

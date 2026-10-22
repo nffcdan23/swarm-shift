@@ -26,6 +26,8 @@ var xp_rejected := 0
 var hud_recoveries := 0
 ## Drops that had to be merged or banked because the field was full.
 var pickups_merged := 0
+## Upgrade cards refused because they no longer fit the build (should stay 0).
+var upgrades_rejected := 0
 
 
 func summary() -> String:

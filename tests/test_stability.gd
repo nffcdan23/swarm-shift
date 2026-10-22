@@ -748,13 +748,23 @@ func test_boss_arrives_on_a_full_field() -> void:
 	arena.director.timeline_time = arena.director.boss_time() - 1.0
 	# The boss's arrival wave kills the whole field in a few steps: hundreds of
 	# deaths, drops and chain explosions, then a vacuum of all their energy.
-	var cost := _timed(arena, 8.0)
+	var arrival_steps := 0
+	while not arena.boss.active and arrival_steps < 90:
+		arena.step(1.0 / 30.0)
+		arrival_steps += 1
+	# The vacuum's level-ups deal random cards, and damage bonuses add to the
+	# -95% above (four Amplifiers make it -47%), so toughen the boss itself.
+	var boss_idx := arena.enemies.find_id(arena.boss.enemy_id)
+	if boss_idx >= 0:
+		arena.enemies.max_hp[boss_idx] *= 50.0
+		arena.enemies.hp[boss_idx] *= 50.0
+	var cost := _timed(arena, 8.0 - float(arrival_steps) / 30.0)
 	check(arena.boss.active, "the boss arrived")
 	_bounded(arena, "boss arrival")
 	check(arena.diag.levels_in_one_step >= 1, "the vacuum levelled the player (%d levels in one step at most)" % arena.diag.levels_in_one_step)
 	var fight := _timed(arena, 12.0)
 	_bounded(arena, "boss fight")
-	check(arena.boss.active and arena.state != Arena.State.ENDED, "the fight is under way")
+	check(arena.boss.active and arena.state != Arena.State.ENDED, "the fight is under way (boss active %s, hp %.2f, state %d, t %.1f, phase %s)" % [arena.boss.active, arena.boss.hp_fraction(), arena.state, arena.time, str(arena.boss.get("phase"))])
 	check(arena.bullets.count > 0 or arena.hazards.count > 0 or arena.boss.hp_fraction() < 1.0, "and the boss is attacking")
 	var guard := 0
 	while arena.boss.hp_fraction() > 0.0 and guard < 600:

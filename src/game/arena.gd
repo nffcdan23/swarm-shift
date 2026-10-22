@@ -416,7 +416,15 @@ func choose(index: int) -> void:
 	if state != State.CHOOSING or index < 0 or index >= current_offers.size():
 		return
 	var offer := current_offers[index]
-	upgrades.apply(offer)
+	if not upgrades.apply(offer):
+		# The card no longer fits the build. Deal a fresh hand for the same
+		# level rather than applying it or leaving the screen with nothing.
+		current_offers = upgrades.roll(current_offers.size(), choosing_cache)
+		choice_serial += 1
+		choice_started.emit(current_offers, choosing_cache)
+		if autopilot != null:
+			choose(autopilot.pick(current_offers))
+		return
 	app.analytics.track(Analytics.UPGRADE_SELECTED, {
 		"kind": offer.kind, "id": offer.id, "level": offer.level, "rarity": offer.rarity,
 		"run_level": level, "time": time, "cache": choosing_cache,

@@ -14,6 +14,7 @@ Built with **Godot 4.7.2** and GDScript. No backend, no third-party SDKs yet - a
 - [ARCHITECTURE.md](ARCHITECTURE.md) - how the code is organised, how to extend it, and what must happen before real money is switched on
 - [APP_STORE_READINESS.md](APP_STORE_READINESS.md) - commercial release audit: what stands between this build and the App Store
 - [docs/playtest-1](docs/playtest-1/README.md) - the freeze found in the first device playtest: cause, evidence and fix
+- [docs/playtest-2](docs/playtest-2/README.md) - pickups that stopped appearing in big fights, and the "maxed upgrade" card report
 
 ## Requirements
 
@@ -54,13 +55,15 @@ godot --headless --path . --import          # once after adding files
 godot --headless --path . -- --test
 ```
 
-124 tests, about 2,510 checks, a little over a minute (most of it the stability suite).
+138 tests, about 2,700 checks, two to three minutes (most of it the stability suite).
 
 | Suite | Covers |
 | --- | --- |
 | `scripts` | Every script compiles |
 | `data` | Tables load and cross-reference; every blast gives enough warning to walk out of |
 | `services` | Save, economy, missions, achievements, ads and store policy |
+| `upgrades` | Upgrade cards: a person-like player picking and rerolling at random over six runs, maxed weapons and passives never offered, over-cap and stale cards refused, a full build still dealt a fair hand, pause during a choice |
+| `pickups` | Rewards on the floor: hundreds of deaths in one step, a saturated field, merging that keeps energy and Credits apart and exact, collection after merging, explosions, long heavy runs |
 | `ads` | AdMob provider and consent flow against a scripted stand-in for the native bridge: consent timing, preloading, retries, rewards only on the reward callback, timeouts |
 | `gameplay` | Whole runs played by the bot, every weapon, the boss, determinism |
 | `ui` | Every screen builds; real synthetic taps and drags; the lobby, upgrades, pause and results flows |

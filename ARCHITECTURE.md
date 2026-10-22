@@ -57,7 +57,7 @@ player -> director (spawning) -> boss -> enemies -> weapons -> projectiles
 | --- | --- |
 | `EnemySystem` | AI (seek, dasher, shooter, mortar, weaver, bomber), movement, crowd separation, player contact and the draw instance in one loop. Spatial hash grid for queries. |
 | `ProjectileSystem` | All player projectiles in one pool; behaviour is flags (homing, seeking, exploding, splitting) |
-| `BulletSystem`, `HazardSystem`, `PickupSystem` | Enemy fire, telegraphed ground blasts, energy / credits / drops |
+| `BulletSystem`, `HazardSystem`, `PickupSystem` | Enemy fire, telegraphed ground blasts, energy / credits / drops. A full pickup field merges far-away pickups of the same kind cell by cell (`merge_*` in `game.json`), so new drops appear where they were earned; `dropped_* == collected_* + field_*()` holds for energy and Credits at every step |
 | `Combat` | The only path to enemy health. Crits, bonus rules, stats, and every on-hit / on-kill augment |
 | `Director` | Reads the timeline: spawn tracks, set pieces (surge, elite, pack, pincer, line, bombard), boss, tier scaling, and which of those a sector has unlocked or mutated |
 | `RunDiagnostics` | Counters for tests, the simulator and `--perf`: back-to-back choices, queue peaks, anything a safety valve dropped |
@@ -73,6 +73,7 @@ Rules that keep this safe:
 - **Area damage is queued.** `Combat.blast()` adds to a queue resolved in `flush()`. An explosion whose kills cause more explosions just grows the queue, and a per-step cap turns a huge chain into a visible rolling wave instead of a one-frame spike.
 - **`on_enemy_killed` must not start an overlap query** - the caller may be iterating the shared result buffer.
 - **Gameplay randomness uses `arena.rng`.** A seed reproduces a run exactly (there is a test for it). Visual-only effects may use the global generator.
+- **The run enforces card rules, not the screen.** `UpgradeSystem.apply()` refuses a card that no longer fits the build (maxed, stale, skipped level, no slot, owned augment) and `Arena.choose()` deals a fresh hand for the same level instead. `RunDiagnostics.upgrades_rejected` counts refusals; it should stay 0.
 - **Nothing loops on a value from data without a bound.** Energy grants are validated and capped per grant, spawn tracks and scripted events have a per-step budget, the explosion queue has a cap scaled to the field, and every pool (`EnemySystem`, `ProjectileSystem`, `PickupSystem`, `HazardSystem`, effects) refuses or merges when full. `RunDiagnostics` counts each time one of these opens.
 - **Nothing hurts without a telegraph.** Blasts go through `HazardSystem`, which draws the full blast circle for the whole fuse and refuses a fuse shorter than `MIN_DELAY`. A data test checks every blast in the tables can be walked out of from its centre.
 

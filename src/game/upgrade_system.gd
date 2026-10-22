@@ -189,7 +189,42 @@ func _purge_offer() -> Dictionary:
 
 # ---------------------------------------------------------------------- apply
 
-func apply(offer: Dictionary) -> void:
+## Whether `offer` can still be applied to the build as it is now: a weapon or
+## passive exactly one level above what is owned and within its cap (and a
+## free slot if it is new), an augment not yet owned whose requirements hold.
+## The fallback cards (repair, salvage, purge) are always valid.
+func is_valid(offer: Dictionary) -> bool:
+	var build := _a.build
+	var id := str(offer.get("id", ""))
+	var level := int(offer.get("level", 0))
+	match str(offer.get("kind", "")):
+		KIND_WEAPON:
+			var have := build.weapon_level(id)
+			if not _data.weapon_defs().has(id) or have >= _weapon_max or level != have + 1:
+				return false
+			return have > 0 or build.weapon_order.size() < _weapon_slots
+		KIND_PASSIVE:
+			var def := GameData.dict(_data.passives(), id)
+			var have := build.passive_level(id)
+			if def.is_empty() or have >= GameData.integer(def, "max_level", 5) or level != have + 1:
+				return false
+			return have > 0 or build.passive_order.size() < _passive_slots
+		KIND_AUGMENT:
+			var def := GameData.dict(_data.augments(), id)
+			return not def.is_empty() and not build.augments.has(id) and _requirements_met(GameData.dict(def, "requires"))
+		KIND_HEAL, KIND_CREDITS, KIND_PURGE:
+			return true
+	return false
+
+
+## Applies a card. Returns false, changing nothing, if the card is no longer
+## valid for this build (see `is_valid`) - the card screen is only a view, so
+## the rules are enforced here as well.
+func apply(offer: Dictionary) -> bool:
+	if not is_valid(offer):
+		push_warning("Upgrade rejected: %s %s at level %s does not fit the build" % [offer.get("kind"), offer.get("id"), offer.get("level")])
+		_a.diag.upgrades_rejected += 1
+		return false
 	var a := _a
 	var build := a.build
 	var id := str(offer.id)
@@ -216,3 +251,4 @@ func apply(offer: Dictionary) -> void:
 	for synergy_id in build.refresh_synergies():
 		a.refresh_build()
 		a.on_synergy(synergy_id)
+	return true
