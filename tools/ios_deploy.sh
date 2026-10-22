@@ -5,6 +5,7 @@
 #   tools/ios_deploy.sh              export + build + install + launch
 #   tools/ios_deploy.sh --check      same, then run the on-device self-test and print its report
 #   tools/ios_deploy.sh --no-launch  install only
+#   DEVICE=<udid> tools/ios_deploy.sh  target one phone when several are connected
 #
 # Requirements: Godot 4.7.2 with iOS export templates, Xcode signed in to the
 # team named in export_presets.cfg, and an iPhone that is connected, trusted,
@@ -22,7 +23,8 @@ OUT="$ROOT/build/ios"
 DERIVED="$ROOT/build/ios-derived"
 BUNDLE_ID=$(sed -n 's/^application\/bundle_identifier="\(.*\)"$/\1/p' export_presets.cfg | head -1)
 
-DEVICE=$(xcrun devicectl list devices 2>/dev/null | awk '/physical/ && /connected|available/ {for (i = 1; i <= NF; i++) if ($i ~ /^[0-9A-F]{8}-[0-9A-F]{16}$/) print $i}' | head -1)
+# DEVICE=<udid> picks a phone when more than one is connected.
+DEVICE=${DEVICE:-$(xcrun devicectl list devices 2>/dev/null | awk '/physical/ && /connected|available/ {for (i = 1; i <= NF; i++) if ($i ~ /^[0-9A-F]{8}-[0-9A-F]{16}$/) print $i}' | head -1)}
 if [[ -z "$DEVICE" ]]; then
   echo "No connected iPhone found. Plug it in, unlock it and tap Trust."
   exit 1
@@ -37,7 +39,7 @@ godot --headless --path "$ROOT" --export-debug "iOS" "$OUT/SwarmShift.ipa" > "$R
 
 echo "2/4  Building and signing..."
 EXTRA=()
-[[ -n "$ALLOW_PROVISIONING" ]] && EXTRA+=(-allowProvisioningUpdates)
+[[ -n "$ALLOW_PROVISIONING" ]] && EXTRA+=(-allowProvisioningUpdates -allowProvisioningDeviceRegistration)
 if ! xcodebuild -project "$OUT/SwarmShift.xcodeproj" -scheme SwarmShift -configuration Debug \
     -destination "id=$DEVICE" -derivedDataPath "$DERIVED" $EXTRA build > "$ROOT/build/xcodebuild.log" 2>&1; then
   grep -E "error:|No profiles|requires a provisioning" "$ROOT/build/xcodebuild.log" | head -10
