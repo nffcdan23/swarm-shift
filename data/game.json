@@ -3,6 +3,18 @@
   "tagline": "ONE CORE. ENDLESS SWARM.",
   "version": "0.2.1",
 
+  "links": {
+    "_doc": "Opened from Settings. PLACEHOLDERS: example.com is a reserved domain, not C2's. Replace all three with C2's hosted pages before any build leaves the team (APP_STORE_READINESS.md B-4); the same privacy and support URLs go into App Store Connect. report_ad gets ?format=&placement=&at=&network=&version= appended, describing the last ad shown - no personal data.",
+    "privacy_policy": "https://example.com/swarmshift/privacy",
+    "support": "https://example.com/swarmshift/support",
+    "report_ad": "https://example.com/swarmshift/report-ad"
+  },
+
+  "third_party": [
+    { "name": "godot-cpp", "in": "admob_bridge", "copyright": "Copyright (c) 2017-present Godot Engine contributors.", "licence": "Expat" },
+    { "name": "Google Mobile Ads SDK and User Messaging Platform SDK", "in": "admob_sdk", "copyright": "Copyright Google LLC.", "terms": "Used under Google's terms: https://developers.google.com/admob/terms" }
+  ],
+
   "currencies": {
     "credits": { "name": "Credits", "icon": "credit", "color": "#ffd15c" },
     "crystals": { "name": "Crystals", "icon": "crystal", "color": "#b58cff" }

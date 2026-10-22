@@ -91,7 +91,7 @@ func _run() -> void:
 		await _shot("04_menu_achievements")
 		menu.show_tab("home")
 		await _wait(0.3)
-		for entry: Array in [["settings", SettingsModal.new(menu)], ["profile", ProfileModal.new()], ["daily", DailyRewardModal.new(menu)]]:
+		for entry: Array in [["settings", SettingsModal.new(menu)], ["licences", LicencesModal.new()], ["profile", ProfileModal.new()], ["daily", DailyRewardModal.new(menu)]]:
 			var dialog: Modal = entry[1]
 			menu.open_dialog(dialog)
 			await _wait(0.7)

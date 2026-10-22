@@ -36,6 +36,8 @@ var store: StoreService
 ## "--key=value" / "--flag" arguments passed after `--` on the command line.
 var cli: Dictionary = {}
 var headless := false
+## URLs `open_url()` would have opened in automated runs (tests read them).
+var opened_urls: PackedStringArray = []
 ## True for tests, simulations and screenshot tours: uses an in-memory profile
 ## and makes the mock ad/store providers resolve without prompting.
 var automated := false
@@ -177,6 +179,16 @@ func _assign_ab_group() -> void:
 	if str(ab.get("group", "")).is_empty():
 		ab["group"] = "A" if hash(str(save.state.get("install_id", ""))) % 2 == 0 else "B"
 		save.mark_dirty()
+
+
+## Opens a web page in the system browser. Automated runs only record it.
+func open_url(url: String) -> void:
+	if url.is_empty():
+		return
+	if automated:
+		opened_urls.append(url)
+	else:
+		OS.shell_open(url)
 
 
 func cli_int(key: String, fallback: int) -> int:

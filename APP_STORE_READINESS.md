@@ -168,6 +168,7 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 - **Complexity.** L.
 
 #### B-4 No privacy policy, no support URL
+- **Update 22 Oct 2026.** The in-app rows now exist (Settings: Privacy Policy, Support, Report an ad) and read their URLs from `links` in `data/game.json`. They point at **placeholder pages on example.com**; the policy and support pages themselves still have to be written, hosted and swapped in, so this blocker stands.
 - **Description.** Every app must link a privacy policy in App Store Connect and inside the app (5.1.1(i)); a support URL is a required store field. Neither exists, and the game has no link to either.
 - **Evidence.** No URL anywhere in `src/` or `data/`; `SettingsModal` has audio, haptics, comfort options, reset, and the version only.
 - **Fix.** Write and host a privacy policy that states what the app collects (today: nothing leaves the device; the save and a local event log stay on the phone), what the Google Mobile Ads SDK collects and why (1.0 ships with AdMob), with a link to Google's policy, retention, and how to request deletion; a support page with a contact address. Add "Privacy Policy", "Support", "Licences", "Privacy choices" and "Report an ad" rows (the last two from B-7) to Settings that open the URLs. Put the URLs in `data/game.json` so they are not hard-coded. UK GDPR / EU GDPR wording - *legal review*.
@@ -212,6 +213,7 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 - **Complexity.** M (iCloud KVS) to L (server).
 
 #### H-4 Third-party licence notices are not shown anywhere
+- **Update 22 Oct 2026: fixed, pending a device check.** Settings > Licences lists Godot's MIT notice, every engine component and its copyright holders, the full licence texts (all from the engine binary), and - in builds with the AdMob bridge - godot-cpp and Google's SDK terms (`third_party` in `data/game.json`). UI tests check for the Godot, FreeType, Open Sans and MIT texts.
 - **Description.** Godot's MIT licence requires its notice to be included with the game; the engine also bundles third-party code and fonts under their own licences (FreeType, Mbed TLS, HarfBuzz, ICU, libpng, Ogg Vorbis, Open Sans under the SIL OFL, and 60+ more listed by the engine). The game shows none of them.
 - **Evidence.** `Engine.get_copyright_info()` lists 70+ components; `ThemeDB.fallback_font` is "Open Sans SemiBold"; no licence screen in `src/ui`. Godot's "Complying with licenses" page: a credits or licences screen satisfies it.
 - **Fix.** Add a "Licences" screen in Settings generated from `Engine.get_license_text()`, `get_copyright_info()` and `get_license_info()` (stays correct across engine updates), plus entries for godot-cpp (MIT) and the Google Mobile Ads and UMP SDKs, which the AdMob bridge now links into the app. Add a LICENSE/ownership statement for the project itself.
@@ -487,7 +489,7 @@ Two work streams for one developer, in this order; the AdMob items can start bef
 7. iOS plugin wrapping the Google Mobile Ads SDK and UMP; `GADApplicationIdentifier`, `SKAdNetworkItems`, `NSUserTrackingUsageDescription`, SDK privacy manifest (B-3, B-7). **Done 22 Oct 2026** - [native/admob](native/admob/README.md): consent, tracking prompt, SDK start, test rewarded and interstitial ads verified on an iPhone 16 Pro Max (debug build, test ads only).
 8. Consent and ATT flow gating SDK start-up on `canRequestAds`; decide first launch vs after the first run (B-7). **Done 22 Oct 2026** - consent checked at every launch; the form waits for the first quiet moment after the first run (before the next run or on returning to the menu); verified on the iPhone with stored consent wiped.
 9. `AdMobAdProvider` behind `AdProvider`: preload, no fill, timeouts, pause and resume, rewards only on the SDK's reward callback; tests against a fake bridge (B-3). **Done 22 Oct 2026** - 11 tests (52 checks) against a fake bridge; a shop rewarded test ad paid +150 Credits on the iPhone. Game audio is silenced during ads rather than the game being paused: every rewarded placement already sits on a paused screen.
-10. Settings rows: Privacy choices, Report an ad (B-7, 2.5.18).
+10. Settings rows: Privacy choices, Report an ad (B-7, 2.5.18). **Done 22 Oct 2026 (Mac only)** - Settings now has Privacy Policy, Support, Report an ad, Licences, and Privacy choices when Google's consent SDK requires it. Links are **placeholders on example.com** in `data/game.json` (`links`) until C2 hosts real pages (B-4). Report an ad appends the last ad's format, placement, time, network and app version - no personal data. Covered by UI tests and screenshots at the smallest supported screen; not yet checked on a phone.
 11. AdMob console: Privacy & messaging (GDPR, US states, IDFA explainer), max ad content rating, child-directed settings per legal advice, ad units (B-7, M-8).
 
 **Phase 3 - Device and beta (2-3 weeks, overlaps Phase 2's end).**

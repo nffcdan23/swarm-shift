@@ -139,6 +139,16 @@ func title() -> String:
 	return text(game, "title", "GAME")
 
 
+## A URL from `links` in game.json ("privacy_policy", "support", "report_ad").
+func link(key: String) -> String:
+	return text(dict(game, "links"), key)
+
+
+## The links shipped so far are placeholders on example.com, a reserved domain.
+static func is_placeholder_link(url: String) -> bool:
+	return url.is_empty() or url.contains("example.com")
+
+
 func weapon_defs() -> Dictionary:
 	return dict(weapons, "weapons")
 

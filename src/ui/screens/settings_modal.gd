@@ -1,7 +1,10 @@
 class_name SettingsModal
 extends Modal
 ## Player preferences: independent master / music / sound levels, haptics,
-## and a few comfort options. Changes apply and save immediately.
+## and a few comfort options. Changes apply and save immediately. Below them,
+## privacy and help: the privacy policy, support, reporting an ad, the ad
+## privacy choices (only when the ad network says they must be offered) and
+## the third-party licences.
 
 var _shell: MenuShell
 var _reset_armed := false
@@ -23,6 +26,8 @@ func _build(into: VBoxContainer) -> void:
 	into.add_child(_toggle("damage", "DAMAGE NUMBERS", SettingsService.DAMAGE_NUMBERS, true))
 	into.add_child(_toggle("area", "REDUCED EFFECTS", SettingsService.LOW_EFFECTS, false))
 	into.add_child(_slider("shockwave", "SCREEN SHAKE", SettingsService.SCREEN_SHAKE))
+	into.add_child(UiKit.divider())
+	_build_help(into)
 	into.add_child(UiKit.divider())
 
 	_reset = NeonButton.make("RESET ALL PROGRESS", NeonButton.Kind.GHOST, Palette.MUTED, "", 60.0, UiTheme.TINY + 1)
@@ -65,6 +70,45 @@ func _toggle(icon_id: String, text: String, key: String, fallback: bool) -> HBox
 			App.haptics.medium())
 	row.add_child(toggle)
 	return row
+
+
+func _build_help(into: VBoxContainer) -> void:
+	if App.ads.privacy_options_required():
+		into.add_child(_help_button("PRIVACY CHOICES", "shield", _on_privacy_choices))
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	grid.add_child(_help_button("PRIVACY POLICY", "info", App.open_url.bind(App.data.link("privacy_policy"))))
+	grid.add_child(_help_button("SUPPORT", "profile", App.open_url.bind(App.data.link("support"))))
+	grid.add_child(_help_button("REPORT AN AD", "warning", _on_report_ad))
+	grid.add_child(_help_button("LICENCES", "gear", _on_licences))
+	into.add_child(grid)
+
+
+func _help_button(text: String, icon_id: String, action: Callable) -> NeonButton:
+	var button := NeonButton.make(text, NeonButton.Kind.GHOST, Palette.MUTED, icon_id, 60.0, UiTheme.TINY + 1)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.pressed.connect(action)
+	return button
+
+
+func _on_privacy_choices() -> void:
+	await App.ads.show_privacy_options()
+	if _shell != null:
+		_shell.toast("Privacy choices saved", Palette.CYAN, "check")
+
+
+func _on_report_ad() -> void:
+	App.open_url(App.ads.report_ad_url())
+
+
+func _on_licences() -> void:
+	var licences := LicencesModal.new()
+	if _shell != null:
+		_shell.open_dialog(licences)
+	else:
+		get_parent().add_child(licences)
 
 
 func _on_reset() -> void:

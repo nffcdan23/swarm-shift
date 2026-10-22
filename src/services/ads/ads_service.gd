@@ -23,6 +23,7 @@ var _app: AppRoot
 var _cfg: Dictionary
 var _rewarded_this_flow := false
 var _showing := false
+var _last_ad: Dictionary = {}
 
 
 func _init(app: AppRoot, p_provider: AdProvider) -> void:
@@ -50,6 +51,30 @@ func between_runs() -> void:
 	_showing = false
 
 
+## The page for reporting an inappropriate ad (App Review Guideline 2.5.18),
+## describing the last ad shown this session so support can find it. Carries
+## no personal data: format, placement, time, network and app version.
+func report_ad_url() -> String:
+	var url := _app.data.link("report_ad")
+	if url.is_empty():
+		return ""
+	var query := {
+		"format": str(_last_ad.get("format", "")),
+		"placement": str(_last_ad.get("placement", "")),
+		"at": str(_last_ad.get("at", "")),
+		"network": provider.describe(),
+		"version": GameData.text(_app.data.game, "version"),
+	}
+	var parts := PackedStringArray()
+	for key: String in query:
+		parts.append("%s=%s" % [key, str(query[key]).uri_encode()])
+	return url + ("&" if url.contains("?") else "?") + "&".join(parts)
+
+
+func last_ad() -> Dictionary:
+	return _last_ad.duplicate()
+
+
 func privacy_options_required() -> bool:
 	return provider.privacy_options_required()
 
@@ -74,6 +99,7 @@ func show_rewarded(placement: String) -> bool:
 	if _showing or not rewarded_available(placement):
 		return false
 	_app.analytics.track(Analytics.AD_REQUESTED, {"format": "rewarded", "placement": placement})
+	_last_ad = {"format": "rewarded", "placement": placement, "at": _app.clock.now()}
 	_begin()
 	var earned: bool = await provider.show_rewarded(placement)
 	_end()
@@ -143,6 +169,7 @@ func maybe_show_interstitial(placement: String) -> bool:
 	if _showing or not should_show_interstitial():
 		return false
 	_app.analytics.track(Analytics.AD_REQUESTED, {"format": "interstitial", "placement": placement})
+	_last_ad = {"format": "interstitial", "placement": placement, "at": _app.clock.now()}
 	_begin()
 	var shown: bool = await provider.show_interstitial(placement)
 	_end()

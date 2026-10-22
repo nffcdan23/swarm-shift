@@ -54,7 +54,7 @@ godot --headless --path . --import          # once after adding files
 godot --headless --path . -- --test
 ```
 
-122 tests, about 2,480 checks, a little over a minute (most of it the stability suite).
+124 tests, about 2,510 checks, a little over a minute (most of it the stability suite).
 
 | Suite | Covers |
 | --- | --- |
@@ -168,6 +168,10 @@ The Google Mobile Ads + consent SDKs are reached through a small native extensio
 ```bash
 tools/ios_deploy.sh --admob-check
 ```
+
+### Privacy, support and licences
+
+Settings has rows for the privacy policy, support, reporting an ad, Google's privacy choices (shown only when the consent SDK requires it) and third-party licences. The three web links live in `links` in `data/game.json` and are **placeholders on example.com** until C2's pages exist; swap them in there and in App Store Connect. The licences screen is generated from the engine binary plus `third_party` in the same file.
 
 ### On-device self-test
 

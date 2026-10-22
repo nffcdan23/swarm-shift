@@ -846,3 +846,69 @@ func test_results_cards_scroll_and_skip_from_anywhere() -> void:
 	check(screen.is_settled(), "tapping on a card skips to the end, not only tapping the background")
 	screen.queue_free()
 	await _frames(1)
+
+
+func test_settings_privacy_and_help_rows() -> void:
+	fresh_profile()
+	for key: String in ["privacy_policy", "support", "report_ad"]:
+		check(app.data.link(key).begins_with("https://"), "%s link is an https URL" % key)
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(2)
+	var settings := SettingsModal.new(shell)
+	shell.open_dialog(settings)
+	await host.get_tree().create_timer(0.4).timeout
+	for text: String in ["PRIVACY POLICY", "SUPPORT", "REPORT AN AD", "LICENCES"]:
+		var button := _button(settings, text)
+		if check(button != null, "%s row is there" % text):
+			check(host.get_viewport().get_visible_rect().encloses(button.get_global_rect()), "%s row is on screen" % text)
+	check(_button(settings, "PRIVACY CHOICES") == null, "no privacy choices row when the ad network does not ask for one")
+
+	app.opened_urls.clear()
+	await _tap(_button(settings, "PRIVACY POLICY").get_global_rect().get_center())
+	await _tap(_button(settings, "SUPPORT").get_global_rect().get_center())
+	check_eq(Array(app.opened_urls), [app.data.link("privacy_policy"), app.data.link("support")], "privacy policy and support open their pages")
+
+	check(await app.ads.show_rewarded(AdsService.REVIVE), "an ad was shown")
+	app.opened_urls.clear()
+	await _tap(_button(settings, "REPORT AN AD").get_global_rect().get_center())
+	var report := app.opened_urls[0] if not app.opened_urls.is_empty() else ""
+	check(report.begins_with(app.data.link("report_ad") + "?"), "report an ad opens the report page")
+	check(report.contains("format=rewarded") and report.contains("placement=revive"), "describing the last ad shown (%s)" % report)
+
+	await _tap(_button(settings, "LICENCES").get_global_rect().get_center())
+	await host.get_tree().create_timer(0.3).timeout
+	var licences: LicencesModal = null
+	for node in shell.find_children("*", "LicencesModal", true, false):
+		licences = node
+	if check(licences != null, "licences open from settings"):
+		for wanted: String in ["Copyright (c) 2014-present, Godot Engine contributors", "FreeType", "Open Sans", "Expat", "Permission is hereby granted"]:
+			check(_has_text(licences, wanted), "licences include %s" % wanted)
+		check(not _has_text(licences, "Google Mobile Ads"), "no Google SDK notice where the SDK is not in the build")
+		licences.close()
+	shell.queue_free()
+	await _frames(2)
+
+
+func test_privacy_choices_row_when_required() -> void:
+	fresh_profile()
+	var fake := FakeAdMobBridge.new()
+	fake.privacy_required = true
+	app.ads = AdsService.new(app, AdMobAdProvider.new(fake))
+	await host.get_tree().create_timer(0.3).timeout
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(2)
+	var settings := SettingsModal.new(shell)
+	shell.open_dialog(settings)
+	await host.get_tree().create_timer(0.4).timeout
+	var row := _button(settings, "PRIVACY CHOICES")
+	if check(row != null, "privacy choices row appears when the ad network requires it"):
+		var consents := app.analytics_log.count(Analytics.AD_CONSENT)
+		await _tap(row.get_global_rect().get_center())
+		await host.get_tree().create_timer(0.3).timeout
+		check(app.analytics_log.count(Analytics.AD_CONSENT) > consents, "it opens the network's privacy form and records the answer")
+	shell.queue_free()
+	await host.get_tree().create_timer(0.2).timeout
+	fake.free()
+	fresh_profile()
