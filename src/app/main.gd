@@ -9,6 +9,7 @@ extends Node
 ##   --bench            performance scenarios, then exit   (tests/sim_runner.gd)
 ##   --shots=<folder>   screenshot tour of every screen    (tests/shot_tour.gd)
 ##   --device-check     on-device self-test, prints a report (src/app/device_check.gd)
+##   --admob-check      on-device check of the AdMob bridge with test ads (src/app/admob_check.gd)
 ##   --play             skip the menu and start a run
 ##   --autoplay         let the bot play (attract mode / soak test)
 ##   --perf             show the frame-time overlay in a run
@@ -62,12 +63,14 @@ func _ready() -> void:
 	App.audio.play_music("menu")
 
 	# A run that was cut short last time (app closed or killed) is paid out now.
-	var recovered := {} if App.cli.has("device-check") else RunLedger.recover_pending(App)
+	var recovered := {} if App.cli.has("device-check") or App.cli.has("admob-check") else RunLedger.recover_pending(App)
 
 	if App.cli.has("shots"):
 		_run_tool("res://tests/shot_tour.gd")
 	elif App.cli.has("device-check"):
 		add_child(DeviceCheck.new(self))
+	elif App.cli.has("admob-check"):
+		add_child(AdMobCheck.new())
 	elif App.cli.has("play") or App.cli.has("autoplay"):
 		start_run(App.cli_text("mode", CampaignService.MODE_SECTOR))
 	elif not recovered.is_empty():

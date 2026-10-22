@@ -10,7 +10,7 @@ Nothing was submitted, published, uploaded, signed for distribution or installed
 
 **Not ready to submit.** The game itself is in good shape: a complete, stable, well-tested core loop with original, reproducible assets. What is missing is almost everything *around* the game that a store release needs: the publishing account is not C2's, both ad and purchase systems are development mocks that would hand out paid content for free, there is no privacy policy, no store metadata, and no release build has ever been produced or validated.
 
-Seven BLOCKERs, nine HIGH. None of them needs the game to be rebuilt.
+Seven BLOCKERs, ten HIGH. None of them needs the game to be rebuilt.
 
 **Update, 22 October 2026:** C2 has decided that 1.0 launches with both in-app purchases and ads. The AdMob and consent work is now blocker B-7, and the release plan (section 9) puts it in Phase 2, which grows to about 5-6 weeks.
 
@@ -214,7 +214,7 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 #### H-4 Third-party licence notices are not shown anywhere
 - **Description.** Godot's MIT licence requires its notice to be included with the game; the engine also bundles third-party code and fonts under their own licences (FreeType, Mbed TLS, HarfBuzz, ICU, libpng, Ogg Vorbis, Open Sans under the SIL OFL, and 60+ more listed by the engine). The game shows none of them.
 - **Evidence.** `Engine.get_copyright_info()` lists 70+ components; `ThemeDB.fallback_font` is "Open Sans SemiBold"; no licence screen in `src/ui`. Godot's "Complying with licenses" page: a credits or licences screen satisfies it.
-- **Fix.** Add a "Licences" screen in Settings generated from `Engine.get_license_text()`, `get_copyright_info()` and `get_license_info()` (stays correct across engine updates), plus entries for any SDK added later. Add a LICENSE/ownership statement for the project itself.
+- **Fix.** Add a "Licences" screen in Settings generated from `Engine.get_license_text()`, `get_copyright_info()` and `get_license_info()` (stays correct across engine updates), plus entries for godot-cpp (MIT) and the Google Mobile Ads and UMP SDKs, which the AdMob bridge now links into the app. Add a LICENSE/ownership statement for the project itself.
 - **Verify.** Screen opens in the release build and includes the Godot MIT text, FreeType and Open Sans/OFL.
 - **Complexity.** S.
 
@@ -259,6 +259,13 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 - **Fix.** Use Apple's own crash reports (Xcode Organizer and TestFlight feedback, no SDK and no privacy-label change) and upload dSYMs with each archive. Add a third-party crash/analytics SDK only if needed, and update the privacy policy and labels when you do.
 - **Verify.** A deliberate test crash in a TestFlight build appears, symbolicated, in Organizer.
 - **Complexity.** S.
+
+#### H-11 An audio interruption that never ends leaves the game frozen
+- **Description.** Godot 4.7.2 on iOS treats an audio session interruption as losing focus: it stops drawing and stops its main loop, and starts again only when iOS reports the interruption has ended, or the app becomes active again. If the "ended" notification never arrives while the app stays in front, the game sits on a still frame and ignores touches. Phone calls, Siri, alarms, other apps' audio and full-screen video ads can all interrupt the session.
+- **Evidence.** Observed once, cause not proven. On 22 October 2026, during an ordinary session on an iPhone 16 Pro Max, the device log shows `Audio interruption began` at 19:01:36 and no matching `ended`; the game's event log stops at 19:00:31; the player reported the game froze. Godot source: `drivers/apple_embedded/app_delegate_service.mm` (`onAudioInterruption:` calls `on_focus_out()`, which stops rendering). The playtest-1 write-up already listed this as untested. Google's test ads did **not** trigger it: in the verified AdMob run there were no interruptions, and frames kept advancing after every ad.
+- **Fix.** Reproduce first: trigger interruptions on purpose (incoming call, Siri, an alarm, music app started over the game) and read the bridge's `[admob]` trace, which logs every interruption with its reason. If confirmed, the smallest fix is native: when the app is active and an interruption has begun but not ended within a short time, reactivate the audio session and restart Godot's loop (for example from the AdMob bridge, which already observes interruptions), or patch the engine's handler. Add the scenario to the device test plan.
+- **Verify.** Each interruption type above, during a run and at the menu: the game resumes by itself within a second of the interruption ending, with sound.
+- **Complexity.** M.
 
 ### MEDIUM
 
@@ -477,14 +484,14 @@ Two work streams for one developer, in this order; the AdMob items can start bef
 6. Reset warning for purchases (M-3); Starter Pack wording (M-2); fix the flaky test (M-1).
 
 *Ads and consent (about 2-3 weeks; details in section 6):*
-7. iOS plugin wrapping the Google Mobile Ads SDK and UMP; `GADApplicationIdentifier`, `SKAdNetworkItems`, `NSUserTrackingUsageDescription`, SDK privacy manifest (B-3, B-7).
+7. iOS plugin wrapping the Google Mobile Ads SDK and UMP; `GADApplicationIdentifier`, `SKAdNetworkItems`, `NSUserTrackingUsageDescription`, SDK privacy manifest (B-3, B-7). **Done 22 Oct 2026** - [native/admob](native/admob/README.md): consent, tracking prompt, SDK start, test rewarded and interstitial ads verified on an iPhone 16 Pro Max (debug build, test ads only).
 8. Consent and ATT flow gating SDK start-up on `canRequestAds`; decide first launch vs after the first run (B-7).
 9. `AdMobAdProvider` behind `AdProvider`: preload, no fill, timeouts, pause and resume, rewards only on the SDK's reward callback; tests against a fake bridge (B-3).
 10. Settings rows: Privacy choices, Report an ad (B-7, 2.5.18).
 11. AdMob console: Privacy & messaging (GDPR, US states, IDFA explainer), max ad content rating, child-directed settings per legal advice, ad units (B-7, M-8).
 
 **Phase 3 - Device and beta (2-3 weeks, overlaps Phase 2's end).**
-TestFlight internal build; device matrix including the oldest supported iPhone and, if kept, an iPad (H-5, H-9); sandbox purchase test plan (B-2); consent and ATT matrix with UMP debug geographies, test ads only (B-7); external beta with 15-30 players (H-6), watching whether interstitials hurt day-1 return; crash reports in Organizer (H-10); rebalance from beta data (H-6, M-6).
+TestFlight internal build; device matrix including the oldest supported iPhone and, if kept, an iPad (H-5, H-9); sandbox purchase test plan (B-2); consent and ATT matrix with UMP debug geographies, test ads only (B-7); audio interruptions during play and during ads (H-11); external beta with 15-30 players (H-6), watching whether interstitials hurt day-1 return; crash reports in Organizer (H-10); rebalance from beta data (H-6, M-6).
 
 **Phase 4 - Store listing (1 week, during the beta).**
 Metadata, screenshots at store sizes, age rating with ads declared, App Privacy answers matching Google's disclosure for the shipped SDK, IAP products with review screenshots, review notes explaining the Starter Pack, the consent flow and that nothing is required to progress (B-6, B-7); `app-ads.txt` live on the developer website. Accessibility improvements that are cheap (M-4).

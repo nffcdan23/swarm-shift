@@ -41,3 +41,12 @@ android/
 # Local-only
 *.tmp
 *.log
+
+# AdMob bridge build output (tools/build_admob.sh); sources are in native/admob
+addons/admob/bin/
+addons/admob/ios/
+addons/admob/admob.gdextension
+addons/admob/admob.gdextension.uid
+native/**/*.o
+native/**/*.os
+native/**/.sconsign.dblite

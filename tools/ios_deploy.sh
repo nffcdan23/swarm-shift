@@ -4,6 +4,8 @@
 #
 #   tools/ios_deploy.sh              export + build + install + launch
 #   tools/ios_deploy.sh --check      same, then run the on-device self-test and print its report
+#   tools/ios_deploy.sh --admob-check  same, then walk the AdMob consent and test-ad flow (needs
+#                                      someone at the phone) and print its report
 #   tools/ios_deploy.sh --no-launch  install only
 #   DEVICE=<udid> tools/ios_deploy.sh  target one phone when several are connected
 #
@@ -31,6 +33,13 @@ if [[ -z "$DEVICE" ]]; then
 fi
 echo "Device:    $DEVICE"
 echo "Bundle ID: $BUNDLE_ID"
+
+# The AdMob bridge is a native extension built outside Godot (git-ignored output).
+if [[ ! -f "$ROOT/addons/admob/admob.gdextension" ]]; then
+  echo "0/4  Building the AdMob bridge (first time takes a few minutes)..."
+  "$ROOT/tools/build_admob.sh" || exit 1
+  godot --headless --path "$ROOT" --import > "$ROOT/build/import.log" 2>&1 || true
+fi
 
 echo "1/4  Exporting the Xcode project from Godot..."
 mkdir -p "$OUT"
@@ -73,6 +82,32 @@ case "$MODE" in
     else
       grep -q "Locked" "$ROOT/build/launch.log" && echo "The phone was locked, so the test could not start."
       echo "No report was produced - the test was interrupted or did not finish. Try again with the phone left alone."
+      exit 1
+    fi
+    ;;
+  --admob-check)
+    echo "4/4  Running the AdMob check. On the phone: answer the consent form, watch the rewarded"
+    echo "     test ad to the end and close it, then close the interstitial test ad."
+    REPORT="$ROOT/build/admob_check.txt"
+    rm -f "$REPORT"
+    xcrun devicectl device process launch --console --terminate-existing --device "$DEVICE" "$BUNDLE_ID" -- --admob-check $ADMOB_ARGS > "$ROOT/build/launch.log" 2>&1 &
+    LAUNCH=$!
+    # Each step waits up to two minutes for a tap, so poll for the report.
+    for _ in {1..96}; do
+      sleep 5
+      xcrun devicectl device copy from --device "$DEVICE" --domain-type appDataContainer --domain-identifier "$BUNDLE_ID" \
+        --source Documents/admob_check.txt --destination "$REPORT" > /dev/null 2>&1 && grep -q "^RESULT" "$REPORT" && break
+    done
+    sleep 1
+    kill $LAUNCH 2>/dev/null || true
+    # The bridge's own trace (consent, ad events, audio interruptions) from the device log.
+    grep "\[admob\]" "$ROOT/build/launch.log" | sed 's/^.*\[admob\] /  device: /' || true
+    if [[ -f "$REPORT" ]] && grep -q "^RESULT" "$REPORT"; then
+      cat "$REPORT"
+    else
+      [[ -f "$REPORT" ]] && { echo "Unfinished report:"; cat "$REPORT"; }
+      grep -q "Locked" "$ROOT/build/launch.log" && echo "The phone was locked, so the check could not start."
+      echo "The check did not finish within 8 minutes."
       exit 1
     fi
     ;;

@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+# Builds the AdMob bridge GDExtension. Run it through tools/build_admob.sh,
+# which fetches the dependencies and sets the environment variables below.
+#
+#   GODOT_CPP  path to godot-cpp
+#   GMA_DIR    GoogleMobileAds.xcframework/ios-arm64 (iOS only)
+#   UMP_DIR    UserMessagingPlatform.xcframework/ios-arm64 (iOS only)
+#   OUT_DIR    where the library is written
+import os
+
+env = SConscript(os.path.join(os.environ["GODOT_CPP"], "SConstruct"))
+env.Append(CPPPATH=["src/"])
+
+sources = ["src/admob_bridge.cpp", "src/register_types.cpp"]
+out_dir = os.environ["OUT_DIR"]
+name = "libadmob.{}.{}".format(env["platform"], env["target"])
+
+if env["platform"] == "ios":
+    sources.append("src/admob_ios.mm")
+    frameworks = [os.environ["GMA_DIR"], os.environ["UMP_DIR"]]
+    env.Append(CCFLAGS=["-fobjc-arc", "-fmodules", "-fcxx-modules"] + ["-F" + path for path in frameworks])
+    library = env.StaticLibrary(os.path.join(out_dir, name + ".a"), source=sources)
+else:
+    sources.append("src/admob_stub.cpp")
+    if env["platform"] == "macos":
+        target = os.path.join(out_dir, "{0}.framework/{0}".format(name))
+    else:
+        target = os.path.join(out_dir, name + env["SHLIBSUFFIX"])
+    library = env.SharedLibrary(target, source=sources)
+
+env.NoCache(library)
+Default(library)

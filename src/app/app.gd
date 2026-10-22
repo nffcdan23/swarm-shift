@@ -133,7 +133,13 @@ func _notification(what: int) -> void:
 
 
 func _parse_cli() -> void:
-	for arg in OS.get_cmdline_user_args():
+	var args := OS.get_cmdline_user_args()
+	# `devicectl device process launch ... -- --device-check` consumes the "--",
+	# so on a phone the options arrive as engine arguments. Nothing else is ever
+	# passed there, so read them from that list instead.
+	if args.is_empty() and OS.has_feature("mobile"):
+		args = OS.get_cmdline_args()
+	for arg in args:
 		if not arg.begins_with("--"):
 			continue
 		var body := arg.substr(2)

@@ -38,6 +38,10 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/admob/plugin.cfg")
+
 [gui]
 
 theme/default_font_multichannel_signed_distance_field=true

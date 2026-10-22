@@ -23,6 +23,7 @@ Built with **Godot 4.7.2** and GDScript. No backend, no third-party SDKs yet - a
 | Export templates 4.7.2 | Installed to `~/Library/Application Support/Godot/export_templates/4.7.2.stable/` |
 | Xcode | For iOS device builds; signed in to the team in `export_presets.cfg` |
 | Android SDK + JDK 17 | Only needed to export Android; not set up yet |
+| AdMob bridge | Built by `tools/build_admob.sh` (downloads pinned, checksum-verified Google SDKs and godot-cpp into `build/deps`); `tools/ios_deploy.sh` runs it the first time. See [native/admob](native/admob/README.md) |
 
 ## Run it
 
@@ -159,6 +160,14 @@ godot --headless --path . --export-debug "iOS" build/ios/SwarmShift.ipa
 open build/ios/SwarmShift.xcodeproj
 ```
 
+### AdMob bridge
+
+The Google Mobile Ads + consent SDKs are reached through a small native extension, `AdMob`, documented in [native/admob/README.md](native/admob/README.md). Every build uses Google's sample app id and test ad units, so only test ads can appear; the game itself still runs on the mock ad provider until the bridge is wired in as its `AdProvider`. To walk the consent form and two test ads on a phone (someone has to tap through them):
+
+```bash
+tools/ios_deploy.sh --admob-check
+```
+
 ### On-device self-test
 
 Launching the installed app with `--device-check` makes it report on what only real hardware can show: screen size and safe-area insets, renderer, audio, file storage, touch routing, and frame rate while a bot plays under load. It writes `device_check.txt` to the app's Documents folder and never modifies the player's profile.
@@ -205,12 +214,14 @@ No code refers to the title directly.
 ```
 data/        Balance and content tables (JSON)
 assets/      Generated sprites, audio, shaders, app icon
-src/app      Composition root (the only autoload) and the game shell
+src/app      Composition root (the only autoload), the game shell, on-device checks
 src/core     Data loading, formatting
 src/services Save, economy, progression, missions, ads, store, analytics, audio
 src/game     The run: arena, enemies, weapons, boss, effects
 src/ui       Design system, HUD, menu screens
-tools/       Art and audio generators, iOS deploy script
+tools/       Art and audio generators, iOS deploy script, AdMob bridge build
+native/      Native code: the AdMob bridge GDExtension (ignored by the engine)
+addons/      AdMob export plugin; the built bridge lands here (git-ignored)
 tests/       Test suites, balance simulator, screenshot tour
 docs/        Reference screenshots and the playtest-1 investigation (ignored by the engine)
 build/       Export output (ignored by git)
