@@ -10,7 +10,9 @@ Nothing was submitted, published, uploaded, signed for distribution or installed
 
 **Not ready to submit.** The game itself is in good shape: a complete, stable, well-tested core loop with original, reproducible assets. What is missing is almost everything *around* the game that a store release needs: the publishing account is not C2's, both ad and purchase systems are development mocks that would hand out paid content for free, there is no privacy policy, no store metadata, and no release build has ever been produced or validated.
 
-Six BLOCKERs, ten HIGH. None of them needs the game to be rebuilt.
+Seven BLOCKERs, nine HIGH. None of them needs the game to be rebuilt.
+
+**Update, 22 October 2026:** C2 has decided that 1.0 launches with both in-app purchases and ads. The AdMob and consent work is now blocker B-7, and the release plan (section 9) puts it in Phase 2, which grows to about 5-6 weeks.
 
 | Area | Score /10 | One line |
 | --- | --- | --- |
@@ -19,7 +21,7 @@ Six BLOCKERs, ten HIGH. None of them needs the game to be rebuilt.
 | Performance | 6 | 120 fps with ~240 enemies on an iPhone 16 Pro Max (debug). Nothing measured on older or mid-range phones |
 | UI/UX | 7 | Polished, safe-area aware, honest shop. iPad untested on hardware; accessibility gaps |
 | Copyright | 6 | Every sprite and sound regenerates byte-for-byte from the project's own code. Engine licence notices missing; name not cleared |
-| Privacy | 4 | Collects nothing today, which is good - but there is no privacy policy, which every app must have |
+| Privacy | 4 | Collects nothing today - but there is no privacy policy, and the decision to ship ads in 1.0 brings consent, ATT and disclosures (B-7) |
 | Monetisation | 2 | Policy layer is solid and tested; the ad network and the store are both mocks |
 | iOS Compatibility | 6 | Toolchain meets Apple's current minimums; development builds run on a real iPhone. No release build ever made |
 | App Store Compliance | 2 | Mocks in the shipping build, no policy, no C2 account, no metadata |
@@ -89,7 +91,7 @@ Not done: no release export, no archive, no upload or "Validate App" (needs a di
 - Paid Apps Agreement, banking and tax forms (needed before any in-app purchase can be sold).
 - EU Digital Services Act trader status (needed to be on the EU storefronts).
 - Final name and trademark clearance; final bundle identifier.
-- Monetisation scope for 1.0 (ads, purchases, both), ad network choice and account, price points.
+- C2 AdMob account and its payments profile (1.0 scope decided 22 Oct 2026: purchases and ads, AdMob); price points.
 - Whether to support iPad at launch.
 - Whether the generated art and audio are the launch look.
 - Hosting for the privacy policy and support URL; a support contact.
@@ -112,10 +114,10 @@ Not done: no release export, no archive, no upload or "Validate App" (needs a di
 | Loot-box odds disclosed (3.1.1) | Mandatory if randomised items are sold | Not applicable: nothing random is sold | - |
 | Privacy policy link in App Store Connect **and** in the app (5.1.1(i)) | Mandatory for all apps | **Missing** | B-4 |
 | App Privacy ("nutrition label") questionnaire | Mandatory | Not answered | B-6 |
-| Privacy manifest with required-reason APIs | Mandatory (since 1 May 2024), including for third-party SDKs | Engine's manifest present; SDK manifests needed when added | H-3 |
-| ATT prompt before tracking (5.1.2(i)) | Mandatory only if the app tracks | Not applicable today; likely with an ad SDK | H-3 |
+| Privacy manifest with required-reason APIs | Mandatory (since 1 May 2024), including for third-party SDKs | Engine's manifest present; SDK manifests needed when added | B-7 |
+| ATT prompt before tracking (5.1.2(i)) | Mandatory only if the app tracks | Required: AdMob in 1.0 scope; not built | B-7 |
 | Account deletion (5.1.1(v)) | Only if the app has accounts | Not applicable (no accounts) | - |
-| Ads: clearly marked, visible close button, age-appropriate, **a way to report inappropriate ads** (2.5.18) | Mandatory if ads are shown | No real ads yet; no report mechanism | H-3 |
+| Ads: clearly marked, visible close button, age-appropriate, **a way to report inappropriate ads** (2.5.18) | Mandatory if ads are shown | Required: AdMob in 1.0 scope; no report mechanism yet | B-7 |
 | Age rating questions answered honestly (2.3.6), new rating system | Mandatory | Not answered | B-6 |
 | Screenshots: at least one iPhone set; **13" iPad set if the app runs on iPad** | Mandatory | None for the store; app declares iPad | B-6, H-9 |
 | Metadata accurate; screenshots show the game in use; 30-character name | Mandatory | Not written | B-6 |
@@ -124,7 +126,7 @@ Not done: no release export, no archive, no upload or "Validate App" (needs a di
 | Paid Apps Agreement, tax, banking | Mandatory to sell IAP | Not in place for C2 | B-1 |
 | Export compliance answer | Mandatory | Met in Info.plist | - |
 | Purpose strings for any protected API the binary uses | Mandatory when used | Present but **empty** | H-8 |
-| Age-range signals (Declared Age Range API) under Texas SB 2420 and similar state laws | Depends on jurisdiction - *legal review* | Not implemented | M-11 |
+| Age-range signals (Declared Age Range API) under Texas SB 2420 and similar state laws | Depends on jurisdiction - *legal review* | Not implemented | M-8 |
 | Accessibility Nutrition Labels | Voluntary today; Apple says they will become required, no date announced | Not answered | M-4 |
 | Game Center | Optional | Not used | - |
 
@@ -161,14 +163,14 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 #### B-3 Ads are a mock that shows fake full-screen "TEST" ads
 - **Description.** `App.boot()` always installs `MockAdProvider`; it reports every ad as ready and shows a "TEST REWARDED AD / Mock ad provider" screen. Placeholder content (2.1(a)), and no revenue.
 - **Evidence.** `src/app/app.gd:99`, `src/services/ads/mock_ad_provider.gd`, `src/services/ads/mock_ad_overlay.gd`. Placements: revive (`revive_prompt.gd:53`), reroll (`hud.gd:464`), double run Credits (`results_screen.gd:477`), daily double (`daily_reward_modal.gd:83`), shop Credits; interstitial after results (`main.gd:163,168`).
-- **Fix.** Either integrate a real network behind `AdProvider` (see section 6 and H-3) or, for 1.0, set every placement `enabled: false` in `data/monetization.json` and make the release build use the null `AdProvider` - the UI already hides ad buttons when `rewarded_available()` is false. Check that nothing still says "watch an ad".
-- **Verify.** Release build on device shows no ad entry points (or real test ads from the network in TestFlight); no "TEST"/"mock" strings in the release `.pck` (`strings` over it).
-- **Complexity.** S to disable; L to integrate properly.
+- **Fix.** Ads are in the 1.0 scope (decided 22 October 2026): implement an `AdMobAdProvider` behind the existing `AdProvider` interface and select it in release builds; keep `MockAdProvider` for debug and automated runs only. Details and the consent work it depends on are in B-7, section 6 and Phase 2.
+- **Verify.** TestFlight build shows Google test ads in every placement and no mock overlay; no "TEST"/"mock" strings from the mocks in the release `.pck` (`strings` over it).
+- **Complexity.** L.
 
 #### B-4 No privacy policy, no support URL
 - **Description.** Every app must link a privacy policy in App Store Connect and inside the app (5.1.1(i)); a support URL is a required store field. Neither exists, and the game has no link to either.
 - **Evidence.** No URL anywhere in `src/` or `data/`; `SettingsModal` has audio, haptics, comfort options, reset, and the version only.
-- **Fix.** Write and host a privacy policy that states what the app collects (today: nothing leaves the device; the save and a local event log stay on the phone), what each SDK collects once added, retention, and how to request deletion; a support page with a contact address. Add "Privacy Policy", "Support" (and later "Terms", "Licences", "Report an ad") rows to Settings that open the URLs. Put the URLs in `data/game.json` so they are not hard-coded. UK GDPR / EU GDPR wording - *legal review*.
+- **Fix.** Write and host a privacy policy that states what the app collects (today: nothing leaves the device; the save and a local event log stay on the phone), what the Google Mobile Ads SDK collects and why (1.0 ships with AdMob), with a link to Google's policy, retention, and how to request deletion; a support page with a contact address. Add "Privacy Policy", "Support", "Licences", "Privacy choices" and "Report an ad" rows (the last two from B-7) to Settings that open the URLs. Put the URLs in `data/game.json` so they are not hard-coded. UK GDPR / EU GDPR wording - *legal review*.
 - **Verify.** Links open from the release build; the same URLs are in App Store Connect; the policy matches the App Privacy answers.
 - **Complexity.** S engineering, M for the text and review.
 
@@ -182,9 +184,16 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 #### B-6 App Store Connect metadata, screenshots, age rating and privacy answers do not exist
 - **Description.** Submission needs: name (30 characters max), subtitle, description, keywords, category (Games > Action, say), copyright line, support and privacy URLs, review notes, screenshots, age rating questionnaire under Apple's new rating system, App Privacy questionnaire, pricing and availability, and IAP product metadata with a review screenshot each.
 - **Evidence.** None of it is in the repo or (as far as this audit can see) anywhere else. `docs/screenshots` are development shots (540 wide), not store sizes.
-- **Fix.** Draft metadata in the repo (e.g. `store/metadata.md`) so it is reviewed like code. Capture store screenshots on device or with the screenshot tour at store resolutions: at least one iPhone set (1320x2868 or 1290x2796 for the large Dynamic Island class, which the 16 Pro Max produces natively) and, if iPad is kept, a 13" set (2064x2752 or 2048x2732). Screenshots must show gameplay, stay 4+ appropriate (2.3.8), and contain no "TEST"/mock UI. Age rating: the game is abstract geometric combat with no blood, gore or people; expect a low rating, but answer each question honestly (2.3.6) - the answers on violence intensity, in-app purchases and ads are a business sign-off. App Privacy: "Data Not Collected" is accurate **only** while no SDK sends data off the device.
+- **Fix.** Draft metadata in the repo (e.g. `store/metadata.md`) so it is reviewed like code. Capture store screenshots on device or with the screenshot tour at store resolutions: at least one iPhone set (1320x2868 or 1290x2796 for the large Dynamic Island class, which the 16 Pro Max produces natively) and, if iPad is kept, a 13" set (2064x2752 or 2048x2732). Screenshots must show gameplay, stay 4+ appropriate (2.3.8), and contain no "TEST"/mock UI. Age rating: the game is abstract geometric combat with no blood, gore or people; expect a low rating, but answer each question honestly (2.3.6) - the answers on violence intensity, in-app purchases and ads are a business sign-off. App Privacy: with AdMob in 1.0 the answers must follow Google's data disclosure for the SDK version shipped (B-7); "Data Not Collected" no longer applies.
 - **Verify.** App Store Connect shows no missing-field warnings; screenshots validate at upload; a second person checks the age rating answers against the game.
 - **Complexity.** M.
+
+#### B-7 Ad consent, ATT and ad compliance are not built (ads are in the 1.0 scope)
+- **Description.** C2 decided on 22 October 2026 to launch with both in-app purchases and ads, so this is now a submission blocker rather than follow-up work. With the Google Mobile Ads SDK in the app, the following become mandatory: UK/EEA consent through a certified consent platform (Google's UMP) before any ad request; the ATT prompt before personalised, IDFA-based ads (5.1.2(i)) - declining must not lock any feature, so rewarded ads must still work, non-personalised; the SDK's privacy manifest in the app; App Privacy answers that match Google's own disclosure (device ID, advertising data, product interaction, performance and crash data, coarse location from IP; "used to track you" if ATT is granted); a privacy policy naming Google as an advertising partner; ads appropriate for the age rating (2.5.18); visible close buttons; and **a way for players to report an inappropriate ad** (2.5.18). If children are a likely audience, child-directed ad settings and the UK Age Appropriate Design Code apply - *legal review* (M-8).
+- **Evidence.** `privacy/tracking_enabled=false` in the preset; no consent, ATT or ad SDK code; ARCHITECTURE.md "Before real money" item 6.
+- **Fix.** The work stream is laid out in section 6 and Phase 2 of the release plan.
+- **Verify.** Fresh install with UMP debug geography set to EEA and to UK: consent form before any ad request (Google SDK debug logs, or a proxy showing no ad traffic before consent); refuse consent and decline ATT, and rewarded ads still pay; "Privacy choices" reopens the form; App Privacy answers match Google's data-disclosure page for the SDK version shipped; every placement reviewed on TestFlight with test ads.
+- **Complexity.** L.
 
 ### HIGH
 
@@ -201,13 +210,6 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 - **Fix.** Add iCloud key-value or CloudKit save (a new `SaveBackend` with a merge rule; the profile already has `created_at`, `last_seen`, `play_seconds`), or a server ledger (H-1). State the limitation in the store description and support page until then.
 - **Verify.** Buy Crystals on device A, install on device B with the same Apple Account, balance appears.
 - **Complexity.** M (iCloud KVS) to L (server).
-
-#### H-3 Advertising compliance work is all still to do
-- **Description.** As soon as a real ad SDK is added, the following become mandatory: UK/EU consent (a certified consent platform such as Google's UMP for AdMob) before the SDK initialises; the ATT prompt if any personalised/IDFA-based ads are requested (5.1.2(i)) - declining must not lock any feature; the SDK's privacy manifest and signature in the app; updated App Privacy answers (typically device ID, advertising data, product interaction, diagnostics, possibly "used to track you"); ads appropriate for the age rating; visible close buttons; and **a way for players to report an inappropriate ad** (2.5.18). If children are a likely audience, child-directed / under-age-of-consent ad settings and the UK Age Appropriate Design Code apply - *legal review*.
-- **Evidence.** `privacy/tracking_enabled=false` in the preset; no consent code; ARCHITECTURE.md "Before real money" item 6.
-- **Fix.** See section 6. Gate SDK start-up behind consent; add `NSUserTrackingUsageDescription` only if tracking is used; add "Privacy choices" (re-open consent) and "Report an ad" to Settings; set the network's max ad content rating to match the App Store rating.
-- **Verify.** Fresh install in the UK/EU: consent shown before any ad request (check with the network's debug logs / a proxy); decline ATT and confirm rewarded ads still work (non-personalised); App Privacy answers match the SDK's own disclosure; TestFlight review of every placement.
-- **Complexity.** L.
 
 #### H-4 Third-party licence notices are not shown anywhere
 - **Description.** Godot's MIT licence requires its notice to be included with the game; the engine also bundles third-party code and fonts under their own licences (FreeType, Mbed TLS, HarfBuzz, ICU, libpng, Ogg Vorbis, Open Sans under the SIL OFL, and 60+ more listed by the engine). The game shows none of them.
@@ -309,7 +311,7 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 - **Verify.** Disclosures match the SDK's data list.
 - **Complexity.** S to M.
 
-#### M-11 Age assurance and children's privacy laws - *legal review*
+#### M-8 Age assurance and children's privacy laws - *legal review*
 - **Description.** US state laws (Texas SB 2420 in force since June 2026; Utah and Louisiana scheduled) put duties on app developers around age signals and parental consent, which Apple supports through the Declared Age Range API. In the UK, the ICO's Age Appropriate Design Code applies to online services likely to be accessed by children, which an arcade game with ads may be. Whether and how these apply to a UK publisher with no accounts and no data collection is a legal question, and the answer changes once ads or analytics are added.
 - **Evidence.** Apple developer news (Texas, February/June 2026); no age handling in the app.
 - **Fix.** Legal opinion before launch; set ad content and child-directed flags to match; adopt the Declared Age Range API if advised.
@@ -359,13 +361,46 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 | Transaction validation | None (client trusts provider) | H-1 |
 | Reward duplication | Run ledger by run id; doubled flag on run and stored summary; daily claim checked; purchase busy flag; non-consumables cannot be bought twice | Transaction-id de-duplication for real transactions (B-2) |
 | Purchase failure handling | `purchase_failed` signal and analytics; busy flag released | User-facing error messages for real StoreKit errors (network, cancelled, pending, not allowed) |
-| Consent and privacy | Not needed today (no data leaves the device) | Required with any ad/analytics SDK (H-3) |
+| Consent and privacy | Not built (no data leaves the device today) | UMP consent and ATT, required for 1.0 (B-7) |
 
-**Recommended production integrations (to evaluate, not yet chosen):**
+**Production integrations for 1.0** (scope decided 22 October 2026: purchases and ads at launch):
 
 - **Purchases:** StoreKit 2 through a thin native iOS plugin for Godot 4.7 behind `StoreProvider`. Keep it small; StoreKit 2 handles signature verification and entitlement queries itself. Check any community plugin for StoreKit 2 support, maintenance and Godot 4.7 compatibility before adopting it - an outdated StoreKit 1 wrapper is not a good base.
-- **Ads:** Google AdMob with the User Messaging Platform (consent for UK/EU, ATT explainer) is the most common pairing; AppLovin MAX (mediation) earns more at scale but is more to integrate. Either needs a native iOS plugin behind `AdProvider`, the SDK's privacy manifest, SKAdNetwork identifiers in Info.plist, and app-ads.txt on C2's website. Start with rewarded only; interstitials can follow once retention is known.
-- **Do not enable either** in a build that reaches players without sign-off; the brief requires approval before live payments or advertising.
+- **Ads:** Google AdMob (Google Mobile Ads SDK) with Google's User Messaging Platform (UMP) for consent and the ATT explainer. No mediation at launch: one network keeps the privacy disclosures, SKAdNetwork list and testing small. AppLovin MAX or AdMob mediation can be added later behind the same `AdProvider` if fill or revenue disappoint.
+- **Do not enable either** in a build that reaches players without sign-off; the brief requires approval before live payments or advertising. Until then, development and TestFlight builds use Google's **test ad units** only - tapping real ads on your own app is invalid traffic and can get the AdMob account suspended.
+
+### AdMob and consent work stream
+
+**Native layer (iOS plugin).** A small Swift/Objective-C plugin or GDExtension that wraps the Google Mobile Ads SDK and the UMP SDK (Swift Package Manager or CocoaPods), built against Godot 4.7.2's iOS plugin interface. Before choosing, check the current SDK releases' minimum iOS and Xcode versions against this project (iOS 15.0, Xcode 27.1), and that the SDK version ships a privacy manifest (Google says 11.2.0 and later do). Exposes to GDScript: consent status, `canRequestAds`, privacy-options-required, present consent form, present privacy options, load/show rewarded, load/show interstitial, and signals for loaded, failed, shown, dismissed, reward earned.
+
+**Info.plist and project** (through `export_presets.cfg` / the plugin's config, never by hand in `build/ios`):
+- `GADApplicationIdentifier` (the AdMob app id - a C2 AdMob account is needed first).
+- `SKAdNetworkItems` with Google's published list.
+- `NSUserTrackingUsageDescription` - a plain sentence, e.g. "Allows ads to be more relevant to you. Swarm Shift works the same either way." Set `privacy/tracking_enabled` accordingly.
+- The SDK's privacy manifest merged into the app's.
+
+**Consent and ATT flow** (UMP is designed for this order):
+1. Every launch: `requestConsentInfoUpdate` (Google requires it on every launch; do not rely on a saved consent string).
+2. `loadAndPresentIfRequired` shows the GDPR form in the UK/EEA (and Switzerland), the US-state message where configured, and the IDFA explainer followed by Apple's ATT prompt. Configure all of these in AdMob's *Privacy & messaging* tab.
+3. Only when `canRequestAds` is true: start the Mobile Ads SDK and preload one rewarded ad. Gate this with a flag so a launch with previous-session consent does not double-initialise.
+4. Consider running steps 2-3 after the first completed run rather than at first launch, so the first thing a new player sees is the game. Nothing needs an ad before then: interstitials are already held back until run 3, and rewarded ads are opt-in.
+5. Settings gets **Privacy choices** (shown only when UMP reports the entry point is required; calls `presentPrivacyOptionsForm`) and **Report an ad** (opens the support form with the placement and time pre-filled), next to the Privacy Policy and Support rows from B-4.
+
+**`AdMobAdProvider`** (GDScript, behind the existing `AdProvider`; `AdsService` policy is unchanged):
+- `is_rewarded_ready()` / `is_interstitial_ready()` reflect a loaded ad, so the existing UI hides offers when there is no fill; preload the next ad after each show; back off after load failures.
+- `show_rewarded()` resolves true only on the SDK's reward callback, and only after the ad is dismissed (the interface already requires that). A timeout returns false if the SDK never calls back.
+- Pause the game tree and music while a full-screen ad is up and resume on dismissal; test against the game's "ambient" audio session (`mix_with_others`) and an incoming call during an ad.
+- Remove Ads keeps suppressing interstitials only (rewarded stays available), as designed.
+- Rewards are soft currency, revives and rerolls, so the client callback is acceptable at launch. Server-side verification of rewarded ads is not needed unless rewards become purchasable value.
+- Release builds select `AdMobAdProvider`; debug and automated runs keep `MockAdProvider`, so the 111 existing tests still run headless.
+
+**AdMob account settings:** maximum ad content rating to match the App Store age rating (G or PG for a low rating); child-directed and under-age-of-consent tags per the legal advice in M-8; ad units per format (and per placement if reporting by placement is wanted); `app-ads.txt` on C2's website, whose domain must match the developer website in App Store Connect; link the AdMob app to its App Store listing once the app is live.
+
+**Disclosures:** privacy policy names Google as an ad partner and links Google's policy; App Privacy answers from Google's data-disclosure page for the shipped SDK version; age rating questionnaire answered with ads included.
+
+**Tests:** unit tests for `AdMobAdProvider` against a fake native bridge (load failure, no fill, timeout, dismissed without reward, reward then dismiss); on device with UMP debug geography EEA, UK and not-EEA; consent refused; ATT denied; ATT allowed; airplane mode; Remove Ads owned; ad shown while a revive countdown is running; app backgrounded mid-ad.
+
+**Estimate:** about 2-3 weeks on top of the StoreKit work for one developer (plugin and provider about 1-1.5 weeks, consent, ATT and settings about 3-4 days, device testing about 3 days). Interstitials are already built on the policy side; launching with both formats adds little engineering, so ship both and switch interstitials off in `data/monetization.json` if beta retention suffers.
 
 ---
 
@@ -390,7 +425,7 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 | TestFlight | Never used | Internal group first, then external beta (needs Beta App Review) |
 | App Store Connect | No record | Create under C2 |
 | Screenshots | Development only | iPhone set required; 13" iPad set if iPad kept (B-6) |
-| App privacy disclosures | Not answered | "Data Not Collected" while true (B-6, H-3) |
+| App privacy disclosures | Not answered | Answers from Google's AdMob disclosure (B-6, B-7) |
 | Age rating | Not answered | New questionnaire (B-6) |
 | Support URL / privacy policy | None | B-4 |
 
@@ -408,7 +443,7 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 | Fonts | 0 bundled | Engine default **Open Sans SemiBold** | SIL Open Font License 1.1 via Godot | Low; include notice (H-4) |
 | Engine | Godot 4.7.2 | godotengine.org official build | MIT + third-party list from `Engine.get_copyright_info()` | Low; notices required (H-4) |
 | Bundled frameworks in Xcode project | MoltenVK, Godot libraries | Godot export template | Apache 2.0 / MIT (in the engine's list) | Low; notices (H-4) |
-| Code dependencies, plugins, SDKs | None | - | - | None today; each future SDK needs licence and privacy review |
+| Code dependencies, plugins, SDKs | None | - | - | None today. Google Mobile Ads SDK and UMP SDK planned for 1.0: add their licence terms to the Licences screen (H-4) |
 | Game code and data | ~10,000 lines GDScript, 10 JSON tables | Written for this project with AI assistance | Repository history from 12 Oct 2026 | Ownership statement needed (B-1, H-7) |
 | Name and branding | "SWARM//SHIFT", "Swarm Shift", tagline "ONE CORE. ENDLESS SWARM." | Project | No conflict found by web search only | Trademark search needed (H-7) |
 | In-game names | Overseer, Prism Lance, Singularity, Bastion, AURUM, etc. | Generic words | - | Low; include in the trademark review if any becomes a brand |
@@ -423,31 +458,41 @@ Nothing was found whose commercial redistribution rights cannot be established, 
 The order is set by what blocks what. Estimates are engineering time for one developer working with AI assistance; external steps run in parallel.
 
 **Phase 0 - Decisions (management, this week).**
-Publisher entity and Apple account (B-1); final name and bundle id (H-7); monetisation scope for 1.0 (below); iPad yes/no (H-9); whether the generated art and audio are final.
+Publisher entity and Apple account (B-1); final name and bundle id (H-7); iPad yes/no (H-9); whether the generated art and audio are final; price points.
 
-Recommended 1.0 scope: **in-app purchases with StoreKit 2, no ads**, then rewarded ads in 1.1. That keeps 1.0 free of ATT, consent and ad-review work, lets the App Privacy label stay "Data Not Collected", and gets the game in front of players sooner; ads follow once retention data says where they belong. If ad revenue must be there on day one, add AdMob + UMP to Phase 2 and allow roughly two more weeks.
+**Decided 22 October 2026: 1.0 launches with both in-app purchases (StoreKit 2) and ads (AdMob with UMP consent).** This adds the ad work stream to Phase 2 and makes the consent, ATT and disclosure work a blocker (B-7). The App Privacy label will no longer be "Data Not Collected".
 
 **Phase 1 - Accounts and legal (external, start now, 1-4 weeks).**
-C2 organisation enrolment and D-U-N-S; Paid Apps Agreement, tax, banking; DSA trader status; trademark searches; ownership statement; privacy policy and support page drafted, reviewed and hosted.
+C2 organisation enrolment and D-U-N-S; Paid Apps Agreement, tax, banking; DSA trader status; **C2 AdMob account** (with its own payments and tax profile) and the app registered in it; C2 website able to host `app-ads.txt`, the privacy policy and the support page; trademark searches; ownership statement; legal advice on children's privacy and age assurance for an ad-supported game (M-8); privacy policy (naming Google as ad partner) and support page drafted, reviewed and hosted.
 
-**Phase 2 - Store-critical engineering (about 2-3 weeks).**
-1. Mocks out of release builds; ads disabled for 1.0 (B-3).
+**Phase 2 - Store-critical engineering (about 5-6 weeks).**
+Two work streams for one developer, in this order; the AdMob items can start before the C2 Apple account exists, because they use Google's test ad units and the existing Development signing.
+
+*Purchases and platform (about 3 weeks):*
+1. Mocks selected only in debug and automated builds (B-2, B-3).
 2. StoreKit 2 provider with verified transactions, updates listener, restore, revocation, error messages (B-2, H-1).
 3. Settings rows: Privacy Policy, Support, Licences screen (B-4, H-4).
 4. Purpose strings removed or filled (H-8); version 1.0.0 (L-1).
 5. Release export and archive script; first "Validate App" (B-5).
 6. Reset warning for purchases (M-3); Starter Pack wording (M-2); fix the flaky test (M-1).
 
+*Ads and consent (about 2-3 weeks; details in section 6):*
+7. iOS plugin wrapping the Google Mobile Ads SDK and UMP; `GADApplicationIdentifier`, `SKAdNetworkItems`, `NSUserTrackingUsageDescription`, SDK privacy manifest (B-3, B-7).
+8. Consent and ATT flow gating SDK start-up on `canRequestAds`; decide first launch vs after the first run (B-7).
+9. `AdMobAdProvider` behind `AdProvider`: preload, no fill, timeouts, pause and resume, rewards only on the SDK's reward callback; tests against a fake bridge (B-3).
+10. Settings rows: Privacy choices, Report an ad (B-7, 2.5.18).
+11. AdMob console: Privacy & messaging (GDPR, US states, IDFA explainer), max ad content rating, child-directed settings per legal advice, ad units (B-7, M-8).
+
 **Phase 3 - Device and beta (2-3 weeks, overlaps Phase 2's end).**
-TestFlight internal build; device matrix including the oldest supported iPhone and, if kept, an iPad (H-5, H-9); sandbox purchase test plan (B-2); external beta with 15-30 players (H-6); crash reports in Organizer (H-10); rebalance from beta data (H-6, M-6).
+TestFlight internal build; device matrix including the oldest supported iPhone and, if kept, an iPad (H-5, H-9); sandbox purchase test plan (B-2); consent and ATT matrix with UMP debug geographies, test ads only (B-7); external beta with 15-30 players (H-6), watching whether interstitials hurt day-1 return; crash reports in Organizer (H-10); rebalance from beta data (H-6, M-6).
 
 **Phase 4 - Store listing (1 week, during the beta).**
-Metadata, screenshots at store sizes, age rating, App Privacy, IAP products with review screenshots, review notes explaining the Starter Pack and that nothing is required to progress (B-6). Accessibility improvements that are cheap (M-4).
+Metadata, screenshots at store sizes, age rating with ads declared, App Privacy answers matching Google's disclosure for the shipped SDK, IAP products with review screenshots, review notes explaining the Starter Pack, the consent flow and that nothing is required to progress (B-6, B-7); `app-ads.txt` live on the developer website. Accessibility improvements that are cheap (M-4).
 
 **Phase 5 - Submit.**
-Final regression: full test suite, release build on two devices, every purchase in sandbox, restore on a second device. Submit with manual release so C2 chooses the launch day.
+Final regression: full test suite, release build on two devices, every purchase in sandbox, restore on a second device, consent and ATT paths, every ad placement with test ads. Switch to live ad units only in the build being submitted, with sign-off. Submit with manual release so C2 chooses the launch day; link the AdMob app to the App Store listing once it is live.
 
-**After launch (1.1).** Rewarded ads with consent, ATT where needed, report-an-ad, updated privacy disclosures (H-3); cloud save for purchased Crystals (H-2); analytics decision (M-7); age-assurance follow-up (M-11).
+**After launch (1.1).** Cloud save for purchased Crystals (H-2); analytics decision (M-7); mediation if ad fill or revenue is low; age-assurance follow-up (M-8).
 
 ---
 
