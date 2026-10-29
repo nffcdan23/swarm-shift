@@ -2,6 +2,14 @@ class_name BulletSystem
 extends RefCounted
 ## Enemy projectiles. Deliberately slow, bright and round so they always read
 ## as "dodge this" against the player's thin, fast bolts.
+##
+## They are drawn on the arena's topmost layer (`gfx.hostile`) with normal
+## blending, using a sprite no other object shares: a dark outline, a red body
+## and a white-hot centre. The red body's edge is the hit radius exactly
+## (`size` is four times `radius`), so a shot that looks like it missed did.
+## A short, faint trail in the additive layer shows which way each one moves.
+## (Before October 2026 they were small additive red dots on a layer below
+## particles and explosions: invisible over red enemies and any blast.)
 
 var count := 0
 ## Enemy shots fired since the run began.
@@ -21,7 +29,9 @@ var _radius := 8.0
 var _size := 30.0
 var _lifetime := 5.0
 var _cell := 0.0
+var _trail_cell := 0.0
 var _color := Color(1.0, 0.36, 0.3)
+var _hostile: SpriteBatch
 
 
 func setup(arena: Arena) -> void:
@@ -30,15 +40,27 @@ func setup(arena: Arena) -> void:
 	var cfg := GameData.dict(arena.data.enemies, "bullets")
 	_capacity = GameData.integer(cfg, "max", 260)
 	_radius = GameData.num(cfg, "radius", 8.0)
-	_size = GameData.num(cfg, "size", 30.0)
+	_size = GameData.num(cfg, "size", 32.0)
 	_lifetime = GameData.num(cfg, "lifetime", 5.0)
-	_cell = arena.gfx.cell("bullet")
+	_cell = arena.gfx.cell("hostile")
+	_trail_cell = arena.gfx.cell("glow")
+	_hostile = arena.gfx.hostile
 	for arr: PackedFloat32Array in [x, y, vx, vy, life, damage]:
 		arr.resize(_capacity)
 
 
 func capacity() -> int:
 	return _capacity
+
+
+## Collision radius of a bullet (the player's own radius is added separately).
+func hit_radius() -> float:
+	return _radius
+
+
+## Drawn diameter of the sprite; its solid body spans half of it.
+func draw_size() -> float:
+	return _size
 
 
 func spawn(sx: float, sy: float, svx: float, svy: float, dmg: float) -> void:
@@ -61,7 +83,6 @@ func update(dt: float) -> void:
 	var py := player.y
 	var hit_r := _radius + player.radius * 0.8
 	var hit_r2 := hit_r * hit_r
-	var pulse := 1.0 + 0.12 * sin(_a.time * 14.0)
 	var i := count - 1
 	while i >= 0:
 		var bx := x[i] + vx[i] * dt
@@ -87,7 +108,10 @@ func update(dt: float) -> void:
 			x[i] = bx
 			y[i] = by
 			life[i] = left
-			_batch.add_sprite(bx, by, 0.0, _size * pulse, _color, _cell)
+			# Trail: two faint glows behind, along the line of travel.
+			_batch.add_sprite(bx - vx[i] * 0.05, by - vy[i] * 0.05, 0.0, _size * 0.8, Color(_color.r, _color.g, _color.b, 0.35), _trail_cell)
+			_batch.add_sprite(bx - vx[i] * 0.1, by - vy[i] * 0.1, 0.0, _size * 0.55, Color(_color.r, _color.g, _color.b, 0.18), _trail_cell)
+			_hostile.add_sprite(bx, by, 0.0, _size, Color.WHITE, _cell)
 		i -= 1
 
 

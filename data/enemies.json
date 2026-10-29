@@ -86,7 +86,7 @@
 
   "bullets": {
     "radius": 8,
-    "size": 30,
+    "size": 32,
     "lifetime": 5.0,
     "max": 260
   },

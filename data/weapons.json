@@ -94,15 +94,15 @@
 
     "mine": {
       "name": "Plasma Mines", "icon": "w_mine", "color": "#ff5cd6", "script": "plasma_mines",
-      "tagline": "Drops mines behind you. Lead the swarm into them.",
+      "tagline": "Lobs proximity mines into the path of whatever is chasing you.",
       "unlock": { "type": "level", "level": 4, "cost": 1000 },
       "tags": ["area", "explosive"],
-      "base": { "damage": 34, "cooldown": 1.5, "blast_radius": 98, "arm_time": 0.4, "trigger_radius": 44, "max_mines": 8, "lifetime": 14, "knockback": 200, "cluster": 0 },
+      "base": { "damage": 44, "cooldown": 1.2, "blast_radius": 115, "arm_time": 0.25, "trigger_radius": 70, "max_mines": 10, "lifetime": 14, "knockback": 220, "cluster": 0, "throw": 170, "seek_range": 300, "chill_time": 0 },
       "levels": [
-        { "desc": "Drops proximity mines." },
+        { "desc": "Lobs proximity mines towards nearby enemies." },
         { "desc": "+40% damage", "mods": { "damage_pct": 0.4 } },
         { "desc": "+33% drop rate, +4 max mines", "mods": { "cooldown_pct": -0.25, "max_mines": 4 } },
-        { "desc": "+35% blast radius", "mods": { "blast_radius_pct": 0.35 } },
+        { "desc": "+35% blast radius, blasts slow enemies", "mods": { "blast_radius_pct": 0.35, "chill_time": 1.6 } },
         { "desc": "Mines burst into 3 cluster blasts", "mods": { "cluster": 3 } }
       ]
     },
@@ -124,16 +124,16 @@
 
     "laser": {
       "name": "Prism Lance", "icon": "w_laser", "color": "#ff4d9d", "script": "prism_lance",
-      "tagline": "A sweeping beam that burns through everything in line.",
+      "tagline": "Charges, then fires a piercing beam down the most crowded line.",
       "unlock": { "type": "level", "level": 7, "cost": 2200 },
       "tags": ["beam"],
-      "base": { "damage": 9, "cooldown": 3.6, "duration": 1.6, "length": 470, "width": 18, "beams": 1, "tick": 0.1, "turn_rate": 1.7 },
+      "base": { "damage": 10, "cooldown": 1.8, "duration": 1.2, "length": 620, "width": 28, "beams": 1, "tick": 0.1, "turn_rate": 1.2, "charge": 0.45, "knockback": 26 },
       "levels": [
-        { "desc": "Fires a piercing beam that tracks enemies." },
-        { "desc": "+40% beam duration", "mods": { "duration_pct": 0.4 } },
-        { "desc": "+40% damage, +30% width", "mods": { "damage_pct": 0.4, "width_pct": 0.3 } },
-        { "desc": "+1 beam", "mods": { "beams": 1 } },
-        { "desc": "+1 beam, +30% fire rate", "mods": { "beams": 1, "cooldown_pct": -0.23 } }
+        { "desc": "Charges, then burns through every enemy in its line." },
+        { "desc": "+40% damage", "mods": { "damage_pct": 0.4 } },
+        { "desc": "+30% beam duration, +20% width", "mods": { "duration_pct": 0.3, "width_pct": 0.2 } },
+        { "desc": "+1 beam, aimed at the next most crowded line", "mods": { "beams": 1 } },
+        { "desc": "+1 beam, +30% damage, charges 40% faster", "mods": { "beams": 1, "damage_pct": 0.3, "charge_pct": -0.4 } }
       ]
     },
 

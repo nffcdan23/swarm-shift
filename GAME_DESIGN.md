@@ -47,9 +47,9 @@ Limits: 4 weapons (5 levels each), 5 passives, any number of augments.
 | Cryo Nova | Frost pulse; slows, and freezes at max level | Start |
 | Arc Caster | Lightning that chains through packed enemies | Level 2 |
 | Seeker Missiles | Homing, explosive, spreads its targets | Level 3 |
-| Plasma Mines | Dropped behind you; rewards kiting | Level 4 |
+| Plasma Mines | Lobbed into the path of whatever is chasing you (or dropped at your feet); big proximity blasts, slowing from level 4, cluster blasts at 5 | Level 4 |
 | Combat Drone | A wingman that picks its own targets | Level 5 |
-| Prism Lance | Sustained piercing beam | Level 7 |
+| Prism Lance | Charges, then fires a piercing beam down the most crowded line; extra beams take the next-best lines. Strong against formations, modest against a single target | Level 7 |
 | Singularity | Drags the swarm into a ball, then implodes | Level 10 |
 
 ### Passives and augments
@@ -69,7 +69,7 @@ Seven named combinations switch on automatically when their pieces are owned, wi
 | Swarmer | Weak, numerous, weaves as it closes |
 | Brute | Slow and tough |
 | Dasher | Stops, shows its lane, then charges along it |
-| Shooter | Holds range, strafes, fires slow dodgeable shots |
+| Shooter | Holds range, strafes, fires slow dodgeable shots. The shot gathers at its muzzle first; every enemy shot is drawn on top of everything, with a dark outline, at its true hit size |
 | Splitter | Bursts into three fast Splitlings |
 | Tank | Enormous health; cannot be pushed, pushes you |
 | Weaver (Sector 2+) | Fast and fragile; circles in and strikes from the flank instead of running straight at you |

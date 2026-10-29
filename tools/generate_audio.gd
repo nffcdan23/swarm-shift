@@ -323,6 +323,20 @@ func _make_sfx() -> void:
 		_tone(0.0, 0.58, SINE, 1040.0, 1000.0, 0.3, 0.02, 0.9)
 		_noise(0.0, 0.5, 0.15, 6000.0, 6000.0, 3000.0, 0.02, 1.0)
 		_save(SFX_DIR, "laser", 0.6)
+	if _wanted("lance_charge"):
+		# Prism Lance gathering: a rising, tightening whine.
+		_begin("lance_charge", 0.48)
+		_tone(0.0, 0.46, SAW, 180.0, 900.0, 0.35, 0.03, 0.6, 0.5, 2600.0, 18.0, 0.02)
+		_tone(0.0, 0.46, SINE, 360.0, 1800.0, 0.25, 0.03, 0.6)
+		_save(SFX_DIR, "lance_charge", 0.5)
+	if _wanted("lance_fire"):
+		# Prism Lance release: a hard crack into a deep, ringing hum.
+		_begin("lance_fire", 0.9)
+		_noise(0.0, 0.08, 0.6, 9000.0, 2500.0, 1200.0, 0.001, 3.0)
+		_tone(0.0, 0.85, SAW, 140.0, 120.0, 0.45, 0.003, 1.1, 0.5, 2200.0, 40.0, 0.02)
+		_tone(0.0, 0.85, PULSE, 280.0, 260.0, 0.25, 0.003, 1.1, 0.3, 3400.0)
+		_tone(0.0, 0.5, SINE, 1700.0, 1500.0, 0.2, 0.002, 1.6)
+		_save(SFX_DIR, "lance_fire", 0.7)
 	if _wanted("mine_drop"):
 		_begin("mine_drop", 0.09)
 		_tone(0.0, 0.07, TRI, 520.0, 300.0, 0.8, 0.001, 2.0)

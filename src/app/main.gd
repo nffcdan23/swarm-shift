@@ -7,6 +7,7 @@ extends Node
 ##   --test[=suite]     automated tests, then exit        (tests/test_runner.gd)
 ##   --sim=N            balance simulation, then exit      (tests/sim_runner.gd)
 ##   --bench            performance scenarios, then exit   (tests/sim_runner.gd)
+##   --weapon-bench, --weapons=N, --campaign=N   weapon and economy tools (same file)
 ##   --shots=<folder>   screenshot tour of every screen    (tests/shot_tour.gd)
 ##   --device-check     on-device self-test, prints a report (src/app/device_check.gd)
 ##   --admob-check      on-device check of the AdMob bridge with test ads (src/app/admob_check.gd)
@@ -40,7 +41,7 @@ func _ready() -> void:
 	if App.cli.has("test"):
 		if _run_tool("res://tests/test_runner.gd"):
 			return
-	elif App.cli.has("sim") or App.cli.has("bench"):
+	elif App.is_sim_tool():
 		if _run_tool("res://tests/sim_runner.gd"):
 			return
 

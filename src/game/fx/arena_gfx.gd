@@ -14,11 +14,15 @@ var pickups: SpriteBatch       ## alpha-blended: energy, credits, drops
 var enemies: SpriteBatch       ## alpha-blended: the swarm
 var actors: Node2D             ## boss and player nodes
 var shots: SpriteBatch         ## additive: player projectiles, blades, drones
-var bullets: SpriteBatch       ## additive: enemy fire
+var bullets: SpriteBatch       ## additive: soft trails behind enemy fire
 var particles: ParticleField   ## additive GPU particles
 var beams: SpriteBatch         ## additive: lightning, lasers, flashes
 var rings: SpriteBatch         ## ring shader: shockwaves, blasts
 var numbers: DamageNumbers
+## Alpha-blended, above everything else on the field: enemy fire and the cue
+## before a Shooter fires. Drawn last so no enemy, explosion, particle or damage
+## number can hide an incoming shot (see BulletSystem).
+var hostile: SpriteBatch
 
 var _cells: Dictionary = {}
 var _spans: Dictionary = {}
@@ -52,7 +56,7 @@ func setup(data: GameData, enemy_capacity: int, pickup_capacity: int, bullet_cap
 	actors.name = "Actors"
 	add_child(actors)
 	shots = _batch("Shots", 560, _add)
-	bullets = _batch("Bullets", bullet_capacity + 8, _add)
+	bullets = _batch("Bullets", bullet_capacity * 2 + 8, _add)
 	particles = ParticleField.new()
 	particles.name = "Particles"
 	add_child(particles)
@@ -63,6 +67,7 @@ func setup(data: GameData, enemy_capacity: int, pickup_capacity: int, bullet_cap
 	numbers.name = "Numbers"
 	add_child(numbers)
 	numbers.setup(number_cap, null)
+	hostile = _batch("Hostile", bullet_capacity + 96, _mix)
 
 
 func _atlas_material(shader_path: String) -> ShaderMaterial:
@@ -100,6 +105,7 @@ func begin(sim_time: float) -> void:
 	bullets.begin()
 	beams.begin()
 	rings.begin()
+	hostile.begin()
 	particles.set_time(sim_time)
 
 
@@ -114,4 +120,5 @@ func commit() -> void:
 	bullets.commit()
 	beams.commit()
 	rings.commit()
+	hostile.commit()
 	particles.commit()

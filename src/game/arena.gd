@@ -503,6 +503,11 @@ func grant_weapon(weapon_id: String, weapon_level: int) -> void:
 	refresh_build()
 
 
+## The live weapon object for `weapon_id`, or null if the build lacks it.
+func weapon_node(weapon_id: String) -> Weapon:
+	return _weapon_by_id.get(weapon_id)
+
+
 ## Pushes the current build into everything that caches numbers from it.
 func refresh_build() -> void:
 	build.recompute()

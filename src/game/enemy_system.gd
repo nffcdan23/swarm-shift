@@ -114,6 +114,7 @@ var _chill_factor := 0.55
 var _recycle_dist := 1500.0
 var _armored_mult := 0.6
 var _aura_cell := 0.0
+var _hostile_cell := 0.0
 var _aura_span := 2.0
 
 var _grid_head := PackedInt32Array()
@@ -156,6 +157,7 @@ func setup(arena: Arena, p_capacity: int) -> void:
 	_affixes = GameData.dict(_elite_cfg, "affixes")
 	_armored_mult = GameData.num(GameData.dict(_affixes, "armored"), "damage_taken_mult", 0.6)
 	_aura_cell = arena.gfx.cell("elite_aura")
+	_hostile_cell = arena.gfx.cell("hostile")
 	_aura_span = arena.gfx.span("elite_aura")
 
 	var types := data.enemy_types()
@@ -447,6 +449,11 @@ func update(dt: float) -> void:
 			var tm := atimer[i] - dt * (1.0 if slow > 0.0 else 0.0)
 			if st == 1:
 				aflash[i] = maxf(aflash[i], 0.5)
+				# Firing cue: the shot gathers at the muzzle over the telegraph,
+				# on the same top layer and in the same look as the shot itself.
+				var charge := clampf(1.0 - tm / maxf(_tp_d[t_idx], 0.01), 0.0, 1.0)
+				a.gfx.hostile.add_sprite(ex + nx * aradius[i], ey + ny * aradius[i], 0.0, a.bullets.draw_size() * (0.35 + 0.5 * charge),
+					Color(1.0, 1.0, 1.0, 0.45 + 0.4 * charge), _hostile_cell)
 				if tm <= 0.0:
 					a.bullets.spawn(ex + nx * aradius[i], ey + ny * aradius[i], nx * _tp_e[t_idx], ny * _tp_e[t_idx], _tp_f[t_idx] * damage_mult)
 					a.sfx("enemy_shoot")

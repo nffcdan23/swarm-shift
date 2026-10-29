@@ -47,7 +47,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_parse_cli()
 	headless = DisplayServer.get_name() == "headless"
-	automated = headless or cli.has("test") or cli.has("sim") or cli.has("bench") or cli.has("shots")
+	automated = headless or cli.has("test") or cli.has("shots") or is_sim_tool()
 	var taps := TouchTaps.new()
 	taps.name = "TouchTaps"
 	add_child(taps)
@@ -189,6 +189,14 @@ func open_url(url: String) -> void:
 		opened_urls.append(url)
 	else:
 		OS.shell_open(url)
+
+
+## True for any of the balance/performance modes in tests/sim_runner.gd.
+func is_sim_tool() -> bool:
+	for flag: String in ["sim", "bench", "weapons", "weapon-bench", "campaign"]:
+		if cli.has(flag):
+			return true
+	return false
 
 
 func cli_int(key: String, fallback: int) -> int:

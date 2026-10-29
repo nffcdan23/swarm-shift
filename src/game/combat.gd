@@ -31,6 +31,10 @@ var bosses_killed := 0
 
 var source_names: Array[String] = []
 var damage_by_source := PackedFloat32Array()
+## Per source, for balance tools and tests: damage that actually came off an
+## enemy's health (overkill excluded), and kills landed.
+var dealt_by_source := PackedFloat32Array()
+var kills_by_source := PackedInt32Array()
 
 # Effect switches and parameters, cached from the build by `refresh()`.
 var seeker_turn := 0.0
@@ -109,6 +113,8 @@ func source(source_name: String) -> int:
 		return existing
 	source_names.append(source_name)
 	damage_by_source.append(0.0)
+	dealt_by_source.append(0.0)
+	kills_by_source.append(0)
 	return source_names.size() - 1
 
 
@@ -171,9 +177,13 @@ func hit(i: int, base_damage: float, src: int, kb_x: float = 0.0, kb_y: float = 
 	var ex := enemies.x[i]
 	var ey := enemies.y[i]
 	var top := ey - enemies.radius[i]
+	var hp_before := enemies.hp[i]
 	var killed := enemies.hurt(i, dmg, kb_x, kb_y)
 	total_damage += dmg
 	damage_by_source[src] += dmg
+	dealt_by_source[src] += hp_before - maxf(enemies.hp[i], 0.0)
+	if killed:
+		kills_by_source[src] += 1
 	a.fx.number(ex, top, dmg, crit)
 	if not killed:
 		a.sfx("enemy_hit")

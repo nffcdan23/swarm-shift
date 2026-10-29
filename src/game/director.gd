@@ -109,6 +109,11 @@ func progress() -> float:
 	return clampf(timeline_time / _boss_time, 0.0, 1.0)
 
 
+## Tools and tests only: holds the timeline still - no spawns, no events, no
+## boss - while the enemy scaling above stays in force.
+var paused := false
+
+
 func update(dt: float) -> void:
 	var enemies := _a.enemies
 	var t := timeline_time
@@ -116,6 +121,8 @@ func update(dt: float) -> void:
 	enemies.damage_mult = GameData.curve(GameData.list(_timeline, "damage_curve"), t) * float(_scale.damage)
 	var late_speed := GameData.curve(_speed_curve, t) if not _speed_curve.is_empty() else 1.0
 	enemies.speed_mult = float(_scale.speed) * late_speed * float(_mutators.speed)
+	if paused:
+		return
 	_update_bombardment(dt)
 	if boss_active:
 		return

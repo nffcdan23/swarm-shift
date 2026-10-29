@@ -364,6 +364,12 @@ func test_new_threats_survive_a_real_sector_three_run() -> void:
 	var config := RunConfig.for_testing(app.data, 9)
 	config.tier = 3
 	config.base_mods = {"max_hp": 100000000.0}
+	# Starter weapons only. How many blast zones a run sees depends on how fast
+	# the bot's build kills Mortars and Bombers, so with every weapon available
+	# it swung with the cards drawn (78 zones, then 35 after the October 2026
+	# Mines/Lance rework changed the draws). Pinned like this, the count is 30
+	# before and after that rework.
+	config.weapon_pool = ["pulse", "scatter", "orbit", "nova"]
 	var arena := _arena(config)
 	var seen := {}
 	var zones := 0
@@ -378,7 +384,7 @@ func test_new_threats_survive_a_real_sector_three_run() -> void:
 		zone_count = arena.hazards.count
 	for type_id: String in ["weaver", "mortar", "bomber", "swarmer", "dasher", "shooter"]:
 		check(seen.has(type_id), "Sector 3 fielded %ss" % type_id)
-	check(zones > 40, "the floor was dangerous: %d telegraphed blast zones" % zones)
+	check(zones >= 25, "the floor was dangerous: %d telegraphed blast zones" % zones)
 	check(arena.hazards.shortest_warning >= HazardSystem.MIN_DELAY, "and none of them gave less than the minimum warning (%.2f s)" % arena.hazards.shortest_warning)
 	check(arena.hazards.count <= HazardSystem.MAX, "within the hazard budget")
 	check(arena.enemies.count <= arena.enemies.capacity, "and the enemy budget")

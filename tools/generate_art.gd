@@ -131,6 +131,7 @@ func _jobs() -> Array:
 	j.append({"name": "beam", "size": 128, "dir": ATLAS_DIR, "fn": _spr_beam, "energy": true, "window": false})
 	j.append({"name": "shard", "size": 128, "dir": ATLAS_DIR, "fn": _spr_shard, "energy": true})
 	j.append({"name": "bullet", "size": 128, "dir": ATLAS_DIR, "fn": _spr_bullet, "energy": true})
+	j.append({"name": "hostile", "size": 128, "dir": ATLAS_DIR, "fn": _spr_hostile})
 	# --- Standalone sprites ---
 	j.append({"name": "player_core", "size": 256, "dir": SPRITE_DIR, "fn": _spr_player_core})
 	j.append({"name": "player_ring", "size": 256, "dir": SPRITE_DIR, "fn": _spr_player_ring, "energy": true})
@@ -590,6 +591,19 @@ func _spr_bullet(p: Vector2, px: float) -> Color:
 	var core := mask(l - 0.24, px)
 	var ring := exp(-pow((l - 0.44) / 0.05, 2.0)) * 0.66
 	return energy(maxf(maxf(core, ring), exp(-maxf(l - 0.24, 0.0) / 0.16) * 0.5))
+
+
+## Enemy fire, full colour and drawn with normal blending on the topmost layer,
+## so it reads over anything: a near-black outline that no other sprite in the
+## game has, a hot red body, and a white-hot centre. The body's edge (radius
+## 0.5) is the bullet's hit radius when the sprite is drawn at 4x that radius.
+func _spr_hostile(p: Vector2, px: float) -> Color:
+	px_reset(Color(1.0, 0.22, 0.3))
+	px_over(Color(0.05, 0.0, 0.03), mask(sd_circle(p, 0.68), px))
+	px_over(Color(1.0, 0.22, 0.3), mask(sd_circle(p, 0.5), px))
+	var heat := clampf(1.0 - p.length() / 0.3, 0.0, 1.0)
+	px_over(Color(1.0, 0.9, 0.82), mask(sd_circle(p, 0.27), px) * (0.75 + 0.25 * heat))
+	return px_out()
 
 
 # ----------------------------------------------------------- player and boss

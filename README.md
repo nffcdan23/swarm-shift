@@ -15,6 +15,7 @@ Built with **Godot 4.7.2** and GDScript. No backend, no third-party SDKs yet - a
 - [APP_STORE_READINESS.md](APP_STORE_READINESS.md) - commercial release audit: what stands between this build and the App Store
 - [docs/playtest-1](docs/playtest-1/README.md) - the freeze found in the first device playtest: cause, evidence and fix
 - [docs/playtest-2](docs/playtest-2/README.md) - pickups that stopped appearing in big fights, and the "maxed upgrade" card report
+- [docs/playtest-3](docs/playtest-3/README.md) - enemy shots lost in the swarm, and the Prism Lance and Plasma Mines rework, with the weapon measurements
 
 ## Requirements
 
@@ -55,7 +56,7 @@ godot --headless --path . --import          # once after adding files
 godot --headless --path . -- --test
 ```
 
-145 tests, about 2,740 checks, two to three minutes (most of it the stability suite).
+160 tests, about 2,810 checks, two to three minutes (most of it the stability suite).
 
 | Suite | Covers |
 | --- | --- |
@@ -63,6 +64,7 @@ godot --headless --path . -- --test
 | `data` | Tables load and cross-reference; every blast gives enough warning to walk out of |
 | `services` | Save, economy, missions, achievements, ads and store policy |
 | `upgrades` | Upgrade cards: a person-like player picking and rerolling at random over six runs, maxed weapons and passives never offered, over-cap and stale cards refused, a full build still dealt a fair hand, pause during a choice |
+| `combat` | Enemy fire drawn on top at its true hit size, every shot visible in a dense fight, Shooter firing cue; Prism Lance aiming, piercing and level scaling; Plasma Mines placement, trigger radius, arming and slowing; damage and kill attribution; load; old saves with both weapons |
 | `shake` | Camera shake: one subtle shake for a chain of hundreds of exploding enemies, none for ordinary explosions or weapon fire, no request can extend a shake, big moments still land, and the Off / Low / Normal setting |
 | `pickups` | Rewards on the floor: hundreds of deaths in one step, a saturated field, merging that keeps energy and Credits apart and exact, collection after merging, explosions, long heavy runs |
 | `ads` | AdMob provider and consent flow against a scripted stand-in for the native bridge: consent timing, preloading, retries, rewards only on the reward callback, timeouts |
@@ -100,6 +102,16 @@ godot --headless --path . -- --sim=30 --sector=2 --meta=0.15 --pressure
 
 # Worst-case load with a per-system time breakdown
 godot --headless --path . -- --bench
+
+# Every weapon alone at levels 1, 3 and 5: one tough target, a swarm on a still
+# player, a swarm chasing a moving one (deterministic; about two minutes)
+godot --headless --path . -- --weapon-bench
+
+# Full runs where each weapon is the only one the run can have
+godot --headless --path . -- --weapons=8 --sector=2 --meta=0.15
+
+# A free player's campaign on one profile: play, bank, buy the cheapest upgrade, repeat
+godot --headless --path . -- --campaign=8 --skill=0.6
 
 # Screenshot of every screen (needs a window)
 godot --path . --resolution 540x1170 -- --shots=/absolute/output/folder

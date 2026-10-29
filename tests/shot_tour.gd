@@ -101,6 +101,8 @@ func _run() -> void:
 
 	if _wants("sector"):
 		await _sector_three()
+	if _wants("combat"):
+		await _combat_readability()
 	if not (_wants("run") or _wants("boss") or _wants("levelup") or _wants("results") or _wants("pause")):
 		return
 	App.cli["autoplay"] = "1"
@@ -202,6 +204,67 @@ func _sector_three() -> void:
 	_main.menu.set_active(true)
 	await _wait(0.5)
 	App.campaign.select(1)
+
+
+## Readability under load: enemy fire through a crowd and explosions, then the
+## Prism Lance and Plasma Mines working a swarm.
+func _combat_readability() -> void:
+	App.cli["seed"] = "12"
+	App.campaign.select(1)
+	_main.start_run(CampaignService.MODE_SECTOR)
+	await _wait(1.2)
+	var arena: Arena = _main.arena
+	arena.autopilot = null
+	arena.director.paused = true
+	arena.player.invulnerable_for = 1000.0
+	for weapon_id: String in ["pulse", "scatter", "missile"]:
+		arena.grant_weapon(weapon_id, 5)
+	arena.build.add_augment("volatile")
+	arena.refresh_build()
+	var types := ["swarmer", "brute", "shooter", "swarmer", "splitter"]
+	for k in 320:
+		var angle := arena.rng.randf() * TAU
+		var dist := arena.rng.randf_range(120.0, 640.0)
+		arena.enemies.spawn(arena.enemies.type_of(types[k % types.size()]), arena.player.x + cos(angle) * dist, arena.player.y + sin(angle) * dist)
+	var src := arena.combat.source("tour")
+	for s in 24:
+		for k in 2:
+			var angle := arena.rng.randf() * TAU
+			arena.bullets.spawn(arena.player.x + cos(angle) * 420.0, arena.player.y + sin(angle) * 420.0, -cos(angle) * 250.0, -sin(angle) * 250.0, 1.0)
+		if s % 6 == 0:
+			arena.combat.blast(arena.player.x + arena.rng.randf_range(-260.0, 260.0), arena.player.y + arena.rng.randf_range(-260.0, 260.0), 130.0, 1.0e6, src, Color.WHITE)
+		arena.step(DT)
+	for k in 6:
+		await get_tree().process_frame
+	await _shot("35_combat_enemy_fire_in_a_crowd")
+	_main._teardown_run()
+	await _wait(0.3)
+	_main.start_run(CampaignService.MODE_SECTOR)
+	await _wait(1.2)
+	arena = _main.arena
+	arena.autopilot = null
+	arena.director.paused = true
+	arena.player.invulnerable_for = 1000.0
+	arena.grant_weapon("laser", 5)
+	arena.grant_weapon("mine", 5)
+	# After the grants, which recompute the player's stats: no level-up screens.
+	arena.player.xp_gain = 0.0
+	for k in 260:
+		var angle := arena.rng.randf() * TAU
+		var dist := arena.rng.randf_range(160.0, 600.0)
+		arena.enemies.spawn(arena.enemies.type_of("swarmer" if k % 4 else "brute"), arena.player.x + cos(angle) * dist, arena.player.y + sin(angle) * dist)
+	for s in 75:
+		arena.move_input = Vector2(cos(float(s) * 0.05), sin(float(s) * 0.05)) * 0.6
+		arena.step(DT)
+		if arena.weapon_node("laser").is_firing() and s > 50:
+			break
+	for k in 4:
+		await get_tree().process_frame
+	await _shot("36_combat_lance_and_mines")
+	arena.move_input = Vector2.ZERO
+	_main._teardown_run()
+	_main.menu.set_active(true)
+	await _wait(0.5)
 
 
 ## Runs the simulation flat out until `target` seconds of run time, then lets a
