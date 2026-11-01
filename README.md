@@ -177,6 +177,24 @@ godot --headless --path . --export-debug "iOS" build/ios/SwarmShift.ipa
 open build/ios/SwarmShift.xcodeproj
 ```
 
+### TestFlight
+
+```bash
+tools/ios_release.sh --upload
+```
+
+Exports with the Release template, archives, signs for App Store Connect and uploads. Without `--upload` it stops at a signed `.ipa` in `build/ios-ipa`. **Raise `application/version` in `export_presets.cfg` first**: Apple refuses a build number it has already seen. Builds are marked internal-testing-only, and the script publishes nothing and invites nobody.
+
+| | |
+| --- | --- |
+| App record | SWARM//SHIFT, Apple ID 6829434329, SKU `swarmshift-ios`, English (U.K.) |
+| Seller | STARSCALE LTD (team `8RGSL8W378`) |
+| Signing | Automatic, cloud-managed distribution: no private key on the Mac |
+| Devices | iPhone only, portrait, iOS 15+ |
+| First build | 0.3.0 (4), uploaded 1 November 2026 |
+
+Test builds contain Google's sample AdMob ids and the mock store, so no real ad can appear and no real money can move.
+
 ### AdMob bridge
 
 The Google Mobile Ads + consent SDKs are reached through a small native extension, `AdMob`, documented in [native/admob/README.md](native/admob/README.md). Every build uses Google's sample app id and test ad units (`admob` in `data/monetization.json`), so only test ads can appear. On an iPhone build the game's ads go through `AdMobAdProvider`: Google's consent check at every launch, the consent form (and Apple's tracking prompt) at the first quiet moment after the player's first run, then real test ads in every placement. The desktop, tests and simulations keep the mock provider. To see the consent form again on a phone that has already answered, launch with `--consent-reset`. To walk the bridge on its own through the consent form and two test ads (someone has to tap through them):
