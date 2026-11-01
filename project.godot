@@ -10,9 +10,12 @@ config_version=5
 
 [application]
 
-config/name="Swarm Shift"
+config/name="SWARM//SHIFT"
+; The Mac save folder stays where it was when the name had no slashes in it.
+config/use_custom_user_dir=true
+config/custom_user_dir_name="Godot/app_userdata/Swarm Shift"
 config/description="One-thumb roguelite swarm survival."
-config/version="0.1.0"
+config/version="0.3.0"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 boot_splash/bg_color=Color(0.02, 0.027, 0.05, 1)

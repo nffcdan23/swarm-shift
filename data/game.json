@@ -1,7 +1,7 @@
 {
   "title": "SWARM//SHIFT",
   "tagline": "ONE CORE. ENDLESS SWARM.",
-  "version": "0.2.1",
+  "version": "0.3.0",
 
   "links": {
     "_doc": "Opened from Settings. PLACEHOLDERS: example.com is a reserved domain, not C2's. Replace all three with C2's hosted pages before any build leaves the team (APP_STORE_READINESS.md B-4); the same privacy and support URLs go into App Store Connect. report_ad gets ?format=&placement=&at=&network=&version= appended, describing the last ad shown - no personal data.",
