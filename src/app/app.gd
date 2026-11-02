@@ -193,7 +193,7 @@ func open_url(url: String) -> void:
 
 ## True for any of the balance/performance modes in tests/sim_runner.gd.
 func is_sim_tool() -> bool:
-	for flag: String in ["sim", "bench", "weapons", "weapon-bench", "campaign"]:
+	for flag: String in ["sim", "bench", "weapons", "weapon-bench", "campaign", "track-value"]:
 		if cli.has(flag):
 			return true
 	return false

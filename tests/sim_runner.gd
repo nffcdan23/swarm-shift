@@ -29,6 +29,9 @@ extends Node
 ##       seeds every time, so before/after numbers compare directly. Enemies
 ##       have Sector 8 health so strong weapons do not run out of targets.
 ##       --only=laser,mine limits the weapons; --seconds=N changes the length.
+##   godot --headless --path . -- --track-value=12 --sector=8 --meta=0.3
+##       what each permanent upgrade is worth: the same runs with that one
+##       upgrade maxed on top of --meta, against none, per thousand Credits.
 ##   godot --headless --path . -- --campaign=8 --skill=0.6
 ##       a free player's campaign on one profile: play the highest unlocked
 ##       sector, bank the real payout, unlock weapons, trade free Crystals for
@@ -51,6 +54,8 @@ func _ready() -> void:
 		_weapons()
 	elif App.cli.has("campaign"):
 		_campaign()
+	elif App.cli.has("track-value"):
+		_track_value()
 	else:
 		_sim()
 	get_tree().quit()
@@ -355,6 +360,52 @@ func _campaign() -> void:
 	else:
 		print("  reached sector %d on run %d with %.0f%% of all upgrade levels (Player Level %d); cleared it %d of %d attempts" % [
 			target, int(first_at_target.run), float(first_at_target.share) * 100.0, int(first_at_target.level), target_clears, at_target])
+
+
+## Clears and survival from `runs` seeded runs on `mods`.
+func _sample(mods: Dictionary, sector: int, runs: int, skill: float) -> Dictionary:
+	var clears := 0
+	var seconds := 0.0
+	var bosses := 0
+	for i in runs:
+		App.boot(MemorySaveBackend.new())
+		var config := RunConfig.for_testing(App.data, 500 + i)
+		config.tier = sector
+		config.autopilot_skill = skill
+		config.base_mods = mods.duplicate()
+		var out := _play(config, 900.0)
+		var r: Dictionary = out.result
+		clears += 1 if bool(r.cleared) else 0
+		bosses += 1 if int(r.bosses) > 0 or float(out.boss_hp) >= 0.0 else 0
+		seconds += float(r.time)
+	return {"clears": clears, "bosses": bosses, "seconds": seconds / float(runs)}
+
+
+func _track_value() -> void:
+	var runs := maxi(App.cli_int("track-value", 12), 1)
+	var sector := App.cli_int("sector", 8)
+	var meta := float(App.cli_text("meta", "0.3"))
+	var skill := float(App.cli_text("skill", "0.6"))
+	var base := _meta_mods(meta)
+	var table := App.data.meta_upgrades()
+	var baseline := _sample(base, sector, runs, skill)
+	print("\n=== TRACK VALUE  sector %d, %.0f%% of everything, skill %.2f, %d runs each ===" % [sector, meta * 100.0, skill, runs])
+	print("  baseline: %d clears, boss %d, %.0f s" % [int(baseline.clears), int(baseline.bosses), float(baseline.seconds)])
+	print("  track            levels   credits   clears  boss   avg s   +s per 1000 credits")
+	for id: String in table:
+		var def: Dictionary = table[id]
+		var cap := GameData.integer(def, "max_level", 1)
+		var have := int(round(float(cap) * meta))
+		var total := 0
+		var mods := base.duplicate()
+		var per_level := GameData.dict(def, "mods")
+		for level in range(have, cap):
+			total += maxi(Fmt.round_to(GameData.num(def, "cost_base", 100.0) * pow(GameData.num(def, "cost_growth", 1.5), float(level)), 5), 5)
+			for key: String in per_level:
+				mods[key] = float(mods.get(key, 0.0)) + float(per_level[key])
+		var got := _sample(mods, sector, runs, skill)
+		var gain := float(got.seconds) - float(baseline.seconds)
+		print("  %-14s  %2d->%2d   %6d     %3d    %3d   %5.0f   %+6.1f" % [id, have, cap, total, int(got.clears), int(got.bosses), float(got.seconds), gain / maxf(float(total) / 1000.0, 0.01)])
 
 
 func _sim() -> void:
