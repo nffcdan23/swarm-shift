@@ -11,6 +11,7 @@ extends Control
 ## Queueing rules:
 ##   - One banner at a time, so nothing overlaps.
 ##   - A notice with the same title as one on screen or waiting is merged.
+##   - An evolution is treated like a synergy: earned, so it is never dropped.
 ##   - Boss notices go to the front. Others wait their turn.
 ##   - An announcement is about a moment, so it is dropped if it has waited
 ##     longer than STALE_AFTER. A synergy is a reward, so it is never dropped.
@@ -74,7 +75,8 @@ func _ready() -> void:
 	_panel.add_child(pad)
 
 
-## Queues a notice. `style` is synergy, boss, warning, elite, good, title or info.
+## Queues a notice. `style` is synergy, evolution, boss, warning, elite, good,
+## title or info.
 func notify(title_text: String, body_text: String = "", style: String = "info") -> void:
 	if title_text.is_empty():
 		return
@@ -145,7 +147,7 @@ func _next() -> void:
 	while not _queue.is_empty():
 		var notice: Dictionary = _queue.pop_front()
 		var fresh: bool = _clock - float(notice.born) <= STALE_AFTER
-		if notice.style == "synergy" or notice.style == "boss" or fresh:
+		if notice.style in ["synergy", "evolution", "boss"] or fresh:
 			_begin(notice)
 			return
 
@@ -157,7 +159,7 @@ func _begin(notice: Dictionary) -> void:
 	var color := Palette.CYAN
 	_hold = HOLD_NOTICE
 	match str(notice.style):
-		"synergy":
+		"synergy", "evolution":
 			color = Palette.GOLD
 			_hold = HOLD_SYNERGY
 		"boss":
@@ -172,7 +174,7 @@ func _begin(notice: Dictionary) -> void:
 		"title":
 			color = Palette.TEXT
 	_panel.add_theme_stylebox_override("panel", UiTheme.box(Palette.with_alpha(Palette.PANEL_SOLID, 0.86), color, 14, 2, 12.0))
-	_kicker.text = "SYNERGY" if notice.style == "synergy" else ""
+	_kicker.text = {"synergy": "SYNERGY", "evolution": "EVOLVED"}.get(str(notice.style), "")
 	_kicker.visible = not _kicker.text.is_empty()
 	_kicker.add_theme_color_override("font_color", color)
 	_title.text = str(notice.title)

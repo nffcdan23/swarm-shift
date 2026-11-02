@@ -8,6 +8,8 @@ extends RefCounted
 ##   {"type": "level", "level": 3, "cost": 700}   needs account level, then Credits
 ##   {"type": "crystals", "cost": 300}            Crystals
 ##   {"type": "product", "product": "..."}        granted by a store product
+##   {"type": "research", "id": "..."}            owned once that research is done
+##   {"type": "feat", "stat": "...", "target": n} earned, from a lifetime stat
 
 signal unlocked(category: String, id: String)
 signal loadout_changed
@@ -35,8 +37,15 @@ func is_owned(category: String, id: String) -> bool:
 	var d := GameData.dict(defs(category), id)
 	if d.is_empty():
 		return false
-	if GameData.text(GameData.dict(d, "unlock"), "type") == "default":
-		return true
+	var unlock := GameData.dict(d, "unlock")
+	match GameData.text(unlock, "type"):
+		"default":
+			return true
+		"research":
+			return _app.meta.level(GameData.text(unlock, "id")) > 0
+		"feat":
+			if _app.stats.value(GameData.text(unlock, "stat")) >= GameData.num(unlock, "target", 1.0):
+				return true
 	var owned: Array = _app.save.section("unlocks").get(category, [])
 	return owned.has(id)
 
@@ -52,6 +61,8 @@ func unlock_info(category: String, id: String) -> Dictionary:
 		"cost": GameData.integer(unlock, "cost", 0),
 		"currency": Economy.CRYSTALS if kind == "crystals" else Economy.CREDITS,
 		"product": GameData.text(unlock, "product"),
+		"research": GameData.text(unlock, "id"),
+		"feat": GameData.text(unlock, "text"),
 		"level_met": true,
 		"affordable": false,
 	}
@@ -91,10 +102,10 @@ func unlocked_weapons() -> Array[String]:
 	return out
 
 
-## Display names of weapons and cores whose level gate is exactly `at_level`.
+## Display names of weapons, cores and skins whose level gate is exactly `at_level`.
 func names_gated_at_level(at_level: int) -> Array:
 	var out: Array = []
-	for category: String in [WEAPONS, CORES]:
+	for category: String in [WEAPONS, CORES, SKINS]:
 		var table := defs(category)
 		for id: String in table:
 			var unlock := GameData.dict(table[id], "unlock")
@@ -122,6 +133,35 @@ func select_core(id: String) -> bool:
 	if not is_owned(CORES, id):
 		return false
 	_app.save.section("loadout")["core"] = id
+	_app.save.mark_dirty()
+	loadout_changed.emit()
+	return true
+
+
+## The weapon a run starts with: the core's own, unless Flex Rack is researched
+## and another weapon has been chosen that still qualifies.
+func start_weapon() -> String:
+	var core_weapon := GameData.text(GameData.dict(_app.data.cores(), selected_core()), "start_weapon", "pulse")
+	var chosen := str(_app.save.section("loadout").get("start_weapon", ""))
+	return chosen if start_weapon_options().has(chosen) else core_weapon
+
+
+## Weapons Flex Rack may start with. Empty until it is researched.
+func start_weapon_options() -> Array[String]:
+	var out: Array[String] = []
+	if _app.meta.mod_total("run.flex_rack") <= 0.0:
+		return out
+	for id: String in unlocked_weapons():
+		if _app.mastery.rank(id) >= 1:
+			out.append(id)
+	return out
+
+
+## Picks a start weapon, or goes back to the core's own with "".
+func select_start_weapon(id: String) -> bool:
+	if not id.is_empty() and not start_weapon_options().has(id):
+		return false
+	_app.save.section("loadout")["start_weapon"] = id
 	_app.save.mark_dirty()
 	loadout_changed.emit()
 	return true

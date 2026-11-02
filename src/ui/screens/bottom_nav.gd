@@ -6,7 +6,7 @@ extends PanelContainer
 signal tab_selected(id: String)
 
 const TABS: Array[Dictionary] = [
-	{"id": "upgrades", "icon": "upgrade", "label": "UPGRADES"},
+	{"id": "upgrades", "icon": "upgrade", "label": "RESEARCH"},
 	{"id": "arsenal", "icon": "arsenal", "label": "ARSENAL"},
 	{"id": "home", "icon": "play", "label": "PLAY"},
 	{"id": "missions", "icon": "missions", "label": "MISSIONS"},

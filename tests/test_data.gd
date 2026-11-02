@@ -108,8 +108,8 @@ func test_upgrade_table_is_well_formed() -> void:
 		for step in levels:
 			total += app.meta.cost_at(id, step)
 		var gate := app.meta.unlock_level(id)
-		check(gate >= 0 and gate <= 30, "upgrade '%s' unlocks at a reachable Player Level (%d)" % [id, gate])
-	check(total > 50000 and total < 400000, "buying everything is a long-term goal, not an impossible one (%d Credits)" % total)
+		check(gate >= 0 and gate <= 40, "upgrade '%s' unlocks at a reachable Player Level (%d)" % [id, gate])
+	check(total > 200000 and total < 800000, "buying everything is a long-term goal, not an impossible one (%d Credits)" % total)
 	var first_buys := 0
 	for id: String in app.meta.ids():
 		if app.meta.unlock_level(id) <= 1 and app.meta.cost_at(id, 0) <= 250:

@@ -62,6 +62,12 @@
     { "id": "account_25", "name": "Commander", "text": "Reach Player Level 25", "stat": "account_level", "target": 25, "crystals": 50, "xp": 400 },
     { "id": "upgrades_10", "name": "Tinkerer", "text": "Buy 10 permanent upgrades", "stat": "meta_purchases", "target": 10, "crystals": 10, "xp": 80 },
     { "id": "upgrades_50", "name": "Engineer", "text": "Buy 50 permanent upgrades", "stat": "meta_purchases", "target": 50, "crystals": 40, "xp": 320 },
-    { "id": "arsenal_all", "name": "Full Arsenal", "text": "Unlock every weapon", "stat": "weapons_unlocked", "target": 10, "crystals": 40, "xp": 320 }
+    { "id": "arsenal_all", "name": "Full Arsenal", "text": "Unlock 10 weapons", "stat": "weapons_unlocked", "target": 10, "crystals": 40, "xp": 320 },
+    { "id": "rank_veteran", "name": "Weapon Veteran", "text": "Reach Veteran with a weapon", "stat": "weapons_veteran", "target": 1, "crystals": 10, "xp": 80 },
+    { "id": "rank_master", "name": "Weapon Master", "text": "Master a weapon", "stat": "weapons_mastered", "target": 1, "crystals": 30, "xp": 240 },
+    { "id": "rank_master_5", "name": "Grand Master", "text": "Master 5 weapons", "stat": "weapons_mastered", "target": 5, "crystals": 60, "xp": 480 },
+    { "id": "evo_first", "name": "Evolved", "text": "Unlock an evolution", "stat": "evolutions_unlocked", "target": 1, "crystals": 15, "xp": 120 },
+    { "id": "evo_ten", "name": "Evolutionist", "text": "Unlock 10 evolutions", "stat": "evolutions_unlocked", "target": 10, "crystals": 40, "xp": 320 },
+    { "id": "research_100", "name": "Research Director", "text": "Complete 100 levels of research", "stat": "research_done", "target": 100, "crystals": 40, "xp": 320 }
   ]
 }

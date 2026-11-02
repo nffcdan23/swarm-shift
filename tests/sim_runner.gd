@@ -8,6 +8,9 @@ extends Node
 ##   godot --headless --path . -- --sim=20 --sector=4 --meta=0.5 --skill=0.8
 ##       sector 4, half of every permanent upgrade bought, a stronger pilot.
 ##   godot --headless --path . -- --sim=5 --mode=endless --limit=1200
+##   godot --headless --path . -- --sim=60 --sector=2 --meta=0.1 --level-pool=4
+##       only the weapons a player at Player Level 4 could own, for a fair look at
+##       early sectors: the default pool has every weapon from the first second.
 ##   godot --headless --path . -- --sim=1 --timeline
 ##       also prints a line every 30 simulated seconds for the first run.
 ##   godot --headless --path . -- --sim=30 --sector=2 --pressure
@@ -29,15 +32,20 @@ extends Node
 ##       seeds every time, so before/after numbers compare directly. Enemies
 ##       have Sector 8 health so strong weapons do not run out of targets.
 ##       --only=laser,mine limits the weapons; --seconds=N changes the length.
+##       Add --evolved to add a row for each evolution of each weapon.
 ##   godot --headless --path . -- --track-value=12 --sector=8 --meta=0.3
 ##       what each permanent upgrade is worth: the same runs with that one
 ##       upgrade maxed on top of --meta, against none, per thousand Credits.
+##   godot --headless --path . -- --weapon-load
+##       cost of each weapon and evolution at level 5 among 400 enemies that do
+##       not die: milliseconds per step in the weapons, combat and total.
 ##   godot --headless --path . -- --campaign=8 --skill=0.6
 ##       a free player's campaign on one profile: play the highest unlocked
 ##       sector, bank the real payout, unlock weapons, trade free Crystals for
 ##       Credits and buy the cheapest permanent upgrade, until N attempts have
 ##       been made at the target sector (--attempts, default 6). Nothing is
-##       bought with money and no ads are watched.
+##       bought with money and no ads are watched. --overdrive=3 plays Overdrive
+##       every third run once it is open.
 ##
 ## Use it to answer "is sector 3 beatable at 30% meta?" before a playtest does.
 
@@ -56,6 +64,8 @@ func _ready() -> void:
 		_campaign()
 	elif App.cli.has("track-value"):
 		_track_value()
+	elif App.cli.has("weapon-load"):
+		_weapon_load()
 	else:
 		_sim()
 	get_tree().quit()
@@ -150,19 +160,25 @@ func _play(config: RunConfig, limit: float, traced: bool = false) -> Dictionary:
 	return out
 
 
-## Runs one bench scenario with only `weapon_id` at `level`. Returns
-## {dps, kills}. Scenario: "single", "swarm" (player still) or "kite".
-func bench_weapon(weapon_id: String, level: int, scenario: String, seconds: float, run_seed: int = 77) -> Dictionary:
+func _weapon_load() -> void:
+	print("\n=== WEAPON LOAD  level 5 among 400 enemies, ms per step ===")
+	print("  weapon                weapons  combat   fx+draw   total")
+	var empty := _load_row("pulse", "", true)
+	print("  %-20s  %6.2f  %6.2f  %7.2f  %6.2f" % ["(no weapon firing)", float(empty.weapons), float(empty.combat), float(empty.fx), float(empty.total)])
+	for weapon_id: String in App.data.weapon_defs():
+		var row := _load_row(weapon_id, "")
+		print("  %-20s  %6.2f  %6.2f  %7.2f  %6.2f" % [GameData.text(App.data.weapon(weapon_id), "name"), float(row.weapons), float(row.combat), float(row.fx), float(row.total)])
+		for path: String in GameData.dict(App.data.weapon(weapon_id), "evolutions"):
+			row = _load_row(weapon_id, path)
+			print("    > %-16s  %6.2f  %6.2f  %7.2f  %6.2f" % [GameData.text(GameData.dict(GameData.dict(App.data.weapon(weapon_id), "evolutions"), path), "name"), float(row.weapons), float(row.combat), float(row.fx), float(row.total)])
+
+
+func _load_row(weapon_id: String, path: String, unarmed: bool = false) -> Dictionary:
 	App.boot(MemorySaveBackend.new())
-	var config := RunConfig.for_testing(App.data, run_seed)
+	var config := RunConfig.for_testing(App.data, 77)
 	config.autopilot = false
-	config.weapon_pool = [weapon_id]
 	config.start_weapon = weapon_id
-	config.max_enemies = 400
-	# Sector 8 health and damage, so even the strongest weapon cannot clear
-	# everything the bench sends and the top of the table still separates.
-	config.tier = 8
-	# No energy, so no level-ups: the build stays exactly one weapon at `level`.
+	config.max_enemies = 420
 	config.base_mods = {"max_hp": 100000000.0, "xp_gain_pct": -1.0}
 	var arena := Arena.new()
 	arena.manual_stepping = true
@@ -170,48 +186,32 @@ func bench_weapon(weapon_id: String, level: int, scenario: String, seconds: floa
 	arena.setup(App, config)
 	arena.start()
 	arena.director.paused = true
-	arena.grant_weapon(weapon_id, level)
-	arena.enemies.clear()
-	var src := arena.combat.source(weapon_id)
-	var swarmer := arena.enemies.type_of("swarmer")
-	var tank := arena.enemies.type_of("tank")
-	var brute := arena.enemies.type_of("brute")
-	var dummy_id := -1
-	var kills_before := arena.combat.kills_by_source[src]
-	var dealt_before := arena.combat.dealt_by_source[src]
-	var steps := int(seconds / DT)
-	for s in steps:
-		while arena.state == Arena.State.CHOOSING:
-			arena.choose(0)
-		if scenario == "single":
-			var i := arena.enemies.find_id(dummy_id) if dummy_id >= 0 else -1
-			if i < 0:
-				i = arena.enemies.spawn(tank, arena.player.x + 240.0, arena.player.y)
-				dummy_id = arena.enemies.id[i]
-				# Health is stored as 32-bit floats: at 1e9 a hit of 10 rounds away
-				# to nothing, so use a million and top it up.
-				arena.enemies.max_hp[i] = 1.0e6
-				arena.enemies.hp[i] = 1.0e6
-			if arena.enemies.hp[i] < 5.0e5:
-				arena.enemies.hp[i] = 1.0e6
-			# Pinned in place: a target that stays put, like a boss mid-attack.
-			arena.enemies.x[i] = arena.player.x + 240.0
-			arena.enemies.y[i] = arena.player.y
-		else:
-			# A ring of 30 Swarmers and 12 Brutes every second and a half, from
-			# 520 units out: more health than any single weapon can clear.
-			if s % 45 == 0:
-				for k in 42:
-					var angle := TAU * float(k) / 42.0 + float(s) * 0.37 + float(run_seed)
-					arena.enemies.spawn(brute if k % 7 < 2 else swarmer, arena.player.x + cos(angle) * 520.0, arena.player.y + sin(angle) * 520.0)
-			if scenario == "kite":
-				# A steady circle at three quarters of normal speed: what a player
-				# leading a swarm around looks like.
-				var t := float(s) * DT
-				arena.move_input = Vector2(-sin(t * 0.6), cos(t * 0.6)) * 0.75
+	arena.profile = true
+	arena.grant_weapon(weapon_id, 5)
+	if not path.is_empty():
+		arena.evolve_weapon(weapon_id, path)
+	if unarmed:
+		arena.weapons.clear()
+	var type := arena.enemies.type_of("brute")
+	var steps := 0
+	var total := 0.0
+	for s in 300:
+		while arena.enemies.count < 400:
+			var angle := randf() * TAU
+			var dist := randf_range(120.0, 460.0)
+			var i := arena.enemies.spawn(type, arena.player.x + cos(angle) * dist, arena.player.y + sin(angle) * dist)
+			arena.enemies.hp[i] = 1.0e5
+			arena.enemies.max_hp[i] = 1.0e5
+		if s == 60:
+			arena.profile_usec.fill(0)
+		var started := Time.get_ticks_usec()
 		arena.step(DT)
-	var out := {"dps": (arena.combat.dealt_by_source[src] - dealt_before) / seconds, "kills": arena.combat.kills_by_source[src] - kills_before,
-		"other_kills": arena.combat.kills - kills_before - (arena.combat.kills_by_source[src] - kills_before)}
+		if s >= 60:
+			total += float(Time.get_ticks_usec() - started)
+			steps += 1
+	var n := float(steps) * 1000.0
+	var p := arena.profile_usec
+	var out := {"weapons": float(p[2]) / n, "combat": float(p[4]) / n, "fx": float(p[6] + p[7]) / n, "total": total / n}
 	remove_child(arena)
 	arena.free()
 	return out
@@ -221,25 +221,35 @@ func _weapon_bench() -> void:
 	var seconds := float(App.cli_text("seconds", "20"))
 	var only := App.cli_text("only")
 	print("\n=== WEAPON BENCH  %d s per scenario, one weapon, no passives ===" % int(seconds))
-	print("  weapon          lvl   single dps   swarm dps  kills   kite dps  kills")
+	print("  weapon              lvl   single dps   swarm dps  kills   kite dps  kills")
 	var ids: Array = App.data.weapon_defs().keys()
 	for weapon_id: String in ids:
 		if not only.is_empty() and not only.split(",").has(weapon_id):
 			continue
 		for level: int in [1, 3, 5]:
-			# Averaged over three seeds: one twenty-second fight is too chaotic.
-			var row := {"single": 0.0, "swarm": 0.0, "swarm_kills": 0.0, "kite": 0.0, "kite_kills": 0.0}
-			for run_seed: int in [77, 78, 79]:
-				var single := bench_weapon(weapon_id, level, "single", seconds, run_seed)
-				var swarm := bench_weapon(weapon_id, level, "swarm", seconds, run_seed)
-				var kite := bench_weapon(weapon_id, level, "kite", seconds, run_seed)
-				row.single += float(single.dps) / 3.0
-				row.swarm += float(swarm.dps) / 3.0
-				row.swarm_kills += float(swarm.kills) / 3.0
-				row.kite += float(kite.dps) / 3.0
-				row.kite_kills += float(kite.kills) / 3.0
-			print("  %-14s  %3d   %10.0f   %9.0f  %5.0f   %8.0f  %5.0f" % [GameData.text(App.data.weapon(weapon_id), "name"), level,
-				row.single, row.swarm, row.swarm_kills, row.kite, row.kite_kills])
+			_bench_row(weapon_id, level, seconds, "")
+		if App.cli.has("evolved"):
+			for path: String in GameData.dict(App.data.weapon(weapon_id), "evolutions"):
+				_bench_row(weapon_id, 5, seconds, path)
+
+
+## Averaged over three seeds: one twenty-second fight is too chaotic.
+func _bench_row(weapon_id: String, level: int, seconds: float, path: String) -> Dictionary:
+	var row := {"single": 0.0, "swarm": 0.0, "swarm_kills": 0.0, "kite": 0.0, "kite_kills": 0.0}
+	for run_seed: int in [77, 78, 79]:
+		var single := WeaponBench.run(self, App, weapon_id, level, "single", seconds, run_seed, path)
+		var swarm := WeaponBench.run(self, App, weapon_id, level, "swarm", seconds, run_seed, path)
+		var kite := WeaponBench.run(self, App, weapon_id, level, "kite", seconds, run_seed, path)
+		row.single += float(single.dps) / 3.0
+		row.swarm += float(swarm.dps) / 3.0
+		row.swarm_kills += float(swarm.kills) / 3.0
+		row.kite += float(kite.dps) / 3.0
+		row.kite_kills += float(kite.kills) / 3.0
+	var title := GameData.text(App.data.weapon(weapon_id), "name")
+	if not path.is_empty():
+		title = "  > " + GameData.text(GameData.dict(GameData.dict(App.data.weapon(weapon_id), "evolutions"), path), "name")
+	print("  %-18s  %3d   %10.0f   %9.0f  %5.0f   %8.0f  %5.0f" % [title, level, row.single, row.swarm, row.swarm_kills, row.kite, row.kite_kills])
+	return row
 
 
 ## One weapon at a time: the run can only ever own that weapon, so its damage,
@@ -292,8 +302,14 @@ func _weapons() -> void:
 			Fmt.time_mmss(times[times.size() / 2]), int(100.0 * bosses / n), int(100.0 * clears / n), level_sum / n])
 
 
+## Research a player would go for first, in order, once it is on offer.
+const CAMPAIGN_PRIORITIES: Array[String] = ["r_evo_lab", "r_ballistics"]
+
+
 ## Spends like a careful free player: weapon unlocks first, then Crystals
-## traded for Credits, then the cheapest upgrade level on offer, repeatedly.
+## traded for Credits, then key research and any evolution the weapons have
+## earned, then the cheapest research on offer, repeatedly. Skins only once
+## research has run out, since they do nothing for the next run.
 func _spend_free() -> void:
 	for weapon_id: String in App.arsenal.defs(ArsenalService.WEAPONS):
 		App.arsenal.unlock(ArsenalService.WEAPONS, weapon_id)
@@ -301,6 +317,12 @@ func _spend_free() -> void:
 		var price := GameData.integer(offer, "crystals")
 		while price > 0 and App.economy.spend(Economy.CRYSTALS, price, "exchange"):
 			App.economy.grant(Economy.CREDITS, GameData.integer(offer, "credits"), "exchange")
+	for id in CAMPAIGN_PRIORITIES:
+		if App.meta.is_unlocked(id) and not App.meta.is_maxed(id):
+			App.meta.buy(id)
+	for weapon_id: String in App.data.weapon_defs():
+		for path: String in App.mastery.evolution_table(weapon_id):
+			App.mastery.unlock_evolution(weapon_id, path)
 	while true:
 		var cheapest := ""
 		var cheapest_cost := 0
@@ -309,7 +331,47 @@ func _spend_free() -> void:
 				cheapest = id
 				cheapest_cost = App.meta.cost(id)
 		if cheapest.is_empty() or not App.meta.buy(cheapest):
-			return
+			break
+	if App.meta.total_levels() >= App.meta.total_max_levels():
+		for id: String in App.data.skins():
+			App.arsenal.unlock(ArsenalService.SKINS, id)
+
+
+func _owned_skins() -> int:
+	var total := 0
+	for id: String in App.data.skins():
+		if App.arsenal.is_owned(ArsenalService.SKINS, id):
+			total += 1
+	return total
+
+
+## How much of all research has been bought, by Credits rather than by levels:
+## the cheap stat levels are most of the levels and little of the cost.
+func _research_share() -> float:
+	var spent := 0.0
+	var total := 0.0
+	for id: String in App.meta.ids():
+		for step in App.meta.max_level(id):
+			var price := float(App.meta.cost_at(id, step))
+			total += price
+			if step < App.meta.level(id):
+				spent += price
+	return spent / maxf(total, 1.0)
+
+
+## Remembers the first time each milestone was reached: {name: Vector2(run, hours)}.
+func _note_milestones(into: Dictionary, run: int, seconds: float) -> void:
+	var share := _research_share()
+	var reached := {
+		"research 25%": share >= 0.25, "research 50%": share >= 0.5, "research 75%": share >= 0.75, "research 100%": share >= 1.0,
+		"evolution lab": App.mastery.lab_ready(), "first evolution": App.mastery.owned_count() >= 1, "five evolutions": App.mastery.owned_count() >= 5,
+		"every evolution": App.mastery.owned_count() >= 20, "first rank 3": App.mastery.weapons_at_rank(3) >= 1, "first master": App.mastery.weapons_at_rank(5) >= 1,
+		"sector 8 cleared": App.campaign.highest_cleared() >= 8, "sector 12 cleared": App.campaign.highest_cleared() >= 12,
+		"sector 16 cleared": App.campaign.highest_cleared() >= 16, "sector 20 cleared": App.campaign.highest_cleared() >= 20,
+	}
+	for key: String in reached:
+		if bool(reached[key]) and not into.has(key):
+			into[key] = Vector2(float(run), seconds / 3600.0)
 
 
 func _campaign() -> void:
@@ -324,19 +386,29 @@ func _campaign() -> void:
 	var target_clears := 0
 	var first_at_target := {}
 	var per_sector: Dictionary = {}
+	var played := 0.0
+	var milestones: Dictionary = {}
+	var overdrive_every := App.cli_int("overdrive", 0)
 	for run in cap:
 		var sector := mini(App.campaign.max_selectable(), target)
 		App.campaign.select(sector)
-		var config := RunConfig.from_profile(App, CampaignService.MODE_SECTOR)
+		var endless := overdrive_every > 0 and App.campaign.endless_unlocked() and (run + 1) % overdrive_every == 0
+		var config := RunConfig.from_profile(App, CampaignService.MODE_ENDLESS if endless else CampaignService.MODE_SECTOR)
 		config.autopilot = true
 		config.autopilot_skill = skill
 		config.rng_seed = 1000 + run
 		var share := float(App.meta.total_levels()) / float(maxi(App.meta.total_max_levels(), 1))
 		if sector == target and first_at_target.is_empty():
 			first_at_target = {"run": run + 1, "share": share, "level": App.account.level()}
-		var out := _play(config, 900.0)
+		var out := _play(config, 1500.0 if endless else 900.0)
 		var r: Dictionary = out.result
 		var summary := RunLedger.settle(App, r)
+		played += float(r.time)
+		_note_milestones(milestones, run + 1, played)
+		if endless:
+			print("  %3d  OVERDRIVE       %5s  %6d  %7d    %3.0f%%     %3d" % [run + 1, Fmt.time_mmss(float(r.time)), int(summary.get("credits", 0)), App.economy.balance(Economy.CREDITS), share * 100.0, App.account.level()])
+			_spend_free()
+			continue
 		var row: Dictionary = per_sector.get(sector, {"runs": 0, "clears": 0})
 		row.runs = int(row.runs) + 1
 		if bool(r.cleared):
@@ -355,11 +427,28 @@ func _campaign() -> void:
 	for sector: int in per_sector:
 		var row: Dictionary = per_sector[sector]
 		print("  sector %2d: %2d runs, %2d clears" % [sector, int(row.runs), int(row.clears)])
+	print("  milestones (run, hours of play):")
+	for key: String in milestones:
+		print("    %-28s run %3d   %5.1f h" % [key, int(milestones[key].x), float(milestones[key].y)])
+	print("  at the end: research %d/%d, evolutions %d, skins %d, ranks %d/%d/%d (3+/4+/5), %d Credits unspent, %.1f h" % [
+		App.meta.total_levels(), App.meta.total_max_levels(), App.mastery.owned_count(), _owned_skins(),
+		App.mastery.weapons_at_rank(3), App.mastery.weapons_at_rank(4), App.mastery.weapons_at_rank(5), App.economy.balance(Economy.CREDITS), played / 3600.0])
 	if first_at_target.is_empty():
 		print("  never reached sector %d in %d runs" % [target, cap])
 	else:
 		print("  reached sector %d on run %d with %.0f%% of all upgrade levels (Player Level %d); cleared it %d of %d attempts" % [
 			target, int(first_at_target.run), float(first_at_target.share) * 100.0, int(first_at_target.level), target_clears, at_target])
+
+
+## Late research weapons are not in the pool of the early game this tool models.
+func _drop_research_weapons(config: RunConfig) -> void:
+	if App.cli.has("all-weapons"):
+		return
+	var pool: Array[String] = []
+	for weapon_id in config.weapon_pool:
+		if GameData.text(GameData.dict(App.data.weapon(weapon_id), "unlock"), "type") != "research":
+			pool.append(weapon_id)
+	config.weapon_pool = pool
 
 
 ## Clears and survival from `runs` seeded runs on `mods`.
@@ -373,6 +462,7 @@ func _sample(mods: Dictionary, sector: int, runs: int, skill: float) -> Dictiona
 		config.tier = sector
 		config.autopilot_skill = skill
 		config.base_mods = mods.duplicate()
+		_drop_research_weapons(config)
 		var out := _play(config, 900.0)
 		var r: Dictionary = out.result
 		clears += 1 if bool(r.cleared) else 0
@@ -444,6 +534,7 @@ func _sim() -> void:
 		config.tier = sector
 		config.autopilot_skill = skill
 		config.core = core
+		_drop_research_weapons(config)
 		var core_def := GameData.dict(App.data.cores(), core)
 		config.start_weapon = GameData.text(core_def, "start_weapon", "pulse")
 		config.base_mods = _meta_mods(meta)

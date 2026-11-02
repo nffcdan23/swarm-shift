@@ -2,6 +2,9 @@ extends Weapon
 ## Singularity - throws a black hole into the thickest part of the swarm. It
 ## drags everything nearby into a ball, grinds it, then implodes. On its own it
 ## is crowd control; next to any area weapon it is the combo piece.
+##
+## Collapsar (stats only): a larger, longer hole that pins the swarm. Supernova:
+## a short collapse into one colossal blast.
 
 var _damage := 5.0
 var _cooldown := 6.5
@@ -11,6 +14,7 @@ var _pull := 260.0
 var _throw := 250.0
 var _tick := 0.2
 var _implosion := 55.0
+var _blast_scale := 1.0
 
 var _active := false
 var _age := 0.0
@@ -42,6 +46,7 @@ func _on_stats() -> void:
 	_throw = stat("throw_distance")
 	_tick = maxf(stat("tick"), 0.05)
 	_implosion = stat("implosion_damage")
+	_blast_scale = stat("blast_scale", 1.0)
 
 
 func update(dt: float) -> void:
@@ -111,8 +116,8 @@ func update(dt: float) -> void:
 
 	if _age >= TRAVEL + _life:
 		_active = false
-		a.combat.blast(_x, _y, radius * 0.9, _implosion, src, color, 420.0, 0.0, true)
-		a.fx.shake(FxSystem.Shake.MEDIUM)
+		a.combat.blast(_x, _y, radius * 0.9 * _blast_scale, _implosion, src, color, 420.0, 0.0, true)
+		a.fx.shake(FxSystem.Shake.HEAVY if _blast_scale > 1.0 else FxSystem.Shake.MEDIUM)
 		a.sfx("implosion")
 
 

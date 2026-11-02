@@ -15,6 +15,7 @@ extends SceneTree
 
 const ATLAS_DIR := "res://assets/sprites/atlas/"
 const SPRITE_DIR := "res://assets/sprites/"
+const SKIN_DIR := "res://assets/sprites/skins/"
 const BRAND_DIR := "res://assets/branding/"
 
 const C_BG := Color("05070d")
@@ -68,7 +69,7 @@ func _init() -> void:
 			only = arg.substr(7).split(",")
 		elif arg.begins_with("--sheet="):
 			sheet = arg.substr(8)
-	for dir in [ATLAS_DIR, SPRITE_DIR, BRAND_DIR]:
+	for dir in [ATLAS_DIR, SPRITE_DIR, SKIN_DIR, BRAND_DIR]:
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
 
 	var jobs := _jobs()
@@ -132,12 +133,22 @@ func _jobs() -> Array:
 	j.append({"name": "shard", "size": 128, "dir": ATLAS_DIR, "fn": _spr_shard, "energy": true})
 	j.append({"name": "bullet", "size": 128, "dir": ATLAS_DIR, "fn": _spr_bullet, "energy": true})
 	j.append({"name": "hostile", "size": 128, "dir": ATLAS_DIR, "fn": _spr_hostile})
+	j.append({"name": "nanite", "size": 128, "dir": ATLAS_DIR, "fn": _spr_nanite, "energy": true})
 	# --- Standalone sprites ---
 	j.append({"name": "player_core", "size": 256, "dir": SPRITE_DIR, "fn": _spr_player_core})
 	j.append({"name": "player_ring", "size": 256, "dir": SPRITE_DIR, "fn": _spr_player_ring, "energy": true})
 	j.append({"name": "boss_core", "size": 512, "dir": SPRITE_DIR, "fn": _spr_boss_core})
 	j.append({"name": "boss_ring", "size": 512, "dir": SPRITE_DIR, "fn": _spr_boss_ring})
 	j.append({"name": "boss_shell", "size": 512, "dir": SPRITE_DIR, "fn": _spr_boss_shell})
+	# --- Core skins: full-colour bodies, tintable plates, energy rings and auras ---
+	for body: String in ["void", "solar", "glacier", "quantum", "inferno", "ember", "venom", "amethyst", "rose", "ghost", "aurum", "paragon", "overseer"]:
+		j.append({"name": "core_" + body, "size": 256, "dir": SKIN_DIR, "fn": Callable(self, "_core_" + body)})
+	for plate: String in ["shard", "arc", "crystal", "block", "petal"]:
+		j.append({"name": "plate_" + plate, "size": 128, "dir": SKIN_DIR, "fn": Callable(self, "_plate_" + plate)})
+	for ring: String in ["thin", "gear", "glyph"]:
+		j.append({"name": "ring_" + ring, "size": 256, "dir": SKIN_DIR, "fn": Callable(self, "_ring_" + ring), "energy": true})
+	for aura: String in ["corona", "lens", "frost", "flame", "grid"]:
+		j.append({"name": "aura_" + aura, "size": 256, "dir": SKIN_DIR, "fn": Callable(self, "_aura_" + aura), "energy": true})
 	# --- Branding ---
 	j.append({"name": "icon", "size": 512, "upscale": 1024, "dir": BRAND_DIR, "fn": _spr_icon, "window": false, "opaque": true})
 	j.append({"name": "splash", "size": 512, "dir": BRAND_DIR, "fn": _spr_splash, "window": false})
@@ -597,6 +608,17 @@ func _spr_bullet(p: Vector2, px: float) -> Color:
 ## so it reads over anything: a near-black outline that no other sprite in the
 ## game has, a hot red body, and a white-hot centre. The body's edge (radius
 ## 0.5) is the bullet's hit radius when the sprite is drawn at 4x that radius.
+## A loose ring of specks: reads as a cloud on a host without hiding it.
+func _spr_nanite(p: Vector2, px: float) -> Color:
+	var i := 0.0
+	for k in 9:
+		var a := TAU * float(k) / 9.0 + 0.4 * sin(float(k) * 2.3)
+		var r := 0.4 + 0.2 * sin(float(k) * 1.7 + 0.5)
+		var d := sd_circle(p - Vector2(cos(a), sin(a)) * r, 0.05 + 0.025 * float(k % 3))
+		i = maxf(i, maxf(mask(d, px), exp(-maxf(d, 0.0) / 0.05) * 0.5))
+	return energy(i)
+
+
 func _spr_hostile(p: Vector2, px: float) -> Color:
 	px_reset(Color(1.0, 0.22, 0.3))
 	px_over(Color(0.05, 0.0, 0.03), mask(sd_circle(p, 0.68), px))
@@ -632,6 +654,382 @@ func _spr_player_ring(p: Vector2, px: float) -> Color:
 	var i := maxf(mask(ring, px) * gap, exp(-maxf(ring, 0.0) / 0.05) * 0.35 * gap)
 	i = maxf(i, mask(node, px))
 	return energy(i)
+
+
+# ---------------------------------------------------------------- core skins
+#
+# A body is drawn in full colour at the size of the factory core, so every skin
+# has the same footprint: a skin never looks bigger or smaller than its hitbox
+# would suggest. Plates are light grey and tinted at runtime.
+
+func _lit(p: Vector2, a: float = -0.8) -> float:
+	# Soft directional light across a body, 0 (shadow side) to 1 (lit side).
+	return clampf(0.5 + 0.7 * p.dot(Vector2.from_angle(a)), 0.0, 1.0)
+
+
+func _reactor(p: Vector2, px: float, r: float, col: Color) -> void:
+	var d := sd_circle(p, r)
+	px_add(col, exp(-maxf(d, 0.0) / 0.1) * 0.55)
+	px_over(col.lerp(WHITE, 0.25), mask(d, px))
+	px_over(WHITE, mask(sd_circle(p, r * 0.55), px) * 0.9)
+
+
+func _core_void(p: Vector2, px: float) -> Color:
+	var violet := Color("8a3dff")
+	var lilac := Color("e3c8ff")
+	px_reset(violet)
+	var l := p.length()
+	var th := atan2(p.y, p.x)
+	# Accretion disc: a tilted bright band, fiercer on one side.
+	var q := Vector2(p.x, p.y * 2.6).rotated(0.45)
+	var band := absf(q.length() - 0.62) - 0.05
+	var lean := 0.55 + 0.45 * cos(th + 0.9)
+	px_add(violet, exp(-maxf(band, 0.0) / 0.09) * 0.75 * lean)
+	px_add(lilac, mask(band, px) * lean)
+	# The horizon: pure black, with a thin bright photon ring.
+	var hole := sd_circle(p, 0.4)
+	px_add(violet, exp(-maxf(hole, 0.0) / 0.12) * 0.5 * (1.0 - mask(hole, px)))
+	px_over(Color("040209"), mask(hole, px))
+	px_add(lilac, exp(-(hole * hole) / 0.0005) * 0.95)
+	# The far side of the disc, bent over the top of the hole.
+	var bent := absf(l - 0.47) - 0.012
+	px_add(lilac, mask(bent, px) * smoothstep(0.1, 0.9, sin(th + 2.2)) * 0.7)
+	return px_out()
+
+
+func _core_solar(p: Vector2, px: float) -> Color:
+	var gold := Color("ffc933")
+	var orange := Color("ff6a14")
+	px_reset(gold)
+	var spikes := sd_star(p, 0.74, 0.5, 12, 0.0)
+	px_add(orange, exp(-maxf(spikes, 0.0) / 0.08) * 0.6)
+	px_over(orange.lerp(gold, 0.35), mask(spikes, px))
+	var inner := sd_star(p, 0.6, 0.47, 12, TAU / 24.0)
+	px_over(gold, mask(inner, px))
+	var disc := sd_circle(p, 0.44)
+	var heat := clampf(1.0 - p.length() / 0.44, 0.0, 1.0)
+	px_over(Color("ffb01f").lerp(Color("fff6d6"), heat * heat), mask(disc, px))
+	px_add(WHITE, exp(-(disc * disc) / 0.0014) * 0.75)
+	# Slow convection cells across the surface.
+	var cells := sin(p.x * 17.0 + sin(p.y * 13.0) * 1.8) * sin(p.y * 19.0 + sin(p.x * 11.0) * 1.8)
+	px_over(Color("ff7a1a"), mask(disc, px) * smoothstep(0.35, 0.8, cells) * 0.32 * (1.0 - heat))
+	return px_out()
+
+
+func _core_glacier(p: Vector2, px: float) -> Color:
+	var ice := Color("8fe6ff")
+	var deep := Color("1f5fb8")
+	px_reset(ice)
+	var outer := sd_ngon(p, 0.72, 6, PI * 0.5)
+	px_add(ice, exp(-maxf(outer, 0.0) / 0.07) * 0.5)
+	px_over(deep, mask(outer, px))
+	# Six facets, each lit by its own angle.
+	var th := fposmod(atan2(p.y, p.x) + PI * 0.5, TAU)
+	var facet := int(th / (TAU / 6.0))
+	var shade := 0.25 + 0.75 * (0.5 + 0.5 * cos(float(facet) * 1.9 + 0.7))
+	px_over(ice.lerp(WHITE, shade * 0.6), mask(outer, px) * (0.35 + 0.55 * shade))
+	# Fracture lines from each vertex to the centre.
+	for k in 6:
+		var a := PI * 0.5 + TAU * float(k) / 6.0
+		var d := sd_segment(p, Vector2.ZERO, Vector2.from_angle(a) * 0.72)
+		px_add(WHITE, mask(d - 0.006, px) * 0.7)
+	px_add(WHITE, exp(-(outer * outer) / 0.0008) * 0.9)
+	var small := sd_ngon(p, 0.33, 6, 0.0)
+	px_over(deep.lerp(ice, 0.2), mask(small, px) * 0.85)
+	px_add(ice, exp(-(small * small) / 0.0006))
+	_reactor(p, px, 0.14, Color("d8f7ff"))
+	return px_out()
+
+
+func _core_quantum(p: Vector2, px: float) -> Color:
+	var cyan := Color("2dfff0")
+	var teal := Color("06424f")
+	var pink := Color("ff4de0")
+	px_reset(cyan)
+	var q := rot(p, PI * 0.25)
+	var outer := sd_box(q, Vector2(0.47, 0.47))
+	px_add(cyan, exp(-maxf(outer, 0.0) / 0.06) * 0.55)
+	px_over(teal, mask(outer, px))
+	# A fine circuit grid, broken up block by block.
+	var grid := Vector2(fposmod(q.x, 0.14), fposmod(q.y, 0.14))
+	var line := minf(minf(grid.x, 0.14 - grid.x), minf(grid.y, 0.14 - grid.y))
+	var block := sin(floorf(q.x / 0.14) * 12.9 + floorf(q.y / 0.14) * 78.2)
+	px_add(cyan, mask(line - 0.006, px) * mask(outer, px) * (0.22 + 0.3 * step_up(block, 0.1)))
+	px_over(cyan, mask(sd_box(q - Vector2(0.21, -0.21), Vector2(0.05, 0.05)), px) * 0.9)
+	px_over(pink, mask(sd_box(q - Vector2(-0.21, 0.21), Vector2(0.05, 0.05)), px) * 0.9)
+	px_add(cyan.lerp(WHITE, 0.5), exp(-(outer * outer) / 0.0007))
+	var inner := sd_box(p, Vector2(0.19, 0.19))
+	px_over(Color("0a7f8f"), mask(inner, px))
+	px_add(WHITE, exp(-(inner * inner) / 0.0005))
+	_reactor(p, px, 0.09, cyan)
+	return px_out()
+
+
+func step_up(v: float, at: float) -> float:
+	return 1.0 if v > at else 0.0
+
+
+func _core_inferno(p: Vector2, px: float) -> Color:
+	var iron := Color("2b0d08")
+	var red := Color("ff3a1a")
+	var yellow := Color("ffc24d")
+	px_reset(red)
+	var body := sd_star(p, 0.74, 0.56, 7, 0.3)
+	px_add(red, exp(-maxf(body, 0.0) / 0.09) * 0.75)
+	px_over(iron.lerp(Color("5a1a10"), _lit(p)), mask(body, px))
+	# Fissures: the zero lines of a warped field glow through the iron.
+	var warp := p + Vector2(sin(p.y * 7.0) * 0.07, sin(p.x * 8.0) * 0.07)
+	var field := sin(warp.x * 9.0 + 1.0) + sin(warp.y * 10.0 + 0.4) + sin((warp.x + warp.y) * 7.0)
+	var crack := absf(field) - 0.09
+	var hot := smoothstep(0.75, 0.15, p.length())
+	px_over(red.lerp(yellow, hot), mask(crack * 0.1, px) * mask(body + 0.04, px))
+	px_add(red, exp(-(body * body) / 0.001) * 0.7)
+	_reactor(p, px, 0.2, Color("ff8a2a"))
+	return px_out()
+
+
+func _core_ember(p: Vector2, px: float) -> Color:
+	var copper := Color("ff7a3d")
+	px_reset(copper)
+	var body := sd_star(p, 0.72, 0.42, 5, -PI * 0.5)
+	neon(body, px, copper, 0.03, 0.1, 0.22, 0.8)
+	var ring := absf(sd_circle(p, 0.28)) - 0.02
+	px_add(copper.lerp(WHITE, 0.3), mask(ring, px))
+	_reactor(p, px, 0.16, Color("ffb066"))
+	return px_out()
+
+
+func _core_venom(p: Vector2, px: float) -> Color:
+	var green := Color("7dff8a")
+	px_reset(green)
+	# Three lobes, like a hazard symbol grown over.
+	var d := 1.0
+	for k in 3:
+		var a := -PI * 0.5 + TAU * float(k) / 3.0
+		d = minf(d, sd_circle(p - Vector2.from_angle(a) * 0.32, 0.3))
+	neon(d, px, green, 0.03, 0.1, 0.2, 0.8)
+	for k in 3:
+		var a := PI * 0.5 + TAU * float(k) / 3.0
+		px_add(green, mask(sd_segment(p, Vector2.ZERO, Vector2.from_angle(a) * 0.3) - 0.012, px) * 0.8)
+	_reactor(p, px, 0.15, Color("c8ff8a"))
+	return px_out()
+
+
+func _core_amethyst(p: Vector2, px: float) -> Color:
+	var violet := Color("b58cff")
+	px_reset(violet)
+	var outer := sd_ngon(p, 0.7, 8, PI / 8.0)
+	px_add(violet, exp(-maxf(outer, 0.0) / 0.07) * 0.5)
+	px_over(Color("3a1f78"), mask(outer, px))
+	var th := fposmod(atan2(p.y, p.x) + PI / 8.0, TAU)
+	var facet := int(th / (TAU / 8.0))
+	var shade := 0.5 + 0.5 * sin(float(facet) * 2.4 + 1.1)
+	px_over(violet.lerp(WHITE, shade * 0.45), mask(outer, px) * (0.3 + 0.5 * shade) * smoothstep(0.26, 0.42, p.length()))
+	var table := sd_ngon(p, 0.34, 8, PI / 8.0)
+	px_over(violet.lerp(WHITE, 0.3), mask(table, px) * 0.75)
+	px_add(WHITE, exp(-(outer * outer) / 0.0006) * 0.8)
+	px_add(WHITE, exp(-(table * table) / 0.0004) * 0.6)
+	return px_out()
+
+
+func _core_rose(p: Vector2, px: float) -> Color:
+	var rose := Color("ff5cd6")
+	px_reset(rose)
+	for layer in 3:
+		var n := 5
+		var turn := float(layer) * 0.65
+		var r := 0.42 - float(layer) * 0.11
+		var d := 1.0
+		for k in n:
+			var a := turn + TAU * float(k) / float(n)
+			d = minf(d, sd_circle(p - Vector2.from_angle(a) * (r * 0.72), r * 0.62))
+		var shade := float(layer) / 2.0
+		px_over(rose.lerp(Color("5c0f4a"), 0.65 - shade * 0.6), mask(d, px))
+		px_add(rose.lerp(WHITE, 0.45), exp(-(d * d) / 0.0009) * 0.8)
+	_reactor(p, px, 0.09, Color("ffd0f2"))
+	return px_out()
+
+
+func _core_ghost(p: Vector2, px: float) -> Color:
+	var pale := Color("eaf6ff")
+	px_reset(pale)
+	# Barely there: rings and a faint shell, more light than object.
+	var shell := sd_circle(p, 0.62)
+	px_over(pale, mask(shell, px) * 0.1)
+	for r: float in [0.62, 0.46, 0.3]:
+		var d := absf(p.length() - r) - 0.009
+		px_add(pale, mask(d, px) * (0.3 + r))
+		px_add(pale, exp(-maxf(d, 0.0) / 0.05) * 0.25)
+	_reactor(p, px, 0.11, pale)
+	return px_out()
+
+
+func _core_aurum(p: Vector2, px: float) -> Color:
+	var gold := Color("ffd15c")
+	var dark := Color("6a4210")
+	px_reset(gold)
+	var gear := sd_star(p, 0.74, 0.6, 16, 0.0)
+	gear = maxf(gear, -sd_circle(p, 0.3))
+	px_add(gold, exp(-maxf(gear, 0.0) / 0.06) * 0.45)
+	px_over(dark.lerp(gold, 0.35 + 0.65 * _lit(p)), mask(gear, px))
+	var band := absf(p.length() - 0.47) - 0.05
+	px_over(gold.lerp(WHITE, 0.3 * _lit(p)), mask(band, px))
+	px_over(dark, mask(absf(p.length() - 0.47) - 0.008, px) * 0.7)
+	_reactor(p, px, 0.22, Color("ffe9a3"))
+	return px_out()
+
+
+func _core_paragon(p: Vector2, px: float) -> Color:
+	var gold := Color("ffe29a")
+	px_reset(gold)
+	var star := sd_star(p, 0.76, 0.3, 8, -PI * 0.5)
+	px_add(gold, exp(-maxf(star, 0.0) / 0.1) * 0.6)
+	px_over(Color("fff4cf").lerp(gold, 1.0 - _lit(p)), mask(star, px))
+	var thin := sd_star(p, 0.46, 0.22, 8, -PI * 0.5 + TAU / 16.0)
+	px_over(Color("2dd9ff"), mask(thin, px) * 0.75)
+	px_add(WHITE, exp(-(star * star) / 0.0007))
+	_reactor(p, px, 0.16, Color("e8fbff"))
+	return px_out()
+
+
+func _core_overseer(p: Vector2, px: float) -> Color:
+	var red := Color("ff3d6e")
+	px_reset(red)
+	var shell := sd_ngon(p, 0.72, 6, 0.0)
+	neon(shell, px, red, 0.03, 0.1, 0.14, 0.9)
+	# Claws reaching in from each side, after the Overseer's own shell.
+	for k in 6:
+		var a := TAU * float(k) / 6.0 + TAU / 12.0
+		var q := rot(p, a)
+		var claw := sd_poly(q, PackedVector2Array([Vector2(0.64, -0.1), Vector2(0.34, 0.0), Vector2(0.64, 0.1)]))
+		px_over(red.lerp(WHITE, 0.25), mask(claw, px))
+	var eye := sd_circle(p, 0.2)
+	px_over(Color("1a0408"), mask(sd_circle(p, 0.27), px))
+	px_over(red, mask(eye, px))
+	px_add(WHITE, mask(sd_box(p, Vector2(0.03, 0.17)), px) * 0.95)
+	return px_out()
+
+
+func _plate_shard(p: Vector2, px: float) -> Color:
+	var tone := Color(0.84, 0.84, 0.84)
+	px_reset(tone)
+	var d := sd_poly(p, PackedVector2Array([Vector2(0.0, -0.72), Vector2(0.4, 0.5), Vector2(0.0, 0.32), Vector2(-0.4, 0.5)]))
+	px_over(tone.darkened(0.5).lerp(tone, _lit(p)), mask(d, px))
+	px_add(WHITE, exp(-(d * d) / 0.0012) * 0.9)
+	return px_out()
+
+
+func _plate_arc(p: Vector2, px: float) -> Color:
+	var tone := Color(0.84, 0.84, 0.84)
+	px_reset(tone)
+	var q := p + Vector2(0.0, 1.0)
+	var band := absf(q.length() - 1.05) - 0.17
+	var edge := absf(atan2(q.x, q.y)) - 0.62
+	var d := maxf(band, edge * 0.8)
+	px_over(tone.darkened(0.45).lerp(tone, _lit(p)), mask(d, px))
+	px_add(WHITE, exp(-(d * d) / 0.0012) * 0.9)
+	return px_out()
+
+
+func _plate_crystal(p: Vector2, px: float) -> Color:
+	var tone := Color(0.9, 0.9, 0.9)
+	px_reset(tone)
+	var d := sd_poly(p, PackedVector2Array([Vector2(0.0, -0.78), Vector2(0.3, -0.3), Vector2(0.3, 0.42), Vector2(0.0, 0.72), Vector2(-0.3, 0.42), Vector2(-0.3, -0.3)]))
+	px_over(tone.darkened(0.45), mask(d, px))
+	px_over(tone, mask(maxf(d, -p.x), px) * 0.8)
+	px_add(WHITE, exp(-(d * d) / 0.001))
+	return px_out()
+
+
+func _plate_block(p: Vector2, px: float) -> Color:
+	var tone := Color(0.84, 0.84, 0.84)
+	px_reset(tone)
+	var d := sd_rbox(p, Vector2(0.4, 0.4), 0.05)
+	px_over(tone.darkened(0.5), mask(d, px))
+	px_over(tone, mask(sd_box(p, Vector2(0.16, 0.16)), px))
+	px_add(WHITE, exp(-(d * d) / 0.0012))
+	return px_out()
+
+
+func _plate_petal(p: Vector2, px: float) -> Color:
+	var tone := Color(0.88, 0.88, 0.88)
+	px_reset(tone)
+	var d := maxf(sd_circle(p - Vector2(0.34, 0.0), 0.7), sd_circle(p + Vector2(0.34, 0.0), 0.7))
+	px_over(tone.darkened(0.4).lerp(tone, _lit(p)), mask(d, px))
+	px_add(WHITE, exp(-(d * d) / 0.0012) * 0.8)
+	return px_out()
+
+
+func _ring_thin(p: Vector2, px: float) -> Color:
+	var l := p.length()
+	var d := absf(l - 0.8) - 0.01
+	var i := maxf(mask(d, px), exp(-maxf(d, 0.0) / 0.04) * 0.3)
+	var th := fposmod(atan2(p.y, p.x), TAU / 6.0) - TAU / 12.0
+	i = maxf(i, mask(sd_box(Vector2(l - 0.8, th * l), Vector2(0.05, 0.012)), px))
+	return energy(i)
+
+
+func _ring_gear(p: Vector2, px: float) -> Color:
+	var l := p.length()
+	var th := fposmod(atan2(p.y, p.x), TAU / 20.0) - TAU / 40.0
+	var teeth := sd_box(Vector2(l - 0.84, th * l), Vector2(0.05, 0.05))
+	var d := absf(l - 0.78) - 0.018
+	var i := maxf(mask(d, px), mask(teeth, px))
+	return energy(maxf(i, exp(-maxf(d, 0.0) / 0.05) * 0.25))
+
+
+func _ring_glyph(p: Vector2, px: float) -> Color:
+	var l := p.length()
+	var th := atan2(p.y, p.x)
+	var seg := fposmod(th, TAU / 8.0)
+	var dash := step_up(seg, 0.16) * step_up(TAU / 8.0 - seg, 0.2)
+	var d := absf(l - 0.8) - 0.018
+	var i := mask(d, px) * dash
+	var dot_a := fposmod(th, TAU / 8.0) - TAU / 16.0 * 0.15
+	i = maxf(i, mask(sd_circle(Vector2(l * cos(dot_a), l * sin(dot_a)) - Vector2(0.8, 0.0), 0.028), px))
+	return energy(maxf(i, exp(-maxf(d, 0.0) / 0.06) * 0.22 * dash))
+
+
+func _aura_corona(p: Vector2, _px: float) -> Color:
+	var l := p.length()
+	var th := atan2(p.y, p.x)
+	var rays := 0.55 + 0.25 * sin(th * 7.0) + 0.2 * sin(th * 13.0 + 1.0)
+	return energy(smoothstep(0.42, 0.46, l) * exp(-maxf(l - 0.46, 0.0) / (0.2 * rays)) * 0.9)
+
+
+func _aura_lens(p: Vector2, _px: float) -> Color:
+	var l := p.length()
+	var th := atan2(p.y, p.x)
+	var arms := 0.5 + 0.5 * sin(th * 3.0 + l * 9.0)
+	return energy(arms * arms * smoothstep(0.3, 0.45, l) * smoothstep(0.98, 0.5, l) * 0.8)
+
+
+func _aura_frost(p: Vector2, px: float) -> Color:
+	var i := 0.0
+	var th := fposmod(atan2(p.y, p.x), TAU / 6.0) - TAU / 12.0
+	var q := Vector2.from_angle(th) * p.length()
+	i = maxf(i, mask(sd_segment(q, Vector2(0.4, 0.0), Vector2(0.86, 0.0)) - 0.008, px))
+	for along: float in [0.56, 0.7]:
+		var side := absf(q.y)
+		i = maxf(i, mask(sd_segment(Vector2(q.x, side), Vector2(along, 0.0), Vector2(along + 0.1, 0.1)) - 0.006, px))
+	return energy(maxf(i * 0.9, smoothstep(0.42, 0.5, p.length()) * exp(-maxf(p.length() - 0.5, 0.0) / 0.12) * 0.3))
+
+
+func _aura_flame(p: Vector2, _px: float) -> Color:
+	var l := p.length()
+	var th := atan2(p.y, p.x)
+	var tongues := 0.5 + 0.5 * sin(th * 5.0 + sin(th * 3.0) * 1.6)
+	var reach := 0.5 + 0.34 * tongues
+	return energy(smoothstep(0.38, 0.46, l) * smoothstep(reach, reach - 0.3, l) * 0.85)
+
+
+func _aura_grid(p: Vector2, px: float) -> Color:
+	var q := rot(p, PI * 0.25)
+	var d := absf(sd_box(q, Vector2(0.62, 0.62))) - 0.008
+	var i := mask(d, px) * 0.9
+	var corner := sd_box(q.abs() - Vector2(0.62, 0.62), Vector2(0.05, 0.05))
+	i = maxf(i, mask(corner, px))
+	return energy(maxf(i, exp(-maxf(d, 0.0) / 0.05) * 0.25))
 
 
 func _spr_boss_core(p: Vector2, px: float) -> Color:

@@ -1,6 +1,9 @@
 extends Weapon
 ## Combat Drone - a wingman that trails the player and picks its own targets,
 ## so it covers whichever side the main guns are not pointing at.
+##
+## Hunter Pack: more drones, with rounds that curve into their targets. Siege
+## Platform: heavy piercing rounds aimed at the toughest enemy in range.
 
 var _damage := 7.0
 var _cooldown := 0.36
@@ -11,6 +14,8 @@ var _range := 430.0
 var _radius := 6.0
 var _follow := 74.0
 var _kb := 50.0
+var _seeking := false
+var _hunt := false
 
 var _dx := PackedFloat32Array()
 var _dy := PackedFloat32Array()
@@ -36,6 +41,8 @@ func _on_stats() -> void:
 	_radius = stat("radius")
 	_follow = stat("follow_distance")
 	_kb = stat("knockback")
+	_seeking = stat("seeking", 0.0) > 0.0
+	_hunt = stat("hunt", 0.0) > 0.0
 	var player := _a.player
 	while _dx.size() < _drones:
 		_dx.append(player.x)
@@ -62,12 +69,13 @@ func update(dt: float) -> void:
 		_dy[k] = y
 		_dcd[k] -= dt
 		if _dcd[k] <= 0.0:
-			var target := enemies.nearest(x, y, _range)
+			var target := enemies.strongest(x, y, _range) if _hunt else enemies.nearest(x, y, _range)
 			if target >= 0:
 				_dcd[k] = cooldown_time(_cooldown)
 				var aim := atan2(enemies.y[target] - y, enemies.x[target] - x)
 				_daim[k] = aim
-				fire_bullet(x + cos(aim) * 12.0, y + sin(aim) * 12.0, aim, _damage, _speed, _range, _radius, _shot_cell, 44.0, _pierce, _kb)
+				fire_bullet(x + cos(aim) * 12.0, y + sin(aim) * 12.0, aim, _damage, _speed, _range, _radius, _shot_cell, 7.3 * _radius, _pierce, _kb,
+					ProjectileSystem.F_HOMING if _seeking else 0, 0.0, 6.0 if _seeking else 0.0)
 				fired = true
 			else:
 				_dcd[k] = 0.1

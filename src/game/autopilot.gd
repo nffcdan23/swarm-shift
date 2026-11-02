@@ -107,6 +107,8 @@ func pick(offers: Array) -> int:
 		match str(offer.kind):
 			UpgradeSystem.KIND_WEAPON:
 				score = (3.2 if weapon_count < 3 else 1.6) if bool(offer.is_new) else 2.3
+			UpgradeSystem.KIND_EVOLUTION:
+				score = 5.0
 			UpgradeSystem.KIND_AUGMENT:
 				score = 3.1 if str(offer.rarity) == "legendary" else 2.6
 			UpgradeSystem.KIND_PASSIVE:

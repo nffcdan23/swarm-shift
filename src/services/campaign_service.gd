@@ -156,6 +156,16 @@ func scaling(tier: float) -> Dictionary:
 	}
 
 
+## The tier a run is paid at. A sector pays its own tier. Overdrive climbs fast
+## and pays by how deep it got, but never past what the player has earned in the
+## campaign: otherwise it is simply the best way to earn from Sector 3 onwards,
+## and the sectors stop mattering.
+func reward_tier(mode: String, effective_tier: float) -> float:
+	if mode == MODE_ENDLESS:
+		return minf(effective_tier, float(highest_cleared()) + 1.0)
+	return effective_tier
+
+
 ## Records a finished run. Returns {"first_clear": bool, "new_best": bool}.
 func record_run(mode: String, tier: int, cleared: bool, seconds: float) -> Dictionary:
 	var sectors := _app.save.section("sectors")

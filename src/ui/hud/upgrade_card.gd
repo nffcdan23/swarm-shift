@@ -56,14 +56,19 @@ func _build() -> void:
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.clip_text = true
 	head.add_child(name_label)
-	head.add_child(UiKit.tag(_status_text(), _accent))
+	# An evolution's job goes on the bottom line: the names are long enough.
+	var evolving := str(offer.get("kind", "")) == UpgradeSystem.KIND_EVOLUTION
+	if not evolving:
+		head.add_child(UiKit.tag(_status_text(), _accent))
 	text.add_child(head)
 
 	text.add_child(UiKit.paragraph(str(offer.get("desc", "")), UiTheme.SMALL + 1, Palette.TEXT.darkened(0.12)))
 
 	var foot := UiKit.hbox(10)
-	foot.add_child(UiKit.caption(str(offer.get("rarity_name", "")), UiTheme.TINY, _accent))
+	foot.add_child(UiKit.caption("EVOLVES %s" % str(offer.get("weapon_name", "")).to_upper() if evolving else str(offer.get("rarity_name", "")), UiTheme.TINY, _accent))
 	foot.add_child(UiKit.spacer())
+	if evolving:
+		foot.add_child(UiKit.tag(_status_text(), _accent))
 	var max_level := int(offer.get("max_level", 0))
 	if max_level > 1:
 		foot.add_child(_pips(int(offer.get("level", 1)), max_level))
@@ -85,6 +90,8 @@ func _status_text() -> String:
 		return "LEVEL %d" % int(offer.get("level", 1))
 	if kind == UpgradeSystem.KIND_AUGMENT:
 		return "AUGMENT"
+	if kind == UpgradeSystem.KIND_EVOLUTION:
+		return str(offer.get("role", "EVOLUTION"))
 	return "INSTANT"
 
 

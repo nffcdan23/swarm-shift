@@ -69,6 +69,11 @@ var _barrage_progress := 0
 var _siphon := false
 var _siphon_every := 12
 var _siphon_progress := 0
+var _boss_bonus := 0.0
+var _execute := 0.0
+# Cosmetic only: a skin's colour blended into ordinary kill bursts.
+var _kill_tint := Color.WHITE
+var _kill_tint_amount := 0.0
 
 var _src_volatile := 0
 var _src_storm := 0
@@ -104,6 +109,10 @@ func setup(arena: Arena) -> void:
 	_elite_cfg = GameData.dict(arena.data.enemies, "elite")
 	_shard_cell = arena.gfx.cell("shard")
 	_missile_cell = arena.gfx.cell("missile")
+	var skin := arena.config.skin_def
+	if skin.has("kill_tint"):
+		_kill_tint = GameData.color(skin, "kill_tint")
+		_kill_tint_amount = GameData.num(skin, "kill_tint_amount", 0.6)
 
 
 ## Interns a damage source name; the id is used for per-weapon damage totals.
@@ -140,6 +149,8 @@ func refresh() -> void:
 	_barrage_radius = b.mod("fx.barrage_radius", 74.0)
 	_siphon = b.enabled("fx.siphon")
 	_siphon_every = maxi(int(b.mod("fx.siphon_kills", 12.0)), 1)
+	_boss_bonus = b.mod("boss_damage_pct")
+	_execute = b.mod("fx.execute")
 	seeker_turn = b.mod("fx.seeker_turn")
 	explosive_pct = b.mod("fx.explosive_damage_pct")
 	explosive_radius = b.mod("fx.explosive_radius")
@@ -174,11 +185,17 @@ func hit(i: int, base_damage: float, src: int, kb_x: float = 0.0, kb_y: float = 
 		dmg *= player.crit_mult
 	if _chilled_bonus > 0.0 and enemies.is_cold(i):
 		dmg *= 1.0 + _chilled_bonus
+	if _boss_bonus > 0.0 and (enemies.flags[i] & (EnemySystem.F_BOSS | EnemySystem.F_ELITE)) != 0:
+		dmg *= 1.0 + _boss_bonus
 	var ex := enemies.x[i]
 	var ey := enemies.y[i]
 	var top := ey - enemies.radius[i]
 	var hp_before := enemies.hp[i]
 	var killed := enemies.hurt(i, dmg, kb_x, kb_y)
+	if not killed and _execute > 0.0 and enemies.hp[i] < enemies.max_hp[i] * _execute \
+			and (enemies.flags[i] & (EnemySystem.F_BOSS | EnemySystem.F_ELITE)) == 0:
+		dmg += enemies.hp[i]
+		killed = enemies.hurt(i, enemies.hp[i] + 1.0)
 	total_damage += dmg
 	damage_by_source[src] += dmg
 	dealt_by_source[src] += hp_before - maxf(enemies.hp[i], 0.0)
@@ -280,6 +297,10 @@ func on_enemy_killed(i: int) -> void:
 	var def := enemies.type_defs[type_idx]
 	var color := enemies.type_colors[type_idx]
 	kills += 1
+	if enemies.infected[i] > 0.0:
+		var nanites := a.weapon_node("nanite")
+		if nanites != null:
+			nanites.host_died(ex, ey)
 
 	if (f & EnemySystem.F_BOSS) != 0:
 		bosses_killed += 1
@@ -287,7 +308,7 @@ func on_enemy_killed(i: int) -> void:
 		return
 
 	var elite := (f & EnemySystem.F_ELITE) != 0
-	a.fx.death(ex, ey, Color(1.0, 0.85, 0.4) if elite else color, r)
+	a.fx.death(ex, ey, Color(1.0, 0.85, 0.4) if elite else color.lerp(_kill_tint, _kill_tint_amount), r)
 	if elite:
 		elites_killed += 1
 		a.sfx("elite_die")
@@ -370,10 +391,11 @@ func launch_barrage() -> void:
 	a.fx.shockwave(player.x, player.y, 90.0, C_BARRAGE)
 
 
+## Returns the projectile's index, or -1 if the pool is full.
 func launch_missile(x: float, y: float, angle: float, dmg: float, blast_radius: float, src: int, color: Color,
-		speed: float = 420.0, turn_rate: float = 7.0, lifetime: float = 3.0) -> void:
-	_a.projectiles.spawn(x + cos(angle) * 20.0, y + sin(angle) * 20.0, cos(angle) * speed, sin(angle) * speed,
-		dmg, lifetime, 10.0, _missile_cell, 46.0, color, 0,
+		speed: float = 420.0, turn_rate: float = 7.0, lifetime: float = 3.0, sprite_size: float = 46.0) -> int:
+	return _a.projectiles.spawn(x + cos(angle) * 20.0, y + sin(angle) * 20.0, cos(angle) * speed, sin(angle) * speed,
+		dmg, lifetime, 10.0, _missile_cell, sprite_size, color, 0,
 		ProjectileSystem.F_HOMING | ProjectileSystem.F_EXPLODE | ProjectileSystem.F_BLAST_ONLY | ProjectileSystem.F_TRAIL,
 		170.0, src, blast_radius, turn_rate)
 

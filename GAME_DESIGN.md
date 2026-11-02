@@ -51,6 +51,10 @@ Limits: 4 weapons (5 levels each), 5 passives, any number of augments.
 | Combat Drone | A wingman that picks its own targets | Level 5 |
 | Prism Lance | Charges, then fires a piercing beam down the most crowded line; extra beams take the next-best lines. Strong against formations, modest against a single target | Level 7 |
 | Singularity | Drags the swarm into a ball, then implodes | Level 10 |
+| Railgun | Marks the toughest enemy on screen, charges, and fires one instant line through it. Nothing else in the game aims this way | Research |
+| Nanite Swarm | Infects enemies: damage over time, part of it a share of their health, spreading when they die. Bosses take a capped share | Research |
+
+Ten of these have two **evolutions** each (see *Evolutions* below).
 
 ### Passives and augments
 
@@ -98,7 +102,11 @@ Three phases at 66% and 33% health; each adds attacks, speed and bullet count. A
 ## Between runs
 
 - **Player Level 1-100.** Permanent, and always visible in the lobby with its XP numbers, its bar and the next thing it unlocks. Player XP comes from every run - time survived, enemies defeated, Run Level reached, bosses, sectors cleared - and from daily missions and achievements. Every level pays Credits; every fifth pays Crystals; and levels open content: weapons at 2, 3, 4, 5, 7 and 10, cores at 3, 6, 9 and 12, permanent upgrades at 2, 3, 4, 5, 6 and 8.
-- **Permanent upgrades.** Sixteen tracks bought with Credits, in four categories. **Offence:** damage, attack speed, critical chance, critical damage, a pre-levelled starting weapon. **Defence:** max health, armour, regeneration, a once-per-run revive. **Utility:** move speed, pickup radius, run energy gained, luck, extra rerolls. **Economy:** Credits earned, Player XP earned. Each row shows its level, what it gives now and what the next purchase makes it, and its price; x1 / x5 / MAX buys several levels at once. Costs rise geometrically (x1.45 to x1.7 per level for the common tracks); buying every level of every track costs about 130,000 Credits, and the weapon and core unlocks another 30,000.
+- **Research.** Everything permanent is bought with Credits in the Research tab, in six branches. **Offence, Defence, Energy, Economy** hold the original sixteen stat tracks (their levels and caps have not changed) plus focused additions such as Siege Protocols (damage to bosses and elites), Last Stand, Kinetic Buffer and Priority Signal (a fourth upgrade card). **Weapon Systems** holds the unlocks that change how runs play: Evolution Lab, Flex Rack (choose your starting weapon), Ballistics Suite, Railgun and Nanite prototypes, Synergy Codex I and II (six extra synergies), Twin Evolution, Auxiliary Bay (sixth passive slot) and Fifth Hardpoint (fifth weapon slot). **Specialisation** holds the doctrines and awakenings.
+- **Doctrines.** Trade-offs, one active at a time, changed freely: Glass (+30% damage, -30% health), Bulwark (+40% health and +2 armour, -20% damage), Scavenger (+25% energy and +20% Credits, -15% damage), Specialist (+60% damage, only two weapon slots), Generalist (+1 weapon slot, -2 passive slots). They are depth without inflation: owning them all adds no power, only options.
+- **Awakenings.** Each core can research its own ability: an augment it starts every run with (Vanguard: Reactive Shell; Striker: Seeker Rounds; Bastion: Siphon; Frostbite: Shatter; Tempest: Storm Strike; Phantom: Phase Shift).
+- **Weapon mastery.** Five ranks per weapon, shown in the Arsenal. A run earns one budget of Mastery XP: 30 per active minute, counting six minutes at most, scaled up slowly by sector, plus bonuses for bosses and a clear. It is shared between the run's weapons by the square root of the damage each landed, so the main weapon earns most and a support weapon or a first try still earns a real share. A longer run earns no more, time spent not moving does not count, and a run with no real fighting earns nothing. Rank 1 makes a weapon a Flex Rack option; 2 and 4 give small weapon-specific perks; 3 and 4 open evolutions; 5 gives a gold finish and counts towards the PARAGON skin.
+- **Skins.** Layered, animated cores (see *Skins*). Most are bought with Credits.
 - **Cores.** Six playable cores, each with its own starting weapon and stat trade-offs (for example Bastion: +40% health, +2 armour, -8% speed, starts with Orbit Blades).
 - **Sectors 1-20.** Clearing one unlocks the next and pays a one-time Crystal bonus. Rewards grow 30% per sector. Sectors are not the same fight with bigger numbers:
 
@@ -110,16 +118,52 @@ Three phases at 66% and 33% health; each adds attacks, speed and bullet count. A
 | 4-9 | Everything above, plus one **mutator** from a rotation |
 | 10-20 | Two different mutators at once |
 
-Mutators: **Blitz** (everything 12% faster, slightly frailer), **Artillery** (more Mortars, a bombardment every 42 s), **Hunters** (more Dashers and Weavers, a Dasher pack every 38 s), **Elite Guard** (an extra elite every 48 s), **Volatile** (twice the Bombers; every elite explodes), **Horde** (25% more enemies, each a little weaker). The lobby names the sector's mutators before the run starts, and the run announces them after its opening banner. Overdrive takes one mutator per cycle from its second cycle on. Underneath all of that, enemy health, damage and spawn rate still scale with the sector.
+Mutators: **Blitz** (everything 12% faster, slightly frailer), **Artillery** (more Mortars, a bombardment every 42 s), **Hunters** (more Dashers and Weavers, a Dasher pack every 38 s), **Elite Guard** (an extra elite every 48 s), **Volatile** (more Bombers; every elite explodes), **Horde** (25% more enemies, each a little weaker). The lobby names the sector's mutators before the run starts, and the run announces them after its opening banner. Overdrive takes one mutator per cycle from its second cycle on. Underneath all of that, enemy health, damage and spawn rate still scale with the sector.
+
+### Evolutions
+
+At its final level a weapon can evolve, if the path has been unlocked (Evolution Lab, the Mastery rank, and Credits). A card appears on the next level-up with both owned paths side by side, plus one ordinary card. One weapon can evolve per run; Twin Evolution makes it two. Choosing mid-run is the point: the right path depends on the run in front of you.
+
+| Weapon | Evolution | Job |
+| --- | --- | --- |
+| Pulse Cannon | Storm Repeater / Breach Cannon | One tight stream for single targets / slow shells that burst on everything they pass |
+| Scatter Shot | Flak Burster / Slug Thrower | Shells that burst at range / a tight cone of heavy slugs up close |
+| Orbit Blades | Ripper Discs / Aegis Halo | Blades fling out for reach / a wider ring that destroys enemy shots |
+| Cryo Nova | Permafrost / Glacial Spikes | Lingering frozen fields / ice spikes at the toughest enemies |
+| Arc Caster | Storm Conductor / Overload Coil | No fade and far more jumps / fewer, harder strikes that burst |
+| Seeker Missiles | Hive Pods / Bunker Buster | A cloud of small missiles / one heavy warhead at the toughest enemy |
+| Plasma Mines | Shaped Charges / Stasis Field | Tight, heavy blasts / blasts that leave a slowing, burning field |
+| Combat Drone | Hunter Pack / Siege Platform | An extra drone with curving rounds / heavy rounds at the toughest enemy |
+| Prism Lance | Rail Lance / Sweeping Lance | One narrow instant shot at the toughest enemy / wide beams that swing across the screen |
+| Singularity | Collapsar / Supernova | A longer hole that pins the swarm / a quick collapse into one colossal blast |
+
+A test holds this to account: on the weapon bench, neither path of any weapon may beat the other at everything.
+
+### Skins
+
+Each skin is a stack of animated layers: a body with its own silhouette, orbiting armour plates, a ring, an aura, a pulsing reactor and motes, plus its own movement trail, kill-burst colour and a tint over every weapon. Same footprint as the factory core.
+
+| Rarity | Skins | How |
+| --- | --- | --- |
+| Common | Factory | Default |
+| Rare | Ember, Venom, Amethyst, Rose | Crystals (unchanged) |
+| Epic | Ghost | Crystals (unchanged) |
+| Epic | Glacier, Inferno, Solar, Quantum, Void | Player Level and 12,000 to 50,000 Credits |
+| Legendary | Aurum | Starter Pack (unchanged) |
+| Legendary | Paragon, Overseer | Earned: master 3 weapons; clear Sector 20 |
+
+Skins are looks only. Tests prove it: the same seed plays out identically in every skin. No skin's tints may come near the red of enemy fire, because a red ring with a white centre is what an enemy shot looks like.
 
 ## Economy
 
 | Currency | Earned from | Spent on |
 | --- | --- | --- |
-| **Credits** (soft) | Gold pickups in a run, a survival bonus (10 per minute), clearing a sector, Player Levels, missions, login calendar, optional ads | Permanent upgrades, weapon and core unlocks |
+| **Credits** (soft) | Gold pickups in a run, a survival bonus (10 per minute), clearing a sector, Player Levels, missions, login calendar, optional ads | Research, weapon and core unlocks, evolutions, skins |
 | **Crystals** (premium) | Achievements, first clears, every fifth Player Level, the daily mission bonus, day 3/6/7 of the login calendar, purchase | Core skins, one core, exchange for Credits |
 
 Nothing in the game requires Crystals to progress.
+
+**Overdrive pays by depth, up to what the player has earned.** Its reward tier is capped at the highest sector cleared plus one, so it cannot out-earn the campaign early on.
 
 **Nothing earned in a run is ever lost.** Credits and Player XP are banked when the run ends, however it ends: death, victory, or leaving from the pause menu (which first shows exactly what will be banked and asks). Leaving early pays the same as dying at that moment. Each run can be paid out once only. And a run that never reaches its end - the app is closed or killed mid-fight - is checkpointed every few seconds and paid out at the next launch.
 
@@ -186,6 +230,8 @@ That is the intended shape: two minutes with almost no damage, a middle that sta
 | 10 (two mutators) | 85% | 96% | 88% |
 | 14 | 100% | 29% | 12% |
 | 20 | 100% | 8% | 0% |
+
+These figures predate the November 2026 progression overhaul, which made early sectors easier and Sector 8 less of a spike; see `docs/progression/README.md`.
 
 For the same player (15% of upgrades), Sectors 1, 2 and 3 clear at 80%, 67% and 37%: beginner, moderate, challenging. Each sector is roughly ten points of upgrades ahead of the one before.
 

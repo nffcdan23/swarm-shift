@@ -26,8 +26,10 @@ Three rules hold the structure together:
 | `SaveMigrations` | Schema version, defaults, forward migrations |
 | `Economy` | The only place balances change; every grant/spend names its source |
 | `AccountService` | The permanent Player Level: XP, per-level rewards, what each level unlocks |
-| `MetaService` | Permanent upgrades: categories, Player Level gates, single and bulk purchase, effect text |
-| `ArsenalService` | Weapon / core / skin unlocks and the loadout |
+| `MetaService` | Research: branches, Player Level and prerequisite gates, tracks, one-off unlocks, doctrines and awakenings, single and bulk purchase, effect text |
+| `MasteryService` | Weapon Mastery XP, ranks and perks, evolutions and what they need |
+| `GoalService` | The short, medium and long goals shown in the lobby. Reads other services, stores nothing |
+| `ArsenalService` | Weapon / core / skin unlocks, the loadout, the starting weapon |
 | `CampaignService` | Sectors, tier scaling, sector briefs and mutators, Endless unlock |
 | `MissionService` | Daily missions (seeded per day and install) |
 | `AchievementService` | Thresholds over lifetime stats |
@@ -63,7 +65,8 @@ player -> director (spawning) -> boss -> enemies -> weapons -> projectiles
 | `RunDiagnostics` | Counters for tests, the simulator and `--perf`: back-to-back choices, queue peaks, anything a safety valve dropped |
 | `Boss` | State machine driving one slot in the `EnemySystem`, so every weapon can hit it with no special cases |
 | `RunBuild`, `UpgradeSystem` | What the player has assembled; rolling and applying the three-card choice |
-| `Weapon` + `weapons/*.gd` | One small script per weapon |
+| `Weapon` + `weapons/*.gd` | One small script per weapon. An evolution adds `mods` on top of the levels, including stats the script reads with a default, which is how it switches behaviour on |
+| `CoreVisual` | The player's core as animated layers, built from a skin's `visual` block. Shared by the run, the lobby and the Arsenal; reads nothing from the simulation |
 | `Autopilot` | The bot used by tests, simulations and the screenshot tour |
 
 Rules that keep this safe:
@@ -114,7 +117,7 @@ Measured headless on an M1 Pro (`--bench`): about 0.8 ms per step with 490 enemi
 | --- | --- |
 | `game.json` | Title, player base stats, run rules, XP curve, rarities, drops, rewards, haptics, feel |
 | `enemies.json` | Enemy types, elite modifiers and affixes, behaviour constants |
-| `weapons.json` | Weapons: base stats and five levels each |
+| `weapons.json` | Weapons: base stats, five levels, Mastery perks, evolutions; the Mastery ranks and XP rules |
 | `upgrades.json` | Passives, augments, synergies |
 | `stages.json` | Timeline (tracks, events, curves), tier scaling, themes, boss |
 | `meta.json` | Account curve, permanent upgrades, cores, skins |
@@ -157,7 +160,7 @@ A stat resolves as `(base + flat) * (1 + percent)`. New content in an existing s
 
 The `runs` section is `RunLedger`'s: the ids of the last 24 runs paid out (with their summaries, so a repeated claim returns the same numbers and pays nothing) and a snapshot of the run in progress, refreshed every 8 seconds and flushed when the app loses focus. A snapshot still there at launch is a run that never reached its results screen; it is settled then and the player is told.
 
-Adding a field needs no migration: `SaveMigrations.defaults()` is merged underneath every loaded profile. `tests/fixtures/profile_v1_before_playtest_update.save` is a profile written by the build before Player Level gates, upgrade categories and the run ledger existed, and a test loads it to prove nothing in it is lost. For a breaking change, bump `CURRENT_VERSION` and add a `_from_vN` step; steps run in sequence. Unknown keys are preserved, so an older build will not destroy a newer save.
+Version 2 (November 2026) adds `mastery` and `evolutions`, and gives existing players a head start in Mastery; `tests/fixtures/profile_v1_endgame_before_research.save` is a late-game version 1 profile that must load and migrate. Adding a field needs no migration: `SaveMigrations.defaults()` is merged underneath every loaded profile. `tests/fixtures/profile_v1_before_playtest_update.save` is a profile written by the build before Player Level gates, upgrade categories and the run ledger existed, and a test loads it to prove nothing in it is lost. For a breaking change, bump `CURRENT_VERSION` and add a `_from_vN` step; steps run in sequence. Unknown keys are preserved, so an older build will not destroy a newer save.
 
 **Cloud save** is a new `SaveBackend` (iCloud / Play Games / own server) plus a conflict rule; `created_at`, `last_seen` and `play_seconds` are already in the profile for that purpose.
 

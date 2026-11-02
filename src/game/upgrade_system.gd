@@ -4,13 +4,14 @@ extends RefCounted
 ##
 ## Each card ("offer") is a plain dictionary so the UI can render it without
 ## knowing anything about the rules:
-##   kind      weapon | passive | augment | heal | credits | purge
+##   kind      weapon | passive | augment | evolution | heal | credits | purge
 ##   id, name, desc, icon, rarity, color
 ##   level     level the item will be at after picking; max_level
 ##   is_new    true when this adds something the build does not have yet
 ##
 ## Shaping rules, in order of importance:
 ##   - never offer something that is already maxed or has no free slot
+##   - a weapon ready to evolve is always offered: it is the run's big moment
 ##   - early levels guarantee a new weapon so builds diversify quickly
 ##   - items the player already owns are weighted up, so builds come together
 ##   - luck raises the odds of the rarer cards
@@ -18,6 +19,7 @@ extends RefCounted
 const KIND_WEAPON := "weapon"
 const KIND_PASSIVE := "passive"
 const KIND_AUGMENT := "augment"
+const KIND_EVOLUTION := "evolution"
 const KIND_HEAL := "heal"
 const KIND_CREDITS := "credits"
 const KIND_PURGE := "purge"
@@ -33,8 +35,8 @@ func setup(arena: Arena) -> void:
 	_a = arena
 	_data = arena.data
 	_weapon_max = GameData.integer(_data.weapons, "max_level", 5)
-	_weapon_slots = GameData.integer(_data.run_cfg(), "weapon_slots", 4)
-	_passive_slots = GameData.integer(_data.run_cfg(), "passive_slots", 5)
+	_weapon_slots = maxi(GameData.integer(_data.run_cfg(), "weapon_slots", 4) + int(arena.build.mod("run.weapon_slots")), 1)
+	_passive_slots = maxi(GameData.integer(_data.run_cfg(), "passive_slots", 5) + int(arena.build.mod("run.passive_slots")), 1)
 
 
 ## Rolls `amount` distinct offers. `boosted` (elite caches) skews towards rarer cards.
@@ -42,9 +44,22 @@ func roll(amount: int, boosted: bool = false) -> Array[Dictionary]:
 	var pool := _candidates(boosted)
 	var picked: Array[Dictionary] = []
 
+	# Evolutions come first, and at most two: one weapon's two paths side by side
+	# is the choice, and the rest of the hand must still be a real alternative.
+	var ready: Array[Dictionary] = []
+	for offer in pool:
+		if str(offer.kind) == KIND_EVOLUTION:
+			ready.append(offer)
+	if not ready.is_empty():
+		var first_weapon := str(ready[0].weapon)
+		for offer in ready:
+			pool.erase(offer)
+			if str(offer.weapon) == first_weapon and picked.size() < mini(2, amount):
+				picked.append(offer)
+
 	var build := _a.build
-	var wants_weapon := build.weapon_order.size() < 2 and _a.level >= 2
-	if wants_weapon:
+	var wants_weapon := build.weapon_order.size() < mini(2, _weapon_slots) and _a.level >= 2
+	if wants_weapon and picked.size() < amount:
 		var fresh: Array[Dictionary] = []
 		for offer in pool:
 			if str(offer.kind) == KIND_WEAPON and bool(offer.is_new):
@@ -109,6 +124,14 @@ func _candidates(boosted: bool) -> Array[Dictionary]:
 			out.append(_offer(KIND_WEAPON, weapon_id, def, GameData.text(def, "tagline"), "rare", 1, _weapon_max, true, 0.85, luck, boosted))
 			out[out.size() - 1]["icon_color"] = GameData.color(def, "color", Palette.CYAN)
 
+	if build.evolved.size() < evolution_slots():
+		for weapon_id in build.weapon_order:
+			if build.weapon_level(weapon_id) < _weapon_max or build.evolved.has(weapon_id):
+				continue
+			var def: Dictionary = weapon_defs[weapon_id]
+			for path: String in _a.config.evolutions.get(weapon_id, []):
+				out.append(_evolution_offer(weapon_id, path, def))
+
 	var passive_defs := _data.passives()
 	var passive_room := build.passive_order.size() < _passive_slots
 	for passive_id: String in passive_defs:
@@ -131,8 +154,27 @@ func _candidates(boosted: bool) -> Array[Dictionary]:
 	return out
 
 
+## How many weapons may evolve in one run.
+func evolution_slots() -> int:
+	return int(_a.build.mod("run.evolutions"))
+
+
+func _evolution_offer(weapon_id: String, path: String, def: Dictionary) -> Dictionary:
+	var entry := GameData.dict(GameData.dict(def, "evolutions"), path)
+	var offer := _offer(KIND_EVOLUTION, path, entry, GameData.text(entry, "desc"), "legendary", 1, 1, true, 1.0, 0.0, false)
+	offer["weapon"] = weapon_id
+	offer["icon"] = GameData.text(def, "icon", "star")
+	offer["icon_color"] = GameData.color(entry, "color", GameData.color(def, "color", Palette.CYAN))
+	offer["role"] = GameData.text(entry, "role")
+	offer["weapon_name"] = GameData.text(def, "name", weapon_id)
+	return offer
+
+
 func _requirements_met(req: Dictionary) -> bool:
 	if _a.level < GameData.integer(req, "min_level", 0):
+		return false
+	var gate := GameData.text(req, "needs")
+	if not gate.is_empty() and not _a.build.enabled(gate):
 		return false
 	for token: String in GameData.list(req, "all"):
 		if not _a.build.has(token):
@@ -212,6 +254,10 @@ func is_valid(offer: Dictionary) -> bool:
 		KIND_AUGMENT:
 			var def := GameData.dict(_data.augments(), id)
 			return not def.is_empty() and not build.augments.has(id) and _requirements_met(GameData.dict(def, "requires"))
+		KIND_EVOLUTION:
+			var weapon_id := str(offer.get("weapon", ""))
+			return build.weapon_level(weapon_id) >= _weapon_max and not build.evolved.has(weapon_id) \
+				and build.evolved.size() < evolution_slots() and (_a.config.evolutions.get(weapon_id, []) as Array).has(id)
 		KIND_HEAL, KIND_CREDITS, KIND_PURGE:
 			return true
 	return false
@@ -242,6 +288,8 @@ func apply(offer: Dictionary) -> bool:
 			build.add_augment(id)
 			build.recompute()
 			a.refresh_build()
+		KIND_EVOLUTION:
+			a.evolve_weapon(str(offer.weapon), id)
 		KIND_HEAL:
 			a.player.heal(a.player.max_hp * GameData.num(_data.run_cfg(), "fallback_heal_fraction", 0.3))
 		KIND_CREDITS:

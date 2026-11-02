@@ -1,13 +1,26 @@
 class_name MetaService
 extends RefCounted
-## Permanent upgrades bought with Credits between runs. Each level contributes
-## the upgrade's `mods` once; the totals are folded into every run's build.
+## Research: everything permanent bought with Credits between runs. Each level
+## contributes the entry's `mods` once; the totals are folded into every run's
+## build.
 ##
-## Upgrades are grouped into categories for the lobby (meta.json ->
-## upgrade_categories), may be gated behind a Player Level (`unlock_level`),
-## and can be bought several levels at a time.
+## Entries are grouped into branches for the Research tab (meta.json ->
+## upgrade_categories), may be gated behind a Player Level (`unlock_level`) and
+## other research (`requires`), and can be bought several levels at a time.
+##
+## Four kinds, all stored as a level in the same table:
+##   track      a levelled stat (the default)
+##   unlock     a one-off that changes how runs play
+##   doctrine   a trade-off that only applies while selected, one at a time
+##   awakening  gives one core an augment from the start of every run
 
 signal purchased(id: String, level: int)
+signal doctrine_changed
+
+const KIND_TRACK := "track"
+const KIND_UNLOCK := "unlock"
+const KIND_DOCTRINE := "doctrine"
+const KIND_AWAKENING := "awakening"
 
 var _app: AppRoot
 
@@ -34,6 +47,10 @@ func max_level(id: String) -> int:
 
 func is_maxed(id: String) -> bool:
 	return level(id) >= max_level(id)
+
+
+func kind(id: String) -> String:
+	return GameData.text(def(id), "kind", KIND_TRACK)
 
 
 # --------------------------------------------------------------- categories
@@ -66,9 +83,35 @@ func unlock_level(id: String) -> int:
 	return GameData.integer(def(id), "unlock_level", 0)
 
 
+## What has to be owned first: [{"id", "level", "name"}]. An awakening also
+## needs its core, reported as {"core": id, "name": display name}.
+func requirements(id: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for token: String in GameData.list(def(id), "requires"):
+		var parts := token.split(":")
+		var needed := parts[0]
+		out.append({"id": needed, "level": int(parts[1]) if parts.size() > 1 else 1, "name": GameData.text(def(needed), "name", needed)})
+	var core := GameData.text(def(id), "core")
+	if not core.is_empty():
+		out.append({"core": core, "name": GameData.text(GameData.dict(_app.data.cores(), core), "name", core)})
+	return out
+
+
+## The requirements not yet met.
+func missing_requirements(id: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for need in requirements(id):
+		if need.has("core"):
+			if not _app.arsenal.is_owned(ArsenalService.CORES, str(need.core)):
+				out.append(need)
+		elif level(str(need.id)) < int(need.level):
+			out.append(need)
+	return out
+
+
 ## Levels already owned are never taken away by a gate added later.
 func is_unlocked(id: String) -> bool:
-	return level(id) > 0 or _app.account.level() >= unlock_level(id)
+	return level(id) > 0 or (_app.account.level() >= unlock_level(id) and missing_requirements(id).is_empty())
 
 
 ## Display names of upgrades whose gate is exactly `at_level`.
@@ -173,10 +216,17 @@ func stat_label(id: String) -> String:
 	return GameData.text(def(id), "stat", GameData.text(def(id), "name", id))
 
 
+## Levels of `id` that count right now: an unselected doctrine counts for nothing.
+func _levels_in_force(id: String) -> int:
+	if kind(id) == KIND_DOCTRINE and id != active_doctrine():
+		return 0
+	return level(id)
+
+
 ## Adds every owned upgrade's contribution into `into` (key -> summed value).
 func collect_mods(into: Dictionary) -> void:
 	for id: String in ids():
-		var owned := level(id)
+		var owned := _levels_in_force(id)
 		if owned <= 0:
 			continue
 		var mods := GameData.dict(def(id), "mods")
@@ -188,10 +238,36 @@ func collect_mods(into: Dictionary) -> void:
 func mod_total(key: String) -> float:
 	var total := 0.0
 	for id: String in ids():
-		var owned := level(id)
+		var owned := _levels_in_force(id)
 		if owned > 0:
 			total += GameData.num(GameData.dict(def(id), "mods"), key, 0.0) * float(owned)
 	return total
+
+
+# --------------------------------------------------------------- doctrines
+
+func active_doctrine() -> String:
+	var id := str(_app.save.section("loadout").get("doctrine", ""))
+	return id if level(id) > 0 else ""
+
+
+## Selects a researched doctrine, or clears the choice with "".
+func select_doctrine(id: String) -> bool:
+	if not id.is_empty() and (kind(id) != KIND_DOCTRINE or level(id) <= 0):
+		return false
+	_app.save.section("loadout")["doctrine"] = id
+	_app.save.mark_dirty()
+	doctrine_changed.emit()
+	return true
+
+
+## Augments the core starts every run with, from its researched awakening.
+func awakened_augments(core_id: String) -> Array[String]:
+	var out: Array[String] = []
+	for id: String in ids():
+		if kind(id) == KIND_AWAKENING and level(id) > 0 and GameData.text(def(id), "core") == core_id:
+			out.append(GameData.text(def(id), "augment"))
+	return out
 
 
 func total_levels() -> int:

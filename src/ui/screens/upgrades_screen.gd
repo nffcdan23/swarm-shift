@@ -1,9 +1,14 @@
 class_name UpgradesScreen
 extends MenuScreen
-## Permanent upgrades bought with Credits, grouped into OFFENCE, DEFENCE,
-## UTILITY and ECONOMY. Each row says what the upgrade does, what it gives
-## now and what the next purchase would make it, how far along it is, and what
-## that purchase costs. The x1 / x5 / MAX switch buys several levels at once.
+## The Research tab: everything permanent bought with Credits, one branch at a
+## time. Rows come in the four kinds MetaService knows:
+##   track      what it does, what it gives now and after the next purchase,
+##              how far along it is, and what that purchase costs. The x1 / x5 /
+##              MAX switch buys several levels at once.
+##   unlock     a one-off that changes how runs play.
+##   doctrine   a trade-off, shown as gains and costs. One is active at a time.
+##   awakening  a core's own ability.
+## Anything not yet available says exactly what it is waiting for.
 ##
 ## Rows are rebuilt on refresh, which is simpler than patching them and
 ## happens rarely.
@@ -12,21 +17,34 @@ const QUANTITIES: Array[int] = [1, 5, 999]
 
 var _list: VBoxContainer
 var _summary: Label
+var _branches: SegmentedControl
 var _quantity: SegmentedControl
+var _buy_label: Label
 var _amount := 1
+var _branch_ids: Array = []
 
 
 func _build() -> void:
 	var column := UiKit.vbox(10)
 	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(column)
-	column.add_child(header("Upgrades", "Permanent boosts, bought with Credits, that apply to every run."))
+	column.add_child(header("Research", "Permanent, bought with Credits, and it applies to every run."))
+
+	_branch_ids = App.meta.categories()
+	var names := PackedStringArray()
+	for category: String in _branch_ids:
+		var def := App.meta.category_def(category)
+		names.append(GameData.text(def, "short", GameData.text(def, "name", category.to_upper())))
+	_branches = SegmentedControl.make(names, 0, UiTheme.TINY)
+	_branches.changed.connect(func(_i: int) -> void: refresh())
+	column.add_child(_branches)
 
 	var bar := UiKit.hbox(12)
 	_summary = UiKit.caption("", UiTheme.TINY, Palette.CYAN)
 	_summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_child(_summary)
-	bar.add_child(UiKit.caption("BUY", UiTheme.TINY, Palette.MUTED))
+	_buy_label = UiKit.caption("BUY", UiTheme.TINY, Palette.MUTED)
+	bar.add_child(_buy_label)
 	_quantity = SegmentedControl.make(PackedStringArray(["x1", "x5", "MAX"]))
 	_quantity.custom_minimum_size = Vector2(300, 0)
 	_quantity.changed.connect(_on_quantity)
@@ -42,18 +60,41 @@ func _on_quantity(index: int) -> void:
 	refresh()
 
 
+## Opens on a branch by id (used by the lobby's goals).
+func show_branch(category: String) -> void:
+	var index := _branch_ids.find(category)
+	if index >= 0:
+		_branches.select(index)
+		refresh()
+
+
+func _branch() -> String:
+	return str(_branch_ids[_branches.selected])
+
+
 func refresh() -> void:
 	for child in _list.get_children():
 		child.queue_free()
-	for category: String in App.meta.categories():
-		var ids := App.meta.ids_in(category)
-		if ids.is_empty():
-			continue
-		_list.add_child(_category_header(category, ids))
-		for id in ids:
-			_list.add_child(_row(id, category))
+	var category := _branch()
+	var ids := App.meta.ids_in(category)
+	_list.add_child(_category_header(category, ids))
+	var has_tracks := false
+	for id in ids:
+		has_tracks = has_tracks or App.meta.kind(id) == MetaService.KIND_TRACK
+		_list.add_child(_row(id, category))
 	_list.add_child(UiKit.gap(8))
-	_summary.text = "%d / %d INSTALLED" % [App.meta.total_levels(), App.meta.total_max_levels()]
+	_quantity.visible = has_tracks
+	_buy_label.visible = has_tracks
+	_summary.text = "%d / %d RESEARCHED" % [App.meta.total_levels(), App.meta.total_max_levels()]
+	for i in _branch_ids.size():
+		_branches.set_badge(i, 1 if _branch_affordable(str(_branch_ids[i])) else 0)
+
+
+func _branch_affordable(category: String) -> bool:
+	for id in App.meta.ids_in(category):
+		if App.meta.can_buy(id):
+			return true
+	return false
 
 
 func _category_header(category: String, ids: Array[String]) -> VBoxContainer:
@@ -71,7 +112,6 @@ func _category_header(category: String, ids: Array[String]) -> VBoxContainer:
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_label)
 	row.add_child(UiKit.caption("%d / %d" % [owned, total], UiTheme.TINY, color))
-	box.add_child(UiKit.gap(6))
 	box.add_child(row)
 	box.add_child(UiKit.paragraph(GameData.text(def, "blurb"), UiTheme.TINY, Palette.MUTED))
 	box.add_child(UiKit.divider(color))
@@ -80,15 +120,17 @@ func _category_header(category: String, ids: Array[String]) -> VBoxContainer:
 
 func _row(id: String, category: String) -> PanelContainer:
 	var def := App.meta.def(id)
+	var kind := App.meta.kind(id)
 	var level := App.meta.level(id)
 	var cap := App.meta.max_level(id)
 	var maxed := App.meta.is_maxed(id)
 	var locked := not App.meta.is_unlocked(id)
 	var tint := GameData.color(App.meta.category_def(category), "color", Palette.CYAN)
 	# How many levels one tap would buy at the chosen quantity.
-	var wanted := mini(_amount, cap - level)
+	var wanted := mini(_amount, cap - level) if kind == MetaService.KIND_TRACK else 1
 	var buying := App.meta.affordable_count(id, wanted)
 	var affordable := buying > 0
+	var active := kind == MetaService.KIND_DOCTRINE and App.meta.active_doctrine() == id
 	var accent := Palette.GOLD if maxed else (Palette.DIM if locked else (tint if affordable else Palette.LINE.lightened(0.25)))
 
 	var card := UiKit.card(accent, 14, 6)
@@ -114,37 +156,71 @@ func _row(id: String, category: String) -> PanelContainer:
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.clip_text = true
 	head.add_child(name_label)
-	head.add_child(UiKit.caption("LV %d / %d" % [level, cap], UiTheme.TINY, Palette.GOLD if maxed else Palette.MUTED))
+	if kind == MetaService.KIND_TRACK:
+		head.add_child(UiKit.caption("LV %d / %d" % [level, cap], UiTheme.TINY, Palette.GOLD if maxed else Palette.MUTED))
+	elif active:
+		head.add_child(UiKit.tag("ACTIVE", Palette.GOLD))
 	text.add_child(head)
-	text.add_child(UiKit.paragraph(GameData.text(def, "desc") + " per level", UiTheme.TINY, Palette.MUTED))
-	text.add_child(_effect_line(id, level, mini(level + maxi(buying, 1), cap), maxed, locked, tint))
-	text.add_child(_pips(level, mini(level + buying, cap), cap, accent))
+	match kind:
+		MetaService.KIND_TRACK:
+			text.add_child(UiKit.paragraph(GameData.text(def, "desc") + " per level", UiTheme.TINY, Palette.MUTED))
+			text.add_child(_effect_line(id, level, mini(level + maxi(buying, 1), cap), maxed, locked, tint))
+			text.add_child(_pips(level, mini(level + buying, cap), cap, accent))
+		MetaService.KIND_DOCTRINE:
+			text.add_child(UiKit.paragraph(GameData.text(def, "desc"), UiTheme.TINY, Palette.MUTED))
+			for line: String in GameData.list(def, "pros"):
+				text.add_child(UiKit.label(line, UiTheme.TINY + 1, Palette.GREEN if not locked else Palette.DIM))
+			for line: String in GameData.list(def, "cons"):
+				text.add_child(UiKit.label(line, UiTheme.TINY + 1, Palette.RED if not locked else Palette.DIM))
+		_:
+			text.add_child(UiKit.paragraph(GameData.text(def, "desc"), UiTheme.TINY + 1, Palette.TEXT.darkened(0.2) if not locked else Palette.MUTED))
 	row.add_child(text)
 
-	if maxed:
-		var done := UiKit.tag("MAX", Palette.GOLD, UiTheme.SMALL)
-		done.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(done)
-	elif locked:
-		var gate := UiKit.tag("PLAYER LV %d" % App.meta.unlock_level(id), Palette.MUTED, UiTheme.TINY)
-		gate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(gate)
-	else:
-		# Price of what the tap buys; when nothing is affordable, of one level.
-		var count := maxi(buying, 1)
-		var price := App.meta.cost_for(id, count)
-		var action := UiKit.vbox(2)
-		action.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		var buy := NeonButton.make(Fmt.compact(float(price)), NeonButton.Kind.PRIMARY if affordable else NeonButton.Kind.SECONDARY,
-			Palette.CREDITS if affordable else Palette.MUTED, "credit", 64.0, UiTheme.SMALL)
-		buy.min_width = 150.0
-		buy.click_sound = ""
-		buy.pressed.connect(_buy.bind(id, count))
-		action.add_child(buy)
-		if count > 1:
-			action.add_child(UiKit.caption("%d LEVELS" % count, UiTheme.TINY - 2, Palette.CREDITS, HORIZONTAL_ALIGNMENT_CENTER))
-		row.add_child(action)
+	var action := _action(id, kind, maxed, locked, active, buying, affordable)
+	action.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(action)
 	return card
+
+
+func _action(id: String, kind: String, maxed: bool, locked: bool, active: bool, buying: int, affordable: bool) -> Control:
+	if kind == MetaService.KIND_DOCTRINE and maxed:
+		var toggle := NeonButton.make("REMOVE" if active else "SELECT", NeonButton.Kind.SECONDARY, Palette.MUTED if active else Palette.CYAN, "", 64.0, UiTheme.SMALL)
+		toggle.min_width = 150.0
+		toggle.pressed.connect(_toggle_doctrine.bind(id))
+		return toggle
+	if maxed:
+		return UiKit.tag("MAX" if kind == MetaService.KIND_TRACK else "DONE", Palette.GOLD, UiTheme.SMALL)
+	if locked:
+		return _lock_reason(id)
+	# Price of what the tap buys; when nothing is affordable, of one level.
+	var count := maxi(buying, 1)
+	var price := App.meta.cost_for(id, count)
+	var box := UiKit.vbox(2)
+	var buy := NeonButton.make(Fmt.compact(float(price)), NeonButton.Kind.PRIMARY if affordable else NeonButton.Kind.SECONDARY,
+		Palette.CREDITS if affordable else Palette.MUTED, "credit", 64.0, UiTheme.SMALL)
+	buy.min_width = 150.0
+	buy.click_sound = ""
+	buy.pressed.connect(_buy.bind(id, count))
+	box.add_child(buy)
+	if count > 1:
+		box.add_child(UiKit.caption("%d LEVELS" % count, UiTheme.TINY - 2, Palette.CREDITS, HORIZONTAL_ALIGNMENT_CENTER))
+	return box
+
+
+## What a locked row is waiting for: a Player Level, then other research.
+func _lock_reason(id: String) -> Control:
+	var gate := App.meta.unlock_level(id)
+	if App.account.level() < gate:
+		return UiKit.tag("PLAYER LV %d" % gate, Palette.MUTED, UiTheme.TINY)
+	var box := UiKit.vbox(2)
+	box.custom_minimum_size = Vector2(150, 0)
+	box.add_child(UiKit.caption("NEEDS", UiTheme.TINY - 2, Palette.MUTED, HORIZONTAL_ALIGNMENT_CENTER))
+	for need in App.meta.missing_requirements(id):
+		var text := str(need.name)
+		if int(need.get("level", 1)) > 1:
+			text += " %d" % int(need.level)
+		box.add_child(UiKit.paragraph(text, UiTheme.TINY - 2, Palette.AMBER, HORIZONTAL_ALIGNMENT_CENTER))
+	return box
 
 
 ## "Damage  +12%  ->  +16%": what is owned now and what the purchase makes it.
@@ -187,3 +263,9 @@ func _buy(id: String, count: int) -> void:
 		shell.toast("%s  +%d levels" % [GameData.text(App.meta.def(id), "name", id), bought], Palette.GREEN, "check")
 	refresh()
 	shell.refresh_badges()
+
+
+func _toggle_doctrine(id: String) -> void:
+	App.meta.select_doctrine("" if App.meta.active_doctrine() == id else id)
+	App.haptics.light()
+	refresh()

@@ -98,7 +98,7 @@
         "every": { "seconds": 38, "from": 60, "event": { "type": "pack", "label": "HUNTER PACK", "enemy": "dasher", "count": 6 } } },
       "elite_guard": { "name": "ELITE GUARD", "desc": "Elites arrive twice as often", "color": "#ffd15c",
         "every": { "seconds": 48, "from": 55, "event": { "type": "elite", "enemy": "brute", "escort": { "swarmer": 6 } } } },
-      "volatile": { "name": "VOLATILE", "desc": "Bomber wings, and every elite explodes", "color": "#ff6a3d", "tracks": { "bomber": 2.0 }, "elite_affix": "volatile" },
+      "volatile": { "name": "VOLATILE", "desc": "Bomber wings, and every elite explodes", "color": "#ff6a3d", "tracks": { "bomber": 1.3 }, "elite_affix": "volatile" },
       "horde": { "name": "HORDE", "desc": "A quarter more enemies, each a little weaker", "color": "#ff4d6d", "spawn": 1.25, "hp": 0.88 }
     }
   },

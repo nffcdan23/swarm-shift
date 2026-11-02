@@ -13,6 +13,15 @@ var start_weapon := "pulse"
 var weapon_pool: Array[String] = []
 ## Permanent upgrades plus the core's own modifiers.
 var base_mods: Dictionary = {}
+## Augments owned from the first second (a core's Awakening).
+var start_augments: Array[String] = []
+## What may evolve this run: {weapon_id: [path, ...]}.
+var evolutions: Dictionary = {}
+## Cosmetics only, never read by the simulation: the skin's id and table entry,
+## and the weapons at Master rank, which wear a gold finish.
+var skin := "default"
+var skin_def: Dictionary = {}
+var mastered: Array[String] = []
 var theme: Dictionary = {}
 ## 0 picks a random seed; anything else makes the run reproducible.
 var rng_seed := 0
@@ -30,13 +39,19 @@ static func from_profile(app: AppRoot, p_mode: String = CampaignService.MODE_SEC
 	cfg.tier = 1 if p_mode == CampaignService.MODE_ENDLESS else app.campaign.selected()
 	cfg.core = app.arsenal.selected_core()
 	cfg.color = app.arsenal.player_color()
+	cfg.skin = app.arsenal.selected_skin()
+	cfg.skin_def = GameData.dict(app.data.skins(), cfg.skin)
 	cfg.theme = app.campaign.theme(cfg.tier)
 	var core_def := GameData.dict(app.data.cores(), cfg.core)
-	cfg.start_weapon = GameData.text(core_def, "start_weapon", "pulse")
+	cfg.start_weapon = app.arsenal.start_weapon()
 	cfg.weapon_pool = app.arsenal.unlocked_weapons()
 	if not cfg.weapon_pool.has(cfg.start_weapon):
 		cfg.weapon_pool.append(cfg.start_weapon)
 	app.meta.collect_mods(cfg.base_mods)
+	app.mastery.collect_mods(cfg.base_mods)
+	cfg.start_augments = app.meta.awakened_augments(cfg.core)
+	cfg.evolutions = app.mastery.run_evolutions()
+	cfg.mastered = app.mastery.mastered_weapons()
 	var core_mods := GameData.dict(core_def, "mods")
 	for key: String in core_mods:
 		cfg.base_mods[key] = float(cfg.base_mods.get(key, 0.0)) + float(core_mods[key])

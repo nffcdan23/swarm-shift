@@ -60,6 +60,8 @@ var aux := PackedFloat32Array()
 var dir_x := PackedFloat32Array()
 var dir_y := PackedFloat32Array()
 var blade_cd := PackedFloat32Array()
+## Seconds of nanite infection left (0 = clean). See nanite_swarm.gd.
+var infected := PackedFloat32Array()
 var phase := PackedFloat32Array()
 var size := PackedFloat32Array()
 var cell := PackedFloat32Array()
@@ -136,7 +138,7 @@ func setup(arena: Arena, p_capacity: int) -> void:
 	_a = arena
 	_batch = arena.gfx.enemies
 	capacity = p_capacity
-	for arr: PackedFloat32Array in [x, y, kx, ky, hp, max_hp, radius, speed, damage, inv_mass, flash, chill, freeze, timer, aux, dir_x, dir_y, blade_cd, phase, size, cell, span, xp]:
+	for arr: PackedFloat32Array in [x, y, kx, ky, hp, max_hp, radius, speed, damage, inv_mass, flash, chill, freeze, timer, aux, dir_x, dir_y, blade_cd, infected, phase, size, cell, span, xp]:
 		arr.resize(capacity)
 	for arr: PackedInt32Array in [type, ai, flags, state, id, hits, _grid_next, _dead]:
 		arr.resize(capacity)
@@ -279,6 +281,7 @@ func spawn(type_idx: int, sx: float, sy: float, elite: bool = false, affix: Stri
 	dir_x[i] = 1.0
 	dir_y[i] = 0.0
 	blade_cd[i] = 0.0
+	infected[i] = 0.0
 	phase[i] = rng.randf() * TAU
 	size[i] = sprite_size
 	var sprite := GameData.text(def, "sprite")
@@ -818,6 +821,7 @@ func sweep() -> void:
 		dir_x[i] = dir_x[last]
 		dir_y[i] = dir_y[last]
 		blade_cd[i] = blade_cd[last]
+		infected[i] = infected[last]
 		phase[i] = phase[last]
 		size[i] = size[last]
 		cell[i] = cell[last]
@@ -907,6 +911,32 @@ func nearest(cx: float, cy: float, max_range: float, skip_id: int = -1) -> int:
 		if d2 < best_d2 and id[i] != skip_id:
 			best_d2 = d2
 			best = i
+	return best
+
+
+## The toughest living enemy within `max_range` of a point: the most health
+## left, or the nearest if several tie. Used by weapons that hunt priority
+## targets. -1 if nothing is in range.
+func strongest(cx: float, cy: float, max_range: float) -> int:
+	var best := -1
+	var best_hp := -1.0
+	var best_d2 := INF
+	var r2 := max_range * max_range
+	var ax := x
+	var ay := y
+	var ahp := hp
+	for i in count:
+		var health := ahp[i]
+		if health <= 0.0 or health < best_hp:
+			continue
+		var dx := ax[i] - cx
+		var dy := ay[i] - cy
+		var d2 := dx * dx + dy * dy
+		if d2 > r2 or (health == best_hp and d2 >= best_d2):
+			continue
+		best = i
+		best_hp = health
+		best_d2 = d2
 	return best
 
 

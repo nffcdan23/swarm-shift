@@ -17,6 +17,9 @@ const DISPLAY: Array[Dictionary] = [
 	{"key": "total_damage", "label": "Total damage dealt"},
 	{"key": "credits_earned", "label": "Credits earned"},
 	{"key": "synergies_found", "label": "Synergies discovered"},
+	{"key": "research_done", "label": "Research completed"},
+	{"key": "evolutions_unlocked", "label": "Evolutions unlocked"},
+	{"key": "weapons_mastered", "label": "Weapons mastered"},
 	{"key": "time_played", "label": "Time in combat", "format": "time"},
 ]
 
@@ -58,6 +61,14 @@ func value(key: String) -> float:
 		"synergies_found":
 			var found: Array = _app.save.state.get("synergies", [])
 			return float(found.size())
+		"weapons_mastered":
+			return float(_app.mastery.weapons_at_rank(_app.mastery.max_rank()))
+		"weapons_veteran":
+			return float(_app.mastery.weapons_at_rank(3))
+		"evolutions_unlocked":
+			return float(_app.mastery.owned_count())
+		"research_done":
+			return float(_app.meta.total_levels())
 	return float(_app.save.section("stats").get(key, 0.0))
 
 

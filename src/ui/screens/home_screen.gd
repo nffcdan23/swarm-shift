@@ -8,14 +8,12 @@ extends MenuScreen
 
 var _preview: CorePreview
 var _core_name: Label
+var _loadout: Label
 var _player_level: Label
 var _player_xp: Label
 var _player_bar: MeterBar
 var _player_next: Label
-var _goal_name: Label
-var _goal_amount: Label
-var _goal_bar: MeterBar
-var _goal_button: Button
+var _goal_rows: Array[Dictionary] = []
 var _sector_title: Label
 var _sector_info: Label
 var _sector_reward: Label
@@ -44,6 +42,8 @@ func _build() -> void:
 	column.add_child(_preview)
 	_core_name = UiKit.caption("", UiTheme.SMALL, Palette.TEXT, HORIZONTAL_ALIGNMENT_CENTER)
 	column.add_child(_core_name)
+	_loadout = UiKit.caption("", UiTheme.TINY, Palette.MUTED, HORIZONTAL_ALIGNMENT_CENTER)
+	column.add_child(_loadout)
 
 	_mode = SegmentedControl.make(PackedStringArray(["SECTORS", "OVERDRIVE"]))
 	_mode.changed.connect(_on_mode_changed)
@@ -97,7 +97,7 @@ func _build() -> void:
 
 
 ## Permanent progress, always in view: PLAYER LEVEL with its XP numbers and
-## bar, the next unlock, and the next permanent upgrade against the balance.
+## bar, the next unlock, then three goals at three distances (see GoalService).
 func _progress_card() -> PanelContainer:
 	var card := UiKit.card(Palette.CYAN, 14, 6)
 	var body := UiKit.card_body(card)
@@ -117,34 +117,51 @@ func _progress_card() -> PanelContainer:
 	_player_next.clip_text = true
 	body.add_child(_player_next)
 
-	# Credits always have a visible purpose: the cheapest upgrade still to buy.
-	_goal_button = Button.new()
-	_goal_button.flat = true
-	_goal_button.focus_mode = Control.FOCUS_NONE
-	_goal_button.custom_minimum_size = Vector2(0, 50)
-	for state: String in ["normal", "hover", "pressed", "focus"]:
-		_goal_button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
-	_goal_button.pressed.connect(func() -> void:
-		App.audio.play("ui_click")
-		shell.show_tab("upgrades"))
-	var goal := UiKit.vbox(4)
-	goal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var goal_row := UiKit.hbox(8)
-	goal_row.add_child(IconGlyph.make("credit", 24.0, Palette.CREDITS))
-	_goal_name = UiKit.caption("", UiTheme.TINY, Palette.MUTED)
-	_goal_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_goal_name.clip_text = true
-	goal_row.add_child(_goal_name)
-	_goal_amount = UiKit.label("", UiTheme.TINY, Palette.CREDITS, HORIZONTAL_ALIGNMENT_RIGHT, true)
-	goal_row.add_child(_goal_amount)
-	goal.add_child(goal_row)
-	_goal_bar = MeterBar.make(Palette.CREDITS, 8.0)
-	_goal_bar.back_color = Color(0.1, 0.15, 0.24, 0.95)
-	goal.add_child(_goal_bar)
-	_goal_button.add_child(goal)
 	body.add_child(UiKit.divider())
-	body.add_child(_goal_button)
+	for i in 3:
+		body.add_child(_goal_row())
 	return card
+
+
+## One tappable line: icon, what it is, how far, a thin bar. Filled in later.
+func _goal_row() -> Button:
+	var button := Button.new()
+	button.flat = true
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = Vector2(0, 40)
+	for state: String in ["normal", "hover", "pressed", "focus"]:
+		button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	var goal := UiKit.vbox(3)
+	goal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	goal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var line := UiKit.hbox(8)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var icon := IconGlyph.make("credit", 22.0, Palette.CREDITS)
+	line.add_child(icon)
+	var title := UiKit.caption("", UiTheme.TINY, Palette.MUTED)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.clip_text = true
+	line.add_child(title)
+	var amount := UiKit.label("", UiTheme.TINY, Palette.CREDITS, HORIZONTAL_ALIGNMENT_RIGHT, true)
+	line.add_child(amount)
+	goal.add_child(line)
+	var bar := MeterBar.make(Palette.CREDITS, 6.0)
+	bar.back_color = Color(0.1, 0.15, 0.24, 0.95)
+	goal.add_child(bar)
+	button.add_child(goal)
+	var row := {"button": button, "icon": icon, "title": title, "amount": amount, "bar": bar, "tab": "upgrades", "branch": ""}
+	button.pressed.connect(_open_goal.bind(row))
+	_goal_rows.append(row)
+	return button
+
+
+func _open_goal(row: Dictionary) -> void:
+	App.audio.play("ui_click")
+	shell.show_tab(str(row.tab))
+	if not str(row.branch).is_empty():
+		var research := shell.screen("upgrades") as UpgradesScreen
+		if research != null:
+			research.show_branch(str(row.branch))
 
 
 ## The title, coloured in three parts around the slashes.
@@ -183,9 +200,20 @@ func refresh() -> void:
 	_refresh_progress()
 	var core_id := App.arsenal.selected_core()
 	var core := GameData.dict(App.data.cores(), core_id)
-	_preview.set_color(App.arsenal.player_color())
-	var weapon := App.data.weapon(GameData.text(core, "start_weapon"))
+	var skin_id := App.arsenal.selected_skin()
+	var skin := GameData.dict(App.data.skins(), skin_id)
+	_preview.show_skin(skin, App.arsenal.player_color())
+	var weapon := App.data.weapon(App.arsenal.start_weapon())
 	_core_name.text = "%s CORE  -  %s" % [GameData.text(core, "name", core_id), GameData.text(weapon, "name").to_upper()]
+	# What else is equipped, on its own line so it can never widen the screen.
+	var parts := PackedStringArray()
+	if skin_id != "default":
+		parts.append(GameData.text(skin, "name", skin_id))
+	var doctrine := App.meta.active_doctrine()
+	if not doctrine.is_empty():
+		parts.append(GameData.text(App.meta.def(doctrine), "name", doctrine).to_upper())
+	_loadout.text = "  -  ".join(parts)
+	_loadout.visible = not parts.is_empty()
 
 	var unlocked := App.campaign.endless_unlocked()
 	if not unlocked:
@@ -241,17 +269,34 @@ func _refresh_progress() -> void:
 		else:
 			_player_next.text = "%s XP TO PLAYER LEVEL %d" % [Fmt.commas(account.xp_to_next()), account.level() + 1]
 
-	var goal := App.meta.next_goal()
-	if str(goal.id).is_empty():
-		_goal_name.text = "EVERY UPGRADE INSTALLED"
-		_goal_amount.text = ""
-		_goal_bar.set_value(1.0)
-	else:
-		var balance := App.economy.balance(Economy.CREDITS)
-		_goal_name.text = ("READY: %s" if bool(goal.affordable) else "NEXT UPGRADE: %s") % str(goal.name)
-		_goal_name.add_theme_color_override("font_color", Palette.CREDITS if bool(goal.affordable) else Palette.MUTED)
-		_goal_amount.text = "%s / %s" % [Fmt.compact(float(mini(balance, int(goal.cost)))), Fmt.compact(float(goal.cost))]
-		_goal_bar.set_value(float(goal.progress))
+	var goals: Array[Dictionary] = [App.goals.short_term(), App.goals.medium_term(), App.goals.long_term()]
+	var fallbacks := PackedStringArray(["ALL RESEARCH COMPLETE", "EVERY WEAPON MASTERED", "EVERYTHING UNLOCKED"])
+	for i in goals.size():
+		_show_goal(_goal_rows[i], goals[i], fallbacks[i])
+
+
+func _show_goal(row: Dictionary, goal: Dictionary, fallback: String) -> void:
+	var title: Label = row.title
+	var amount: Label = row.amount
+	var bar: MeterBar = row.bar
+	var icon: IconGlyph = row.icon
+	if goal.is_empty():
+		title.text = fallback
+		title.add_theme_color_override("font_color", Palette.GOLD)
+		amount.text = ""
+		bar.set_value(1.0)
+		return
+	var color: Color = goal.color
+	row.tab = goal.tab
+	row.branch = goal.branch
+	icon.icon_id = str(goal.icon)
+	icon.color = color
+	title.text = str(goal.title)
+	title.add_theme_color_override("font_color", Palette.TEXT if bool(goal.ready) else Palette.MUTED)
+	amount.text = str(goal.detail)
+	amount.add_theme_color_override("font_color", color)
+	bar.fill_color = color
+	bar.set_value(float(goal.progress))
 
 
 func _step_sector(by: int) -> void:

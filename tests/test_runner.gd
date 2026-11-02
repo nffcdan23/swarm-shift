@@ -21,6 +21,9 @@ const SUITES := {
 	"gameplay": "res://tests/test_gameplay.gd",
 	"ui": "res://tests/test_ui.gd",
 	"progression": "res://tests/test_progression.gd",
+	"research": "res://tests/test_research.gd",
+	"mastery": "res://tests/test_mastery.gd",
+	"skins": "res://tests/test_skins.gd",
 	"threats": "res://tests/test_threats.gd",
 	"stability": "res://tests/test_stability.gd",
 }

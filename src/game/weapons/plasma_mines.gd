@@ -10,6 +10,9 @@ extends Weapon
 ## cap the oldest goes off to make room. From level 4 the blasts leave enemies
 ## chilled (slowed); level 5 adds a ring of smaller cluster blasts.
 ##
+## Shaped Charges (stats only): tight, heavy blasts thrown further. Stasis
+## Field: each blast leaves a field that slows and burns what stands in it.
+##
 ## (Until October 2026 mines were only dropped where the player stood, with a
 ## small trigger, and drawn under the enemies: they did nothing against a target
 ## that held its ground and could not be seen working in a crowd.)
@@ -26,7 +29,10 @@ var _cluster := 0
 var _throw := 170.0
 var _seek := 300.0
 var _chill := 0.0
+var _field_time := 0.0
+var _field_damage := 0.0
 
+var _fields := FieldPool.new(6, 0.4, 0.9)
 var _mx := PackedFloat32Array()
 var _my := PackedFloat32Array()
 var _mage := PackedFloat32Array()
@@ -56,6 +62,12 @@ func _on_stats() -> void:
 	_throw = stat("throw", 170.0)
 	_seek = stat("seek_range", 300.0)
 	_chill = stat("chill_time", 0.0)
+	_field_time = stat("field_time", 0.0)
+	_field_damage = stat("field_damage", 0.0)
+
+
+func field_count() -> int:
+	return _fields.count()
 
 
 func mine_count() -> int:
@@ -113,6 +125,8 @@ func update(dt: float) -> void:
 			glow.add_sprite(_mx[i], _my[i], 0.0, trigger * 2.2 * grow, Color(color.r, color.g, color.b, 0.22 if armed else 0.1), _glow_cell)
 			shots.add_sprite(_mx[i], _my[i], now * 0.9 + float(i), 60.0 * grow, Color(color.r, color.g, color.b, blink), _cell)
 		i -= 1
+	if _fields.count() > 0:
+		_fields.update(a, dt, _field_time * player.duration, _field_damage, src, color, 0.3)
 
 
 ## Where the next mine goes: into the path of the nearest enemy within
@@ -142,9 +156,12 @@ func _detonate(i: int) -> void:
 	for k in _cluster:
 		var angle := TAU * float(k) / float(_cluster) + a.rng.randf() * 0.8
 		a.combat.blast(x + cos(angle) * radius * 0.85, y + sin(angle) * radius * 0.85, radius * 0.62, _damage * 0.5, src, color, _kb * 0.5, _chill)
+	if _field_time > 0.0:
+		_fields.add(x, y, radius)
 
 
 func clear() -> void:
 	_mx.clear()
 	_my.clear()
 	_mage.clear()
+	_fields.clear()

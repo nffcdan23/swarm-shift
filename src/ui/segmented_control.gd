@@ -9,16 +9,21 @@ var selected := 0
 var _buttons: Array[NeonButton] = []
 var _labels: PackedStringArray = []
 var _badges: Array[PanelContainer] = []
+var _font_size := UiTheme.SMALL
 
 
-static func make(labels: PackedStringArray, initial: int = 0) -> SegmentedControl:
+static func make(labels: PackedStringArray, initial: int = 0, font_size: int = UiTheme.SMALL) -> SegmentedControl:
 	var control := SegmentedControl.new()
 	control._labels = labels
 	control.selected = initial
-	control.add_theme_constant_override("separation", 10)
+	control._font_size = font_size
+	control.add_theme_constant_override("separation", 10 if labels.size() < 5 else 4)
 	for i in labels.size():
-		var button := NeonButton.make(labels[i], NeonButton.Kind.SECONDARY, Palette.CYAN, "", 64.0, UiTheme.SMALL)
+		var button := NeonButton.make(labels[i], NeonButton.Kind.SECONDARY, Palette.CYAN, "", 64.0, font_size)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if labels.size() >= 5:
+			button.side_padding = 6.0
+			button.min_width = 0.0
 		button.click_sound = "ui_tab"
 		button.pressed.connect(control._on_pressed.bind(i))
 		control.add_child(button)
@@ -55,4 +60,4 @@ func _restyle() -> void:
 	for i in _buttons.size():
 		var active := i == selected
 		_buttons[i].configure(_labels[i], NeonButton.Kind.PRIMARY if active else NeonButton.Kind.SECONDARY,
-			Palette.CYAN if active else Palette.MUTED, "", UiTheme.SMALL)
+			Palette.CYAN if active else Palette.MUTED, "", _font_size)

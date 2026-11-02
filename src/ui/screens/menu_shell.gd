@@ -127,7 +127,7 @@ func refresh_current() -> void:
 
 func refresh_badges() -> void:
 	nav.set_badge("upgrades", 1 if App.meta.any_affordable() else 0)
-	nav.set_badge("arsenal", 1 if App.arsenal.any_affordable_unlock() else 0)
+	nav.set_badge("arsenal", 1 if App.arsenal.any_affordable_unlock() or App.mastery.any_affordable_evolution() else 0)
 	nav.set_badge("missions", App.missions.claimable_count() + App.achievements.claimable_count())
 	nav.set_badge("home", 1 if App.daily.can_claim() else 0)
 

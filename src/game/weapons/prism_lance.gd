@@ -11,6 +11,9 @@ extends Weapon
 ## The trade-off against fast weapons is time: it charges, fires in bursts and
 ## then cools down, and it does little against a lone enemy that is out of reach.
 ##
+## Rail Lance: one narrow, near-instant shot aimed at the toughest enemy. Sweeping
+## Lance: wider beams that swing across their line instead of tracking.
+##
 ## (Until October 2026 it tracked the nearest enemy with a thin beam, and at
 ## two or more beams it stopped tracking and spun in a fixed circle, so its
 ## single-target damage fell from level 3 to level 5.)
@@ -32,6 +35,9 @@ var _tick := 0.1
 var _turn := 1.2
 var _charge := 0.45
 var _push := 26.0
+var _hunt := false
+var _sweep := 0.0
+var _sweep_side := 1.0
 
 var _charging := 0.0
 var _firing := 0.0
@@ -64,6 +70,8 @@ func _on_stats() -> void:
 	_turn = stat("turn_rate")
 	_charge = maxf(stat("charge", 0.45), 0.05)
 	_push = stat("knockback", 26.0)
+	_hunt = stat("hunt", 0.0) > 0.0
+	_sweep = stat("sweep", 0.0)
 
 
 func is_charging() -> bool:
@@ -111,12 +119,21 @@ func update(dt: float) -> void:
 		_aim(reach, half_width)
 		_firing = _duration * player.duration
 		_tick_cd = 0.0
+		if _sweep > 0.0:
+			# Start to one side, so the swing crosses the line it was aimed at.
+			_sweep_side = -_sweep_side
+			for k in _angles.size():
+				_angles[k] -= _sweep_side * _sweep * _firing * 0.5
 		_cd = cooldown_time(_cooldown)
 		a.sfx("lance_fire")
 		a.fx.flash(player.x, player.y, 120.0, color, 0.12)
 
 	_firing -= dt
-	_track(dt)
+	if _sweep > 0.0:
+		for k in _angles.size():
+			_angles[k] += _sweep_side * _sweep * dt
+	else:
+		_track(dt)
 	_tick_cd -= dt
 	var burn := _tick_cd <= 0.0
 	if burn:
@@ -144,6 +161,15 @@ func _aim(reach: float, half_width: float) -> bool:
 	var enemies := a.enemies
 	var px := a.player.x
 	var py := a.player.y
+	if _hunt:
+		var mark := enemies.strongest(px, py, reach)
+		if mark < 0:
+			return false
+		_angles.resize(1)
+		_anchors.resize(1)
+		_angles[0] = atan2(enemies.y[mark] - py, enemies.x[mark] - px)
+		_anchors[0] = enemies.id[mark]
+		return true
 	var reach2 := reach * reach
 	_order.clear()
 	_rx.resize(0)

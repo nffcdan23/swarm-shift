@@ -11,9 +11,9 @@ extends RefCounted
 ## profile and `recover_pending` pays it out at the next launch.
 ##
 ## `result` is the dictionary produced by Arena.build_result():
-##   run_id, mode, tier, core, time, kills, elites, bosses, level, level_ups,
-##   damage, credits_picked, credit_gain, cleared, died, abandoned, synergies,
-##   revives
+##   run_id, mode, tier, core, time, active_time, kills, elites, bosses, level,
+##   level_ups, damage, credits_picked, credit_gain, cleared, died, abandoned,
+##   synergies, revives, weapons, dealt_by_source, kills_by_source, evolved
 
 ## Settled run ids remembered, newest last.
 const SETTLED_KEPT := 24
@@ -28,7 +28,7 @@ const SETTLED_KEPT := 24
 static func compute(app: AppRoot, result: Dictionary) -> Dictionary:
 	var rewards := GameData.dict(app.data.game, "rewards")
 	var tier := maxi(int(result.get("tier", 1)), 1)
-	var scale := app.campaign.scaling(float(result.get("effective_tier", tier)))
+	var scale := app.campaign.scaling(app.campaign.reward_tier(str(result.get("mode", "")), float(result.get("effective_tier", tier))))
 	var seconds := float(result.get("time", 0.0))
 	var cleared := bool(result.get("cleared", false))
 	var fraction := GameData.num(rewards, "abandon_reward_fraction", 1.0) if bool(result.get("abandoned", false)) else 1.0
@@ -36,7 +36,7 @@ static func compute(app: AppRoot, result: Dictionary) -> Dictionary:
 	var bonus_scale := float(scale.reward) * float(result.get("credit_gain", 1.0)) * fraction
 	var collected := maxi(int(round(float(result.get("credits_picked", 0)) * fraction)), 0)
 	var survival := maxi(int(round(seconds / 60.0 * GameData.num(rewards, "credits_per_minute", 10.0) * bonus_scale)), 0)
-	var clear_bonus := maxi(int(round(GameData.num(rewards, "sector_clear_credits", 120.0) * bonus_scale)), 0) if cleared else 0
+	var clear_bonus := maxi(int(round(GameData.num(rewards, "sector_clear_credits", 120.0) * bonus_scale * (1.0 + app.meta.mod_total("clear_credits_pct")))), 0) if cleared else 0
 
 	var xp_bonus := app.meta.mod_total("account_xp_pct")
 	var xp_scale := float(scale.account_xp) * (1.0 + xp_bonus)
@@ -53,6 +53,7 @@ static func compute(app: AppRoot, result: Dictionary) -> Dictionary:
 
 	var first_clear := cleared and str(result.get("mode", "")) == CampaignService.MODE_SECTOR and tier > app.campaign.highest_cleared()
 	return {
+		"mastery_xp": app.mastery.preview(result),
 		"credits": collected + survival + clear_bonus,
 		"credits_collected": collected,
 		"credits_survival": survival,
@@ -124,6 +125,8 @@ static func settle(app: AppRoot, result: Dictionary) -> Dictionary:
 
 	app.economy.grant(Economy.CREDITS, int(summary.credits), "run")
 	app.economy.grant(Economy.CRYSTALS, int(summary.crystals), "first_clear")
+	summary["mastery"] = app.mastery.award(result)
+	app.stats.add("evolutions_used", float((result.get("evolved", {}) as Dictionary).size()))
 
 	var mission_input := {
 		"kills": result.get("kills", 0), "time": seconds, "bosses": result.get("bosses", 0),

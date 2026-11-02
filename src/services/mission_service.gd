@@ -37,7 +37,7 @@ func _roll(day: int) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash("%d:%s" % [day, str(_app.save.state.get("install_id", ""))])
 	var picked: Array = []
-	var count := mini(GameData.integer(_cfg, "count", 3), pool.size())
+	var count := mini(GameData.integer(_cfg, "count", 3) + int(_app.meta.mod_total("run.missions")), pool.size())
 	while picked.size() < count:
 		var def: Dictionary = pool.pop_at(rng.randi_range(0, pool.size() - 1))
 		# Avoid two missions tracking the same stat on one day.

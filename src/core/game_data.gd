@@ -225,6 +225,20 @@ func validate() -> PackedStringArray:
 			out.append("weapon '%s': script '%s' not found" % [id, text(w, "script")])
 		if list(w, "levels").size() != max_level:
 			out.append("weapon '%s': expected %d levels, found %d" % [id, max_level, list(w, "levels").size()])
+		var unlock := dict(w, "unlock")
+		if text(unlock, "type") == "research" and not meta_upgrades().has(text(unlock, "id")):
+			out.append("weapon '%s': unlocked by unknown research '%s'" % [id, text(unlock, "id")])
+		var ranks := list(dict(weapons, "mastery"), "ranks").size()
+		for perk: Dictionary in list(w, "mastery"):
+			if integer(perk, "rank") < 1 or integer(perk, "rank") > ranks:
+				out.append("weapon '%s': mastery perk at impossible rank %d" % [id, integer(perk, "rank")])
+		var paths := dict(w, "evolutions")
+		for path: String in paths:
+			var evolved: Dictionary = paths[path]
+			if integer(evolved, "rank") < 1 or integer(evolved, "rank") > ranks:
+				out.append("weapon '%s': evolution '%s' at impossible rank" % [id, path])
+			if integer(evolved, "cost") <= 0 or text(evolved, "role").is_empty() or text(evolved, "desc").is_empty():
+				out.append("weapon '%s': evolution '%s' needs a cost, a role and a description" % [id, path])
 
 	var timeline := dict(stages, "timeline")
 	for track: Dictionary in list(timeline, "tracks"):
@@ -263,12 +277,26 @@ func validate() -> PackedStringArray:
 		var upgrade: Dictionary = meta_upgrades()[id]
 		if not categories.has(text(upgrade, "category")):
 			out.append("upgrade '%s': unknown category '%s'" % [id, text(upgrade, "category")])
-		if dict(upgrade, "mods").size() != 1:
-			out.append("upgrade '%s': must have exactly one modifier" % id)
-		if not text(upgrade, "format") in ["percent", "number"]:
-			out.append("upgrade '%s': format must be 'percent' or 'number'" % id)
+		var upgrade_kind := text(upgrade, "kind", "track")
+		if not upgrade_kind in ["track", "unlock", "doctrine", "awakening"]:
+			out.append("upgrade '%s': unknown kind '%s'" % [id, upgrade_kind])
+		if upgrade_kind == "track":
+			if dict(upgrade, "mods").size() != 1:
+				out.append("upgrade '%s': must have exactly one modifier" % id)
+			if not text(upgrade, "format") in ["percent", "number"]:
+				out.append("upgrade '%s': format must be 'percent' or 'number'" % id)
+		elif text(upgrade, "desc").is_empty():
+			out.append("upgrade '%s': needs a description" % id)
+		if upgrade_kind == "awakening":
+			if not cores().has(text(upgrade, "core")):
+				out.append("upgrade '%s': unknown core '%s'" % [id, text(upgrade, "core")])
+			if not augments().has(text(upgrade, "augment")):
+				out.append("upgrade '%s': unknown augment '%s'" % [id, text(upgrade, "augment")])
 		if integer(upgrade, "unlock_level") > integer(dict(meta, "account"), "max_level", 100):
 			out.append("upgrade '%s': unlock level is above the level cap" % id)
+		for token: String in list(upgrade, "requires"):
+			if not meta_upgrades().has(token.split(":")[0]):
+				out.append("upgrade '%s': requires unknown '%s'" % [id, token])
 
 	var rarities := dict(game, "rarities")
 	for group_key: String in ["passives", "augments"]:
@@ -284,6 +312,13 @@ func validate() -> PackedStringArray:
 		var syn: Dictionary = synergies()[id]
 		for token: String in list(syn, "requires"):
 			_check_token(token, "synergy '%s'" % id, out)
+		var gate := text(syn, "needs")
+		if not gate.is_empty():
+			var found := false
+			for upgrade_id: String in meta_upgrades():
+				found = found or dict(meta_upgrades()[upgrade_id], "mods").has(gate)
+			if not found:
+				out.append("synergy '%s': no research provides '%s'" % [id, gate])
 
 	for id: String in cores():
 		var core: Dictionary = cores()[id]
@@ -294,6 +329,13 @@ func validate() -> PackedStringArray:
 		var unlock := dict(skins()[id], "unlock")
 		if text(unlock, "type") == "product" and not products().has(text(unlock, "product")):
 			out.append("skin '%s': unknown product '%s'" % [id, text(unlock, "product")])
+		if not rarities.has(text(skins()[id], "rarity")):
+			out.append("skin '%s': unknown rarity" % id)
+		var look := dict(skins()[id], "visual")
+		var layers: Array[String] = [text(look, "body"), text(dict(look, "ring"), "sprite"), text(dict(look, "aura"), "sprite"), text(dict(look, "plates"), "sprite")]
+		for layer in layers:
+			if not layer.is_empty() and not ResourceLoader.exists("res://assets/sprites/skins/%s.png" % layer):
+				out.append("skin '%s': missing sprite '%s'" % [id, layer])
 
 	for product_id: String in list(monetization, "shop_layout"):
 		if not products().has(product_id):

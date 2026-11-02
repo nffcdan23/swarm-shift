@@ -430,8 +430,8 @@ func test_upgrades_screen_rows_and_bulk_buying() -> void:
 	shell.show_tab("upgrades")
 	await _frames(2)
 	var screen := shell.screen("upgrades") as UpgradesScreen
-	for heading: String in ["OFFENCE", "DEFENCE", "UTILITY", "ECONOMY"]:
-		check(_has_text(screen, heading), "the %s category is shown" % heading)
+	for heading: String in ["OFFENCE", "DEFENCE", "ENERGY", "WEAPONS", "ECONOMY", "SPECIAL"]:
+		check(_button(screen, heading) != null, "the %s branch can be opened" % heading)
 	check(_has_text(screen, "Weapon Calibration"), "an upgrade shows its name")
 	check(_has_text(screen, "+4% damage per level"), "its description")
 	check(_has_text(screen, "LV 0 / 10"), "its current and maximum level")
@@ -666,13 +666,16 @@ func _rest(scroller: ScrollContainer) -> void:
 
 func test_upgrades_list_scrolls_from_anywhere_on_it() -> void:
 	fresh_profile()
+	app.account.add_xp(100000, "test")
 	app.economy.grant(Economy.CREDITS, 5000, "test")
 	var shell := MenuShell.new()
 	host.add_child(shell)
 	await _frames(2)
 	shell.show_tab("upgrades")
-	await host.get_tree().create_timer(0.4).timeout
 	var screen := shell.screen("upgrades") as UpgradesScreen
+	# The longest branch: a short one fits the screen.
+	screen.show_branch("weapons")
+	await host.get_tree().create_timer(0.4).timeout
 	var scroller := _scrollers(screen)[0]
 	check(DisplayServer.is_touchscreen_available(), "the engine's drag-to-scroll is active in this environment")
 	var overflow := scroller.get_v_scroll_bar().max_value - scroller.get_v_scroll_bar().page
@@ -692,20 +695,20 @@ func test_upgrades_list_scrolls_from_anywhere_on_it() -> void:
 	await _rest(scroller)
 
 	# 3. From a buy button: it scrolls, and it does not buy.
-	var buy := _button(screen._list.get_child(1), Fmt.compact(float(app.meta.cost("m_damage"))))
+	var buy := _button(screen._list.get_child(1), Fmt.compact(float(app.meta.cost("m_startlvl"))))
 	check(buy != null, "the first row has its buy button")
 	var credits := app.economy.balance(Economy.CREDITS)
 	await _swipe(buy.get_global_rect().get_center(), Vector2(0.0, -260.0))
 	check(scroller.scroll_vertical > 120, "dragging from a buy button scrolls the list (%d px)" % scroller.scroll_vertical)
 	check_eq(app.economy.balance(Economy.CREDITS), credits, "and a drag is not a purchase")
-	check_eq(app.meta.level("m_damage"), 0, "nothing was bought")
+	check_eq(app.meta.level("m_startlvl"), 0, "nothing was bought")
 	await _rest(scroller)
 
 	# 4. A tap on the same button still buys, with the small wobble a real
 	# finger has between touching down and lifting.
-	buy = _button(screen._list.get_child(1), Fmt.compact(float(app.meta.cost("m_damage"))))
+	buy = _button(screen._list.get_child(1), Fmt.compact(float(app.meta.cost("m_startlvl"))))
 	await _swipe(buy.get_global_rect().get_center(), Vector2(3.0, -6.0), 2)
-	check_eq(app.meta.level("m_damage"), 1, "a tap on the buy button still buys")
+	check_eq(app.meta.level("m_startlvl"), 1, "a tap on the buy button still buys")
 	check(scroller.scroll_vertical < 20, "and does not move the list (%d px)" % scroller.scroll_vertical)
 
 	# 5. Buying keeps your place in the list.
@@ -912,3 +915,232 @@ func test_privacy_choices_row_when_required() -> void:
 	await host.get_tree().create_timer(0.2).timeout
 	fake.free()
 	fresh_profile()
+
+
+# ------------------------------------------------- research, mastery, skins
+
+func _rich_profile() -> void:
+	fresh_profile()
+	app.account.add_xp(10000000, "test")
+	app.economy.grant(Economy.CREDITS, 2000000, "test")
+
+
+func test_research_branches_show_what_each_row_is_waiting_for() -> void:
+	fresh_profile()
+	app.economy.grant(Economy.CREDITS, 500000, "test")
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(2)
+	shell.show_tab("upgrades")
+	await _frames(2)
+	var screen := shell.screen("upgrades") as UpgradesScreen
+	screen.show_branch("weapons")
+	await _frames(2)
+	check(_has_text(screen, "WEAPON SYSTEMS"), "the branch is named")
+	check(_has_text(screen, "Evolution Lab"), "its research is listed")
+	check(_has_text(screen, "PLAYER LV 10"), "a level gate is stated")
+	check(not screen._quantity.visible or _has_text(screen, "LV 0 / 2"), "bulk buying only appears where it means something")
+	app.account.add_xp(10000000, "test")
+	screen.refresh()
+	await _frames(2)
+	check(_has_text(screen, "NEEDS"), "once the level is met, a missing prerequisite is stated instead")
+	check(_has_text(screen, "Evolution Lab"), "by name")
+	var buy := _button(screen, Fmt.compact(float(app.meta.cost("r_evo_lab"))))
+	check(buy != null, "and the research on offer has a price button")
+	shell.queue_free()
+	await _frames(1)
+
+
+func test_doctrines_can_be_selected_from_the_research_tab() -> void:
+	_rich_profile()
+	app.meta.buy("d_glass")
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(2)
+	shell.show_tab("upgrades")
+	await _frames(2)
+	var screen := shell.screen("upgrades") as UpgradesScreen
+	screen.show_branch("specialisation")
+	await _frames(2)
+	check(_has_text(screen, "+30% damage"), "the gain is spelled out")
+	check(_has_text(screen, "-30% max health"), "and so is the cost")
+	var select := _button(screen, "SELECT")
+	check(select != null, "an owned doctrine can be selected")
+	if select != null:
+		select.pressed.emit()
+		await _frames(2)
+	check_eq(app.meta.active_doctrine(), "d_glass", "it is now active")
+	check(_has_text(screen, "ACTIVE"), "and marked")
+	check(_button(screen, "REMOVE") != null, "and can be taken off")
+	shell.show_tab("home")
+	await _frames(2)
+	check(_has_text(shell.screen("home"), "GLASS DOCTRINE"), "the lobby shows it equipped")
+	shell.queue_free()
+	await _frames(1)
+
+
+func test_the_weapon_view_explains_mastery_and_sells_evolutions() -> void:
+	_rich_profile()
+	app.meta.buy("r_evo_lab")
+	app.save.section("mastery")["pulse"] = {"xp": 850, "kills": 1234, "damage": 56000.0, "runs": 9}
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(2)
+	shell.show_tab("arsenal")
+	await _frames(2)
+	var screen := shell.screen("arsenal") as ArsenalScreen
+	screen._tabs.select(1)
+	screen.refresh()
+	await _frames(2)
+	check(_has_text(screen, "RANK 3  VETERAN"), "the list shows the rank")
+	var modal := WeaponModal.new(shell, "pulse")
+	shell.open_dialog(modal)
+	await _frames(3)
+	check(_has_text(modal, "VETERAN"), "the view names the rank")
+	check(_has_text(modal, "KILLS") and _has_text(modal, "9 RUNS"), "the lifetime record")
+	check(_has_text(modal, "Bolts pierce +1"), "what ranks give")
+	check(_has_text(modal, "STORM REPEATER"), "and the evolutions")
+	check(_has_text(modal, "BOSS KILLER"), "with the job each one does")
+	check(_has_text(modal, "RANK 4"), "the one not earned yet says what it needs")
+	var cost := int(app.mastery.evolution_info("pulse", "repeater").cost)
+	var balance := app.economy.balance(Economy.CREDITS)
+	var buy := _button(modal, Fmt.compact(float(cost)))
+	check(buy != null, "the earned one has a price")
+	if buy != null:
+		buy.pressed.emit()
+		await _frames(2)
+	check_eq(app.mastery.owned_paths("pulse"), ["repeater"], "buying works")
+	check_eq(app.economy.balance(Economy.CREDITS), balance - cost, "and charges exactly")
+	check(_has_text(modal, "OWNED"), "the row updates")
+	shell.queue_free()
+	await _frames(1)
+
+
+func test_flex_rack_choice_is_offered_on_a_ranked_weapon() -> void:
+	_rich_profile()
+	app.meta.buy("r_flex_rack")
+	app.save.section("mastery")["orbit"] = {"xp": 120}
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(2)
+	var modal := WeaponModal.new(shell, "orbit")
+	shell.open_dialog(modal)
+	await _frames(3)
+	var button := _button(modal, "START RUNS WITH THIS")
+	check(button != null, "the choice is there")
+	if button != null:
+		button.pressed.emit()
+		await _frames(2)
+	check_eq(app.arsenal.start_weapon(), "orbit", "and works")
+	shell.queue_free()
+	await _frames(1)
+
+
+func test_skins_tab_shows_each_skin_live_and_how_to_get_it() -> void:
+	fresh_profile()
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(2)
+	shell.show_tab("arsenal")
+	await _frames(2)
+	var screen := shell.screen("arsenal") as ArsenalScreen
+	screen._tabs.select(2)
+	screen.refresh()
+	await _frames(3)
+	var swatches: Array[Node] = screen.find_children("*", "SkinSwatch", true, false)
+	check_eq(swatches.size(), app.data.skins().size(), "every skin is shown as itself, even locked")
+	check(_has_text(screen, "PLAYER LV 12"), "a Credit skin states its level")
+	check(_has_text(screen, "MASTER 3 WEAPONS"), "a feat skin states the feat")
+	check(_has_text(screen, "STARTER PACK"), "a store exclusive says so")
+	check(_has_text(screen, "EPIC"), "rarity is shown")
+	shell.queue_free()
+	await _frames(1)
+
+
+func test_the_lobby_shows_goals_at_three_distances() -> void:
+	_rich_profile()
+	app.meta.buy("r_evo_lab")
+	app.save.section("mastery")["pulse"] = {"xp": 900, "kills": 0, "damage": 0.0, "runs": 3}
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(3)
+	var home := shell.screen("home")
+	check(_has_text(home, "READY:") or _has_text(home, "NEXT RESEARCH:"), "the next research")
+	check(_has_text(home, "PULSE CANNON: EXPERT"), "the next Mastery rank")
+	check(_has_text(home, "EVOLVE: Storm Repeater"), "and the next big unlock")
+	shell.queue_free()
+	await _frames(1)
+
+
+func test_a_long_loadout_never_widens_the_lobby() -> void:
+	_rich_profile()
+	app.arsenal.grant(ArsenalService.SKINS, "quantum", "test")
+	app.arsenal.select_skin("quantum")
+	app.meta.buy("d_scavenger")
+	app.meta.select_doctrine("d_scavenger")
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(3)
+	var home := shell.screen("home")
+	check(_has_text(home, "QUANTUM CORE"), "the skin is shown")
+	var width := host.get_viewport().get_visible_rect().size.x
+	for child in home.get_children():
+		check((child as Control).size.x <= width, "the lobby is no wider than the screen (%.0f of %.0f)" % [(child as Control).size.x, width])
+	shell.queue_free()
+	await _frames(1)
+
+
+func test_results_show_mastery_and_a_new_rank() -> void:
+	fresh_profile()
+	app.save.section("mastery")["pulse"] = {"xp": 95}
+	var result := {
+		"run_id": "ui-mastery", "mode": "sector", "tier": 1, "effective_tier": 1.0, "core": "vanguard",
+		"time": 312.0, "active_time": 312.0, "kills": 2468, "elites": 4, "bosses": 1, "level": 27, "level_ups": 26, "damage": 150000.0,
+		"credits_picked": 410, "credit_gain": 1.0, "cleared": true, "died": false, "abandoned": false,
+		"synergies": [], "revives": 0, "weapons": {"pulse": 5}, "passives": {}, "augments": [], "damage_by_source": {"pulse": 150000.0},
+		"dealt_by_source": {"pulse": 150000.0}, "kills_by_source": {"pulse": 2468}, "cycle": 0,
+	}
+	var summary := RunLedger.settle(app, result)
+	var screen := ResultsScreen.new(result, summary)
+	host.add_child(screen)
+	await _frames(3)
+	check(_has_text(screen, "WEAPON MASTERY"), "a mastery section")
+	check(_has_text(screen, "Pulse Cannon"), "naming the weapon")
+	check(_has_text(screen, "SKILLED"), "and the new rank")
+	screen.queue_free()
+	await _frames(1)
+
+
+func test_an_evolution_card_names_the_weapon_and_the_job() -> void:
+	fresh_profile()
+	var config := RunConfig.for_testing(app.data, 91)
+	config.autopilot = false
+	config.evolutions = {"pulse": ["repeater", "breach"]}
+	config.base_mods = {"run.evolutions": 1.0}
+	var arena := _arena(config)
+	arena.grant_weapon("pulse", 5)
+	var offer := {}
+	for candidate in arena.upgrades.roll(3):
+		if str(candidate.kind) == UpgradeSystem.KIND_EVOLUTION:
+			offer = candidate
+	var card := UpgradeCard.make(offer)
+	host.add_child(card)
+	await _frames(2)
+	check(_has_text(card, "EVOLVES PULSE CANNON"), "it says what is evolving")
+	check(_has_text(card, str(offer.role)), "and what the path is for")
+	card.queue_free()
+	host.remove_child(arena)
+	arena.free()
+	await _frames(1)
+
+
+func test_the_evolved_banner_is_kept_like_a_synergy() -> void:
+	var banners := RunBanners.new()
+	host.add_child(banners)
+	await _frames(1)
+	banners.notify("STORM REPEATER", "One tight stream.", "evolution")
+	banners.advance(0.1)
+	check_eq(banners.current_title(), "STORM REPEATER", "shown")
+	check_eq(banners._kicker.text, "EVOLVED", "and labelled")
+	banners.queue_free()
+	await _frames(1)

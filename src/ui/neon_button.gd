@@ -14,6 +14,8 @@ var min_width := 0.0:
 		min_width = value
 		if _row != null:
 			_fit()
+## Room kept either side of the label. Dense rows of buttons lower it.
+var side_padding := 48.0
 
 var _kind := Kind.SECONDARY
 var _accent := Palette.CYAN
@@ -77,7 +79,7 @@ func set_icon(icon_id: String) -> void:
 ## A Button sizes itself from its own `text`, which is empty here because the
 ## label is a child. Reserve room for the real content instead.
 func _fit() -> void:
-	var needed := _row.get_combined_minimum_size().x + 48.0
+	var needed := _row.get_combined_minimum_size().x + side_padding
 	custom_minimum_size.x = maxf(min_width, needed)
 
 

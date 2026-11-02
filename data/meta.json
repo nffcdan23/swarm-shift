@@ -1,5 +1,5 @@
 {
-  "_doc": "Permanent (between-run) progression. Upgrade cost for level n+1 = round_to_5(cost_base * cost_growth ^ n). Each upgrade has exactly one modifier; 'stat' and 'format' (percent | number) say how to show its total. 'unlock_level' is the Player Level needed before it can be bought.",
+  "_doc": "Permanent (between-run) progression: the Research tab. Cost for level n+1 = round_to_5(cost_base * cost_growth ^ n). 'unlock_level' is the Player Level needed before it can be bought; 'requires' lists other research as 'id' or 'id:level'. 'kind' says what it is: absent = a levelled stat track with one modifier ('stat' and 'format' say how to show its total); 'unlock' = a one-off that changes how runs play, described by 'desc'; 'doctrine' = only applies while selected, one at a time; 'awakening' = gives 'core' the augment 'augment' from the start of every run.",
 
   "account": {
     "max_level": 100,
@@ -16,8 +16,10 @@
   "upgrade_categories": {
     "offence": {"name": "OFFENCE", "color": "#ff5c7a", "blurb": "Hit harder, faster, and more often."},
     "defence": {"name": "DEFENCE", "color": "#5cffb1", "blurb": "Take more punishment and recover from it."},
-    "utility": {"name": "UTILITY", "color": "#2de2ff", "blurb": "Move, gather and level up faster in a run."},
-    "economy": {"name": "ECONOMY", "color": "#ffd15c", "blurb": "Bring more home from every run."}
+    "energy": {"name": "ENERGY", "color": "#2de2ff", "blurb": "Move, gather and level up faster in a run."},
+    "weapons": {"name": "WEAPON SYSTEMS", "short": "WEAPONS", "color": "#b58cff", "blurb": "New weapons, evolutions and more room for them."},
+    "economy": {"name": "ECONOMY", "color": "#ffd15c", "blurb": "Bring more home from every run."},
+    "specialisation": {"name": "SPECIALISATION", "short": "SPECIAL", "color": "#ff9a3d", "blurb": "Doctrines are trade-offs: one at a time, change any time. Awakenings give a core its own ability."}
   },
 
   "upgrades": {
@@ -25,21 +27,53 @@
     "m_firerate": {"name": "Rapid Cyclers", "icon": "speed", "category": "offence", "desc": "+3% attack speed", "stat": "Attack speed", "format": "percent", "max_level": 10, "cost_base": 140, "cost_growth": 1.45, "unlock_level": 3, "mods": {"fire_rate_pct": 0.03}},
     "m_crit": {"name": "Targeting Suite", "icon": "crit", "category": "offence", "desc": "+2% critical chance", "stat": "Critical chance", "format": "percent", "max_level": 5, "cost_base": 250, "cost_growth": 1.7, "mods": {"crit_chance": 0.02}},
     "m_critdmg": {"name": "Overcharge Coils", "icon": "crit", "category": "offence", "desc": "+5% critical damage", "stat": "Critical damage", "format": "percent", "max_level": 8, "cost_base": 220, "cost_growth": 1.55, "unlock_level": 4, "mods": {"crit_mult": 0.05}},
-    "m_startlvl": {"name": "Pre-Charged Arsenal", "icon": "upgrade", "category": "offence", "desc": "Starting weapon begins +1 level higher", "stat": "Starting weapon level", "format": "number", "max_level": 2, "cost_base": 2500, "cost_growth": 3.0, "unlock_level": 6, "mods": {"run.start_weapon_level": 1}},
+    "r_siege": {"name": "Siege Protocols", "icon": "boss", "category": "offence", "desc": "+10% damage to bosses and elites", "stat": "Boss and elite damage", "format": "percent", "max_level": 3, "cost_base": 2500, "cost_growth": 2.0, "unlock_level": 9, "requires": ["m_damage:3"], "mods": {"boss_damage_pct": 0.1}},
+    "r_execute": {"name": "Executioner", "icon": "skull", "category": "offence", "kind": "unlock", "desc": "Ordinary enemies below 10% health die to any hit.", "max_level": 1, "cost_base": 14000, "cost_growth": 1.0, "unlock_level": 20, "requires": ["m_crit:3"], "mods": {"fx.execute": 0.1}},
 
     "m_hp": {"name": "Hull Reinforcement", "icon": "heart", "category": "defence", "desc": "+6% max health", "stat": "Max health", "format": "percent", "max_level": 10, "cost_base": 100, "cost_growth": 1.45, "mods": {"max_hp_pct": 0.06}},
     "m_armor": {"name": "Ablative Plating", "icon": "shield", "category": "defence", "desc": "+1 armour", "stat": "Armour", "format": "number", "max_level": 3, "cost_base": 600, "cost_growth": 2.2, "mods": {"armor": 1}},
     "m_regen": {"name": "Repair Nanites", "icon": "regen", "category": "defence", "desc": "+0.2 health per second", "stat": "Health per second", "format": "number", "max_level": 5, "cost_base": 250, "cost_growth": 1.7, "mods": {"regen": 0.2}},
     "m_revive": {"name": "Emergency Reboot", "icon": "revive", "category": "defence", "desc": "Revive once per run at 50% health", "stat": "Revives per run", "format": "number", "max_level": 1, "cost_base": 5000, "cost_growth": 1.0, "unlock_level": 8, "mods": {"run.revives": 1}},
+    "r_last_stand": {"name": "Last Stand", "icon": "shield", "category": "defence", "kind": "unlock", "desc": "The first time you fall below 25% health in a run: 2 seconds of invulnerability and a shockwave.", "max_level": 1, "cost_base": 6000, "cost_growth": 1.0, "unlock_level": 11, "requires": ["m_hp:3"], "mods": {"fx.last_stand": 1}},
+    "r_buffer": {"name": "Kinetic Buffer", "icon": "shield", "category": "defence", "kind": "unlock", "desc": "A shield forms every 25 seconds and absorbs one hit completely.", "max_level": 1, "cost_base": 18000, "cost_growth": 1.0, "unlock_level": 22, "requires": ["m_armor:2"], "mods": {"fx.buffer": 25}},
 
-    "m_speed": {"name": "Thruster Tuning", "icon": "speed", "category": "utility", "desc": "+2% move speed", "stat": "Move speed", "format": "percent", "max_level": 5, "cost_base": 200, "cost_growth": 1.7, "mods": {"move_speed_pct": 0.02}},
-    "m_pickup": {"name": "Tractor Field", "icon": "magnet", "category": "utility", "desc": "+10% pickup radius", "stat": "Pickup radius", "format": "percent", "max_level": 5, "cost_base": 150, "cost_growth": 1.6, "mods": {"pickup_radius_pct": 0.1}},
-    "m_xp": {"name": "Neural Uplink", "icon": "xp", "category": "utility", "desc": "+5% run energy from green crystals", "stat": "Run energy gained", "format": "percent", "max_level": 5, "cost_base": 300, "cost_growth": 1.7, "mods": {"xp_gain_pct": 0.05}},
-    "m_luck": {"name": "Probability Engine", "icon": "luck", "category": "utility", "desc": "+5% luck", "stat": "Luck", "format": "percent", "max_level": 5, "cost_base": 300, "cost_growth": 1.7, "unlock_level": 5, "mods": {"luck": 0.05}},
-    "m_reroll": {"name": "Reroute Buffer", "icon": "reroll", "category": "utility", "desc": "+1 upgrade reroll per run", "stat": "Rerolls per run", "format": "number", "max_level": 3, "cost_base": 400, "cost_growth": 2.5, "mods": {"run.rerolls": 1}},
+    "m_speed": {"name": "Thruster Tuning", "icon": "speed", "category": "energy", "desc": "+2% move speed", "stat": "Move speed", "format": "percent", "max_level": 5, "cost_base": 200, "cost_growth": 1.7, "mods": {"move_speed_pct": 0.02}},
+    "m_pickup": {"name": "Tractor Field", "icon": "magnet", "category": "energy", "desc": "+10% pickup radius", "stat": "Pickup radius", "format": "percent", "max_level": 5, "cost_base": 150, "cost_growth": 1.6, "mods": {"pickup_radius_pct": 0.1}},
+    "m_xp": {"name": "Neural Uplink", "icon": "xp", "category": "energy", "desc": "+5% run energy from green crystals", "stat": "Run energy gained", "format": "percent", "max_level": 5, "cost_base": 300, "cost_growth": 1.7, "mods": {"xp_gain_pct": 0.05}},
+    "m_luck": {"name": "Probability Engine", "icon": "luck", "category": "energy", "desc": "+5% luck", "stat": "Luck", "format": "percent", "max_level": 5, "cost_base": 300, "cost_growth": 1.7, "unlock_level": 5, "mods": {"luck": 0.05}},
+    "m_reroll": {"name": "Reroute Buffer", "icon": "reroll", "category": "energy", "desc": "+1 upgrade reroll per run", "stat": "Rerolls per run", "format": "number", "max_level": 3, "cost_base": 400, "cost_growth": 2.5, "mods": {"run.rerolls": 1}},
+    "r_signal": {"name": "Priority Signal", "icon": "upgrade", "category": "energy", "kind": "unlock", "desc": "Upgrade screens offer a fourth card.", "max_level": 1, "cost_base": 35000, "cost_growth": 1.0, "unlock_level": 30, "requires": ["m_reroll:2"], "mods": {"run.extra_choices": 1}},
+
+    "m_startlvl": {"name": "Pre-Charged Arsenal", "icon": "upgrade", "category": "weapons", "desc": "Starting weapon begins +1 level higher", "stat": "Starting weapon level", "format": "number", "max_level": 2, "cost_base": 2500, "cost_growth": 3.0, "unlock_level": 6, "mods": {"run.start_weapon_level": 1}},
+    "r_flex_rack": {"name": "Flex Rack", "icon": "arsenal", "category": "weapons", "kind": "unlock", "desc": "Choose your starting weapon in the Arsenal, from any weapon you have reached Mastery Rank 1 with.", "max_level": 1, "cost_base": 2500, "cost_growth": 1.0, "unlock_level": 8, "mods": {"run.flex_rack": 1}},
+    "r_evo_lab": {"name": "Evolution Lab", "icon": "upgrade", "category": "weapons", "kind": "unlock", "desc": "Weapons at their final level can evolve mid-run. Unlock evolutions in the Arsenal with Mastery and Credits.", "max_level": 1, "cost_base": 4000, "cost_growth": 1.0, "unlock_level": 10, "mods": {"run.evolutions": 1}},
+    "r_codex_1": {"name": "Synergy Codex I", "icon": "star", "category": "weapons", "kind": "unlock", "desc": "Three new weapon synergies can trigger during runs.", "max_level": 1, "cost_base": 6000, "cost_growth": 1.0, "unlock_level": 12, "mods": {"unlock.codex_1": 1}},
+    "r_ballistics": {"name": "Ballistics Suite", "icon": "multishot", "category": "weapons", "kind": "unlock", "desc": "Every projectile weapon pierces one more enemy.", "max_level": 1, "cost_base": 9000, "cost_growth": 1.0, "unlock_level": 14, "mods": {"extra_pierce": 1}},
+    "r_railgun": {"name": "Railgun Prototype", "icon": "w_railgun", "category": "weapons", "kind": "unlock", "desc": "New weapon: the Railgun hunts the toughest enemy on screen.", "max_level": 1, "cost_base": 12000, "cost_growth": 1.0, "unlock_level": 16, "requires": ["r_evo_lab"], "mods": {"unlock.railgun": 1}},
+    "r_nanite": {"name": "Nanite Foundry", "icon": "w_nanite", "category": "weapons", "kind": "unlock", "desc": "New weapon: the Nanite Swarm eats enemies alive and spreads when they die.", "max_level": 1, "cost_base": 16000, "cost_growth": 1.0, "unlock_level": 20, "requires": ["r_evo_lab"], "mods": {"unlock.nanite": 1}},
+    "r_twin_evo": {"name": "Twin Evolution", "icon": "upgrade", "category": "weapons", "kind": "unlock", "desc": "Two weapons can evolve in the same run.", "max_level": 1, "cost_base": 30000, "cost_growth": 1.0, "unlock_level": 24, "requires": ["r_evo_lab"], "mods": {"run.evolutions": 1}},
+    "r_codex_2": {"name": "Synergy Codex II", "icon": "star", "category": "weapons", "kind": "unlock", "desc": "Three more weapon synergies can trigger during runs.", "max_level": 1, "cost_base": 20000, "cost_growth": 1.0, "unlock_level": 26, "requires": ["r_codex_1"], "mods": {"unlock.codex_2": 1}},
+    "r_aux_bay": {"name": "Auxiliary Bay", "icon": "arsenal", "category": "weapons", "kind": "unlock", "desc": "A sixth passive slot.", "max_level": 1, "cost_base": 25000, "cost_growth": 1.0, "unlock_level": 28, "mods": {"run.passive_slots": 1}},
+    "r_hardpoint": {"name": "Fifth Hardpoint", "icon": "arsenal", "category": "weapons", "kind": "unlock", "desc": "A fifth weapon slot.", "max_level": 1, "cost_base": 60000, "cost_growth": 1.0, "unlock_level": 36, "requires": ["r_twin_evo"], "mods": {"run.weapon_slots": 1}},
 
     "m_credits": {"name": "Salvage Protocol", "icon": "credit", "category": "economy", "desc": "+6% Credits earned", "stat": "Credits earned", "format": "percent", "max_level": 10, "cost_base": 150, "cost_growth": 1.5, "mods": {"credit_gain_pct": 0.06}},
-    "m_account_xp": {"name": "Combat Recorder", "icon": "xp", "category": "economy", "desc": "+5% Player XP from every run", "stat": "Player XP earned", "format": "percent", "max_level": 10, "cost_base": 160, "cost_growth": 1.5, "unlock_level": 2, "mods": {"account_xp_pct": 0.05}}
+    "m_account_xp": {"name": "Combat Recorder", "icon": "xp", "category": "economy", "desc": "+5% Player XP from every run", "stat": "Player XP earned", "format": "percent", "max_level": 10, "cost_base": 160, "cost_growth": 1.5, "unlock_level": 2, "mods": {"account_xp_pct": 0.05}},
+    "r_bounty": {"name": "Bounty Network", "icon": "credit", "category": "economy", "desc": "+25% Credits for clearing a sector", "stat": "Clear bonus", "format": "percent", "max_level": 3, "cost_base": 2500, "cost_growth": 2.0, "unlock_level": 7, "requires": ["m_credits:2"], "mods": {"clear_credits_pct": 0.25}},
+    "r_analyst": {"name": "Field Analyst", "icon": "xp", "category": "economy", "desc": "+10% weapon Mastery XP", "stat": "Mastery XP", "format": "percent", "max_level": 3, "cost_base": 3000, "cost_growth": 2.0, "unlock_level": 12, "mods": {"mastery_xp_pct": 0.1}},
+    "r_missions": {"name": "Mission Uplink", "icon": "missions", "category": "economy", "kind": "unlock", "desc": "A fourth daily mission, from the next day.", "max_level": 1, "cost_base": 10000, "cost_growth": 1.0, "unlock_level": 15, "mods": {"run.missions": 1}},
+
+    "d_glass": {"name": "Glass Doctrine", "icon": "glass", "category": "specialisation", "kind": "doctrine", "desc": "All offence, nothing to fall back on.", "pros": ["+30% damage"], "cons": ["-30% max health"], "max_level": 1, "cost_base": 5000, "cost_growth": 1.0, "unlock_level": 10, "mods": {"damage_pct": 0.3, "max_hp_pct": -0.3}},
+    "d_bulwark": {"name": "Bulwark Doctrine", "icon": "shield", "category": "specialisation", "kind": "doctrine", "desc": "Outlast them. It takes longer.", "pros": ["+40% max health", "+2 armour"], "cons": ["-20% damage"], "max_level": 1, "cost_base": 5000, "cost_growth": 1.0, "unlock_level": 12, "mods": {"max_hp_pct": 0.4, "armor": 2, "damage_pct": -0.2}},
+    "d_scavenger": {"name": "Scavenger Doctrine", "icon": "magnet", "category": "specialisation", "kind": "doctrine", "desc": "Strip the field. Fight later.", "pros": ["+25% run energy", "+20% Credits earned"], "cons": ["-15% damage"], "max_level": 1, "cost_base": 8000, "cost_growth": 1.0, "unlock_level": 16, "mods": {"xp_gain_pct": 0.25, "credit_gain_pct": 0.2, "damage_pct": -0.15}},
+    "d_specialist": {"name": "Specialist Doctrine", "icon": "crit", "category": "specialisation", "kind": "doctrine", "desc": "Two weapons, used well.", "pros": ["+60% damage"], "cons": ["Only 2 weapon slots"], "max_level": 1, "cost_base": 12000, "cost_growth": 1.0, "unlock_level": 22, "mods": {"damage_pct": 0.6, "run.weapon_slots": -2}},
+    "d_generalist": {"name": "Generalist Doctrine", "icon": "arsenal", "category": "specialisation", "kind": "doctrine", "desc": "More guns, less polish.", "pros": ["+1 weapon slot"], "cons": ["-2 passive slots"], "max_level": 1, "cost_base": 16000, "cost_growth": 1.0, "unlock_level": 32, "mods": {"run.weapon_slots": 1, "run.passive_slots": -2}},
+
+    "a_vanguard": {"name": "Vanguard Awakening", "icon": "shockwave", "category": "specialisation", "kind": "awakening", "core": "vanguard", "augment": "reactive", "desc": "Vanguard starts every run with Reactive Shell.", "max_level": 1, "cost_base": 6000, "cost_growth": 1.0, "unlock_level": 14},
+    "a_striker": {"name": "Striker Awakening", "icon": "seeker", "category": "specialisation", "kind": "awakening", "core": "striker", "augment": "seeker", "desc": "Striker starts every run with Seeker Rounds.", "max_level": 1, "cost_base": 8000, "cost_growth": 1.0, "unlock_level": 14},
+    "a_bastion": {"name": "Bastion Awakening", "icon": "siphon", "category": "specialisation", "kind": "awakening", "core": "bastion", "augment": "siphon", "desc": "Bastion starts every run with Siphon.", "max_level": 1, "cost_base": 8000, "cost_growth": 1.0, "unlock_level": 16},
+    "a_frostbite": {"name": "Frostbite Awakening", "icon": "shatter", "category": "specialisation", "kind": "awakening", "core": "frostbite", "augment": "shatter", "desc": "Frostbite starts every run with Shatter.", "max_level": 1, "cost_base": 10000, "cost_growth": 1.0, "unlock_level": 18},
+    "a_tempest": {"name": "Tempest Awakening", "icon": "storm", "category": "specialisation", "kind": "awakening", "core": "tempest", "augment": "storm_crit", "desc": "Tempest starts every run with Storm Strike.", "max_level": 1, "cost_base": 12000, "cost_growth": 1.0, "unlock_level": 20},
+    "a_phantom": {"name": "Phantom Awakening", "icon": "phase", "category": "specialisation", "kind": "awakening", "core": "phantom", "augment": "phase_shift", "desc": "Phantom starts every run with Phase Shift.", "max_level": 1, "cost_base": 12000, "cost_growth": 1.0, "unlock_level": 20}
   },
 
   "cores": {
@@ -82,12 +116,106 @@
   },
 
   "skins": {
-    "default": { "name": "FACTORY", "color": "", "unlock": { "type": "default" } },
-    "ember": { "name": "EMBER", "color": "#ff7a3d", "unlock": { "type": "crystals", "cost": 80 } },
-    "venom": { "name": "VENOM", "color": "#7dff8a", "unlock": { "type": "crystals", "cost": 80 } },
-    "amethyst": { "name": "AMETHYST", "color": "#b58cff", "unlock": { "type": "crystals", "cost": 120 } },
-    "rose": { "name": "ROSE", "color": "#ff5cd6", "unlock": { "type": "crystals", "cost": 120 } },
-    "ghost": { "name": "GHOST", "color": "#eaf6ff", "unlock": { "type": "crystals", "cost": 200 } },
-    "aurum": { "name": "AURUM", "color": "#ffd15c", "unlock": { "type": "product", "product": "starter_pack" } }
+    "default": { "name": "FACTORY", "rarity": "common", "color": "", "desc": "Standard issue. Takes the colour of your core.", "unlock": { "type": "default" } },
+
+    "ember": { "name": "EMBER", "rarity": "rare", "color": "#ff7a3d", "desc": "A burning star on a copper ring.",
+      "unlock": { "type": "crystals", "cost": 80 },
+      "weapon_tint": "#ffb066", "weapon_tint_amount": 0.2, "kill_tint": "#ff8a3d", "kill_tint_amount": 0.45,
+      "trail": { "color": "#ff7a3d", "size": 16, "end": 2, "life": 0.4, "rise": 60, "drift": 0.15 },
+      "visual": { "body": "core_ember", "spin": 0.5, "ring": { "sprite": "ring_thin", "speed": -1.2, "color": "#ffb066" } } },
+
+    "venom": { "name": "VENOM", "rarity": "rare", "color": "#7dff8a", "desc": "Three toxic cells around a live reactor.",
+      "unlock": { "type": "crystals", "cost": 80 },
+      "weapon_tint": "#a8ff8a", "weapon_tint_amount": 0.2, "kill_tint": "#7dff8a", "kill_tint_amount": 0.45,
+      "trail": { "color": "#7dff8a", "size": 13, "end": 6, "life": 0.5, "drift": 0.1, "drag": 5 },
+      "visual": { "body": "core_venom", "spin": 0.9, "ring": { "speed": -1.0, "color": "#7dff8a" }, "motes": { "count": 3, "radius": 1.32, "speed": 2.2, "color": "#c8ff8a" } } },
+
+    "amethyst": { "name": "AMETHYST", "rarity": "rare", "color": "#b58cff", "desc": "A cut gemstone in a slow orbit of shards.",
+      "unlock": { "type": "crystals", "cost": 120 },
+      "weapon_tint": "#c8a8ff", "weapon_tint_amount": 0.2, "kill_tint": "#b58cff", "kill_tint_amount": 0.45,
+      "trail": { "color": "#b58cff", "size": 15, "end": 3, "life": 0.35, "drift": 0.2 },
+      "visual": { "body": "core_amethyst", "spin": -0.3, "ring": { "sprite": "ring_thin", "speed": 0.9, "color": "#c8a8ff" },
+        "plates": { "sprite": "plate_crystal", "count": 4, "radius": 1.22, "speed": 0.7, "scale": 0.32, "color": "#b58cff" } } },
+
+    "rose": { "name": "ROSE", "rarity": "rare", "color": "#ff5cd6", "desc": "Layered neon petals that never stop opening.",
+      "unlock": { "type": "crystals", "cost": 120 },
+      "weapon_tint": "#ff9ee6", "weapon_tint_amount": 0.2, "kill_tint": "#ff5cd6", "kill_tint_amount": 0.45,
+      "trail": { "color": "#ff5cd6", "size": 18, "end": 4, "life": 0.45, "drift": 0.12, "drag": 4 },
+      "visual": { "body": "core_rose", "spin": 0.35, "ring": { "speed": -0.8, "color": "#ff9ee6" },
+        "plates": { "sprite": "plate_petal", "count": 5, "radius": 1.18, "speed": -0.45, "wobble": 0.05, "scale": 0.3, "color": "#ff5cd6" } } },
+
+    "ghost": { "name": "GHOST", "rarity": "epic", "color": "#eaf6ff", "desc": "More light than object.",
+      "unlock": { "type": "crystals", "cost": 200 },
+      "weapon_tint": "#eaf6ff", "weapon_tint_amount": 0.3, "kill_tint": "#eaf6ff", "kill_tint_amount": 0.6,
+      "trail": { "color": "#eaf6ff", "size": 26, "end": 8, "life": 0.5, "alpha": 0.3, "drift": 0.06, "drag": 6 },
+      "visual": { "body": "core_ghost", "spin": 0.0, "glow": { "alpha": 0.4 }, "ring": { "sprite": "ring_thin", "speed": -0.5, "scale": 1.6 },
+        "motes": { "count": 2, "radius": 1.5, "speed": 1.4 } } },
+
+    "aurum": { "name": "AURUM", "rarity": "legendary", "color": "#ffd15c", "desc": "Machined gold. Starter Pack exclusive.",
+      "unlock": { "type": "product", "product": "starter_pack" },
+      "weapon_tint": "#ffe9a3", "weapon_tint_amount": 0.25, "kill_tint": "#ffd15c", "kill_tint_amount": 0.55,
+      "trail": { "color": "#ffd15c", "size": 12, "end": 2, "life": 0.5, "drift": 0.2, "stretch": 1.6 },
+      "visual": { "body": "core_aurum", "spin": 0.6, "ring": { "sprite": "ring_gear", "speed": -0.9, "color": "#ffd15c" },
+        "plates": { "sprite": "plate_arc", "count": 3, "radius": 1.24, "speed": 0.5, "scale": 0.5, "color": "#ffd15c" } } },
+
+    "glacier": { "name": "GLACIER CORE", "rarity": "epic", "color": "#8fe6ff", "desc": "Crystalline armour and a frozen wake.",
+      "unlock": { "type": "level", "level": 12, "cost": 12000 },
+      "weapon_tint": "#bdeeff", "weapon_tint_amount": 0.35, "kill_tint": "#bdeeff", "kill_tint_amount": 0.7,
+      "trail": { "color": "#bdeeff", "size": 10, "end": 14, "life": 0.6, "drift": 0.04, "drag": 6, "alpha": 0.5 },
+      "visual": { "body": "core_glacier", "spin": 0.25, "ring": { "sprite": "ring_thin", "speed": -0.6, "color": "#bdeeff" },
+        "aura": { "sprite": "aura_frost", "speed": 0.25, "scale": 1.5, "alpha": 0.75 },
+        "plates": { "sprite": "plate_crystal", "count": 6, "radius": 1.18, "speed": 0.4, "wobble": 0.04, "scale": 0.3, "color": "#8fe6ff" },
+        "reactor": { "color": "#d8f7ff", "scale": 0.7 } } },
+
+    "inferno": { "name": "INFERNO CORE", "rarity": "epic", "color": "#ff4a1f", "desc": "Red-hot metal with molten fissures. Sheds embers.",
+      "unlock": { "type": "level", "level": 16, "cost": 18000 },
+      "weapon_tint": "#ff9a3d", "weapon_tint_amount": 0.4, "kill_tint": "#ff8a2a", "kill_tint_amount": 0.75,
+      "trail": { "color": "#ff6a1f", "size": 17, "end": 2, "life": 0.55, "rise": 110, "drift": 0.1, "drag": 2 },
+      "visual": { "body": "core_inferno", "spin": 0.4, "glow": { "color": "#ff3a1a", "alpha": 0.6, "pulse": 9.0 }, "ring": { "sprite": "ring_gear", "speed": -1.3, "color": "#ff8a2a" },
+        "aura": { "sprite": "aura_flame", "speed": -0.7, "scale": 1.7, "color": "#ff5a1a", "alpha": 0.8 },
+        "reactor": { "color": "#ffd28a", "scale": 0.8 } } },
+
+    "solar": { "name": "SOLAR CORE", "rarity": "epic", "color": "#ffc933", "desc": "A small, angry star.",
+      "unlock": { "type": "level", "level": 20, "cost": 26000 },
+      "weapon_tint": "#ffd15c", "weapon_tint_amount": 0.4, "kill_tint": "#ffc933", "kill_tint_amount": 0.75,
+      "trail": { "color": "#ffb01f", "size": 22, "end": 4, "life": 0.4, "drift": 0.14, "alpha": 0.7 },
+      "visual": { "body": "core_solar", "spin": 0.3, "glow": { "color": "#ff9a1f", "alpha": 0.7, "scale": 7.4, "pulse": 3.0 }, "ring": { "sprite": "ring_thin", "speed": 1.6, "scale": 1.62, "color": "#ffd15c" },
+        "aura": { "sprite": "aura_corona", "speed": 0.5, "scale": 1.75, "color": "#ffb01f", "alpha": 0.9 },
+        "motes": { "count": 3, "radius": 1.72, "speed": -1.1, "color": "#fff0b8" }, "reactor": { "color": "#fff6d6", "scale": 0.5 } } },
+
+    "quantum": { "name": "QUANTUM CORE", "rarity": "epic", "color": "#2dfff0", "desc": "Geometric, holographic, and never quite in one place.",
+      "unlock": { "type": "level", "level": 26, "cost": 36000 },
+      "weapon_tint": "#7dfff4", "weapon_tint_amount": 0.4, "kill_tint": "#2dfff0", "kill_tint_amount": 0.75,
+      "trail": { "color": "#2dfff0", "size": 9, "end": 7, "life": 0.3, "drift": 0.5, "stretch": 3.0, "drag": 1 },
+      "visual": { "body": "core_quantum", "spin": 0.8, "ring": { "sprite": "ring_glyph", "speed": -1.7, "color": "#2dfff0" },
+        "aura": { "sprite": "aura_grid", "speed": -0.45, "scale": 1.62, "color": "#ff4de0", "alpha": 0.7 },
+        "plates": { "sprite": "plate_block", "count": 4, "radius": 1.34, "speed": 1.4, "wobble": 0.1, "scale": 0.16, "color": "#7dfff4" },
+        "reactor": { "color": "#ffffff", "scale": 0.4 } } },
+
+    "void": { "name": "VOID CORE", "rarity": "epic", "color": "#9d4dff", "desc": "A pocket black hole. Light bends around it.",
+      "unlock": { "type": "level", "level": 32, "cost": 50000 },
+      "weapon_tint": "#b98aff", "weapon_tint_amount": 0.45, "kill_tint": "#7a2dff", "kill_tint_amount": 0.8,
+      "trail": { "color": "#7a2dff", "size": 24, "end": 2, "life": 0.5, "drift": 0.02, "drag": 8, "alpha": 0.65 },
+      "visual": { "body": "core_void", "spin": 0.0, "glow": { "color": "#6a22ff", "alpha": 0.55 }, "ring": { "sprite": "ring_glyph", "speed": -0.7, "scale": 1.52, "color": "#b98aff" },
+        "aura": { "sprite": "aura_lens", "speed": 1.5, "scale": 1.62, "color": "#7a2dff", "alpha": 0.8 },
+        "plates": { "sprite": "plate_shard", "count": 5, "radius": 1.26, "speed": 1.0, "wobble": 0.1, "scale": 0.2, "color": "#c8a8ff" },
+        "reactor": { "alpha": 0.0 } } },
+
+    "paragon": { "name": "PARAGON", "rarity": "legendary", "color": "#ffe29a", "desc": "Worn by those who have truly mastered their weapons.",
+      "unlock": { "type": "feat", "stat": "weapons_mastered", "target": 3, "text": "MASTER 3 WEAPONS" },
+      "weapon_tint": "#ffe9b8", "weapon_tint_amount": 0.35, "kill_tint": "#ffe29a", "kill_tint_amount": 0.8,
+      "trail": { "color": "#ffe29a", "size": 14, "end": 1, "life": 0.6, "drift": 0.16, "stretch": 1.0 },
+      "visual": { "body": "core_paragon", "spin": 0.5, "glow": { "color": "#ffd98a", "alpha": 0.65, "scale": 7.0 }, "ring": { "sprite": "ring_glyph", "speed": 1.1, "scale": 1.6, "color": "#2dd9ff" },
+        "aura": { "sprite": "aura_corona", "speed": -0.35, "scale": 1.7, "color": "#2dd9ff", "alpha": 0.5 },
+        "plates": { "sprite": "plate_shard", "count": 8, "radius": 1.42, "speed": -0.5, "wobble": 0.03, "scale": 0.16, "color": "#ffe29a" },
+        "motes": { "count": 4, "radius": 1.8, "speed": 1.3, "color": "#ffffff" } } },
+
+    "overseer": { "name": "OVERSEER", "rarity": "legendary", "color": "#ff3d6e", "desc": "Taken from the wreck of the last Overseer.",
+      "unlock": { "type": "feat", "stat": "highest_sector_cleared", "target": 20, "text": "CLEAR SECTOR 20" },
+      "weapon_tint": "#c98aff", "weapon_tint_amount": 0.3, "kill_tint": "#c85cff", "kill_tint_amount": 0.7,
+      "trail": { "color": "#ff3d6e", "size": 20, "end": 3, "life": 0.45, "drift": 0.18 },
+      "visual": { "body": "core_overseer", "spin": 0.2, "glow": { "alpha": 0.65, "pulse": 2.2 }, "ring": { "sprite": "ring_gear", "speed": 0.8, "scale": 1.56, "color": "#ff3d6e" },
+        "plates": { "sprite": "plate_arc", "count": 3, "radius": 1.3, "speed": -0.9, "wobble": 0.05, "scale": 0.5, "color": "#ff7d9b" },
+        "reactor": { "alpha": 0.0 } } }
   }
 }

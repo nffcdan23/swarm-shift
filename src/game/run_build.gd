@@ -18,6 +18,8 @@ var passives: Dictionary = {}
 var passive_order: Array[String] = []
 var augments: Array[String] = []
 var synergies: Array[String] = []
+## Weapons that have evolved this run: {weapon_id: path}.
+var evolved: Dictionary = {}
 var mods: Dictionary = {}
 
 var _data: GameData
@@ -103,7 +105,9 @@ func refresh_synergies() -> Array[String]:
 	for synergy_id: String in table:
 		if synergies.has(synergy_id):
 			continue
-		var met := true
+		# A research-gated synergy is simply not there until researched.
+		var gate := GameData.text(table[synergy_id], "needs")
+		var met := gate.is_empty() or enabled(gate)
 		for token: String in GameData.list(table[synergy_id], "requires"):
 			if not has(token):
 				met = false

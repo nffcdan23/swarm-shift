@@ -1,8 +1,8 @@
 class_name ArsenalScreen
 extends MenuScreen
-## Cores (who you play), weapons (what can show up on level-up) and skins
-## (how you look). All three use the same unlock rules from ArsenalService, so
-## one card builder serves them all.
+## Cores (who you play), weapons (what can show up on level-up, with their
+## Mastery) and skins (how you look). All three use the same unlock rules from
+## ArsenalService, so one card builder serves them all.
 
 const SECTIONS: PackedStringArray = ["CORES", "WEAPONS", "SKINS"]
 const CATEGORIES: PackedStringArray = [ArsenalService.CORES, ArsenalService.WEAPONS, ArsenalService.SKINS]
@@ -34,14 +34,14 @@ func refresh() -> void:
 		ArsenalService.CORES:
 			_blurb.text = "Each core starts with a different weapon and plays differently."
 		ArsenalService.WEAPONS:
-			_blurb.text = "Unlocked weapons can appear as upgrade choices during a run."
+			_blurb.text = "Unlocked weapons can appear as upgrade choices. Use one to raise its Mastery; tap VIEW for perks and evolutions."
 		_:
-			_blurb.text = "Cosmetic colours for your core. No effect on gameplay."
+			_blurb.text = "Looks only: no skin changes how your core plays."
 	for id: String in App.arsenal.defs(category):
 		_list.add_child(_card(category, id))
 	_list.add_child(UiKit.gap(8))
 	_tabs.set_badge(0, 1 if _any_affordable(ArsenalService.CORES) else 0)
-	_tabs.set_badge(1, 1 if _any_affordable(ArsenalService.WEAPONS) else 0)
+	_tabs.set_badge(1, 1 if _any_affordable(ArsenalService.WEAPONS) or App.mastery.any_affordable_evolution() else 0)
 
 
 func _any_affordable(category: String) -> bool:
@@ -69,16 +69,20 @@ func _card(category: String, id: String) -> PanelContainer:
 	UiKit.card_body(card).add_child(row)
 
 	var medallion := PanelContainer.new()
-	medallion.custom_minimum_size = Vector2(84, 84)
+	medallion.custom_minimum_size = Vector2(124, 124) if category == ArsenalService.SKINS else Vector2(84, 84)
 	medallion.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	medallion.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	medallion.add_theme_stylebox_override("panel", UiTheme.box(Palette.with_alpha(color, 0.14 if owned else 0.04), Palette.with_alpha(color, 0.8 if owned else 0.3), 18, 2))
 	var centred := CenterContainer.new()
 	centred.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var icon_id := "lock"
-	if owned:
-		icon_id = GameData.text(def, "icon", "star" if category == ArsenalService.WEAPONS else "boss")
-	centred.add_child(IconGlyph.make(icon_id, 50.0, color if owned else Palette.DIM, owned))
+	if category == ArsenalService.SKINS:
+		# Shown live even before it is owned: a skin sells itself.
+		centred.add_child(SkinSwatch.make(def, App.arsenal.player_color() if GameData.text(def, "color").is_empty() else color, 116.0, not owned))
+	else:
+		var icon_id := "lock"
+		if owned:
+			icon_id = GameData.text(def, "icon", "star" if category == ArsenalService.WEAPONS else "boss")
+		centred.add_child(IconGlyph.make(icon_id, 50.0, color if owned else Palette.DIM, owned))
 	medallion.add_child(centred)
 	row.add_child(medallion)
 
@@ -88,6 +92,9 @@ func _card(category: String, id: String) -> PanelContainer:
 	head.add_child(UiKit.label(GameData.text(def, "name", id).to_upper(), UiTheme.BODY, Palette.TEXT if owned else Palette.MUTED, HORIZONTAL_ALIGNMENT_LEFT, true))
 	if selected:
 		head.add_child(UiKit.tag("ACTIVE", Palette.GOLD))
+	elif category == ArsenalService.SKINS:
+		var rarity := App.data.rarity(GameData.text(def, "rarity", "common"))
+		head.add_child(UiKit.tag(GameData.text(rarity, "name"), GameData.color(rarity, "color", Palette.MUTED)))
 	text.add_child(head)
 	var blurb := GameData.text(def, "desc", GameData.text(def, "tagline"))
 	if not blurb.is_empty():
@@ -98,6 +105,10 @@ func _card(category: String, id: String) -> PanelContainer:
 		for trait_text: String in GameData.list(def, "traits"):
 			var good := not trait_text.begins_with("-")
 			text.add_child(UiKit.label(trait_text, UiTheme.TINY + 1, (Palette.GREEN if good else Palette.RED) if owned else Palette.DIM))
+		for augment_id: String in App.meta.awakened_augments(id):
+			text.add_child(UiKit.label("AWAKENED: %s" % GameData.text(GameData.dict(App.data.augments(), augment_id), "name"), UiTheme.TINY + 1, Palette.GOLD))
+	if category == ArsenalService.WEAPONS and owned:
+		text.add_child(_mastery_line(id, color))
 	row.add_child(text)
 
 	var action := _action(category, id, info, selected)
@@ -107,10 +118,33 @@ func _card(category: String, id: String) -> PanelContainer:
 	return card
 
 
+## Rank, the bar to the next one, and how many evolutions are owned.
+func _mastery_line(id: String, color: Color) -> VBoxContainer:
+	var state := App.mastery.progress(id)
+	var box := UiKit.vbox(3)
+	var head := UiKit.hbox(8)
+	var rank_label := UiKit.caption("RANK %d  %s" % [int(state.rank), App.mastery.rank_name(int(state.rank))], UiTheme.TINY, color)
+	rank_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(rank_label)
+	var paths := App.mastery.owned_paths(id).size()
+	var total := App.mastery.evolution_table(id).size()
+	if total > 0:
+		head.add_child(UiKit.caption("EVO %d/%d" % [paths, total], UiTheme.TINY, Palette.GOLD if paths > 0 else Palette.DIM.lightened(0.3)))
+	box.add_child(head)
+	var bar := MeterBar.make(color, 8.0)
+	bar.back_color = Color(0.1, 0.15, 0.24, 0.95)
+	bar.set_value(float(state.fraction), true)
+	box.add_child(bar)
+	return box
+
+
 func _action(category: String, id: String, info: Dictionary, selected: bool) -> Control:
 	if bool(info.owned):
 		if category == ArsenalService.WEAPONS:
-			return IconGlyph.make("check", 34.0, Palette.GREEN)
+			var view := NeonButton.make("VIEW", NeonButton.Kind.SECONDARY, Palette.CYAN, "", 64.0, UiTheme.SMALL)
+			view.min_width = 110.0
+			view.pressed.connect(func() -> void: shell.open_dialog(WeaponModal.new(shell, id)))
+			return view
 		if selected:
 			return null
 		var choose := NeonButton.make("SELECT", NeonButton.Kind.SECONDARY, Palette.CYAN, "", 64.0, UiTheme.SMALL)
@@ -120,6 +154,10 @@ func _action(category: String, id: String, info: Dictionary, selected: bool) -> 
 	match str(info.kind):
 		"product":
 			return UiKit.tag("STARTER PACK", Palette.GOLD)
+		"research":
+			return UiKit.tag("RESEARCH", Palette.VIOLET, UiTheme.TINY)
+		"feat":
+			return UiKit.tag(str(info.feat), Palette.GOLD, UiTheme.TINY - 1)
 		"level", "crystals":
 			if not bool(info.level_met):
 				return UiKit.tag("PLAYER LV %d" % int(info.level), Palette.MUTED, UiTheme.TINY)

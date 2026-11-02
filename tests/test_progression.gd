@@ -340,11 +340,12 @@ func test_collected_credits_reach_the_bank() -> void:
 
 func test_upgrades_cover_every_category_and_stat() -> void:
 	fresh_profile()
-	check_eq(app.meta.categories(), ["offence", "defence", "utility", "economy"], "four categories, in order")
+	check_eq(app.meta.categories(), ["offence", "defence", "energy", "weapons", "economy", "specialisation"], "six branches, in order")
 	var wanted := {
 		"offence": ["damage_pct", "fire_rate_pct", "crit_chance", "crit_mult"],
 		"defence": ["max_hp_pct", "armor", "regen"],
-		"utility": ["move_speed_pct", "pickup_radius_pct", "xp_gain_pct"],
+		"energy": ["move_speed_pct", "pickup_radius_pct", "xp_gain_pct"],
+		"weapons": ["run.start_weapon_level", "run.evolutions", "extra_pierce", "run.weapon_slots"],
 		"economy": ["credit_gain_pct", "account_xp_pct"],
 	}
 	for category: String in wanted:
@@ -359,6 +360,8 @@ func test_upgrades_cover_every_category_and_stat() -> void:
 	check_eq(seen, app.meta.ids().size(), "every upgrade belongs to a category")
 
 	for id: String in app.meta.ids():
+		if app.meta.kind(id) != MetaService.KIND_TRACK:
+			continue
 		var def := app.meta.def(id)
 		check(not GameData.text(def, "name").is_empty(), "%s has a name" % id)
 		check(not GameData.text(def, "desc").is_empty(), "%s has a description" % id)
@@ -451,7 +454,11 @@ func test_the_lobby_always_has_a_next_upgrade_to_aim_for() -> void:
 	check(bool(app.meta.next_goal().affordable), "enough Credits marks it ready")
 	app.account.add_xp(10000000, "test")
 	app.economy.grant(Economy.CREDITS, 100000000, "test")
-	for id: String in app.meta.ids():
-		app.meta.buy_many(id, 999)
+	for core_id: String in app.data.cores():
+		app.arsenal.grant(ArsenalService.CORES, core_id, "test")
+	# Twice round: some research needs other research first.
+	for pass_number in 3:
+		for id: String in app.meta.ids():
+			app.meta.buy_many(id, 999)
 	check_eq(app.meta.total_levels(), app.meta.total_max_levels(), "everything can be bought out")
 	check(str(app.meta.next_goal().id).is_empty(), "and then there is no next goal")

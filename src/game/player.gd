@@ -33,6 +33,7 @@ var credit_gain := 1.0
 var area := 1.0
 var projectile_speed := 1.0
 var extra_projectiles := 0
+var extra_pierce := 0
 var duration := 1.0
 
 var _a: Arena
@@ -46,18 +47,28 @@ var _phase_interval := 10.0
 var _phase_duration := 1.5
 var _phase_cd := 0.0
 var _phasing := 0.0
-var _spin := 0.0
+# Kinetic Buffer (research): one free hit, back every `_buffer_every` seconds.
+var _buffer_every := 0.0
+var _buffer_cd := 0.0
+var _buffer_ready := false
+# Last Stand (research): once per run.
+var _last_stand := false
 
-var _glow: Sprite2D
-var _core: Sprite2D
-var _ring: Sprite2D
-var _spark: Sprite2D
-var _core_material: ShaderMaterial
+var _last_buffer_set := false
+var _last_stand_used := false
+
+var _visual: CoreVisual
+var _shield: Sprite2D
+var _trail: Dictionary = {}
+var _trail_color := Color.WHITE
 
 
 func setup(arena: Arena, color: Color) -> void:
 	_a = arena
 	_color = color
+	_trail = GameData.dict(arena.config.skin_def, "trail")
+	_trail_color = GameData.color(_trail, "color", _color)
+	_trail_color.a = GameData.num(_trail, "alpha", 0.55)
 	var cfg := GameData.dict(arena.data.game, "player")
 	_base = GameData.dict(cfg, "base_stats")
 	radius = GameData.num(cfg, "radius", 17.0)
@@ -69,38 +80,19 @@ func setup(arena: Arena, color: Color) -> void:
 
 
 func _build_visuals() -> void:
+	_visual = CoreVisual.new()
+	_visual.scale = Vector2(0.27, 0.27)
+	add_child(_visual)
+	_visual.build(_a.config.skin_def, _color)
+	_shield = Sprite2D.new()
+	_shield.texture = load("res://assets/sprites/player_ring.png")
 	var additive := CanvasItemMaterial.new()
 	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-
-	_glow = Sprite2D.new()
-	_glow.texture = load("res://assets/sprites/atlas/glow.png")
-	_glow.material = additive
-	_glow.scale = Vector2(1.7, 1.7)
-	_glow.modulate = Color(_color.r, _color.g, _color.b, 0.55)
-	add_child(_glow)
-
-	_ring = Sprite2D.new()
-	_ring.texture = load("res://assets/sprites/player_ring.png")
-	_ring.material = additive
-	_ring.scale = Vector2(0.4, 0.4)
-	_ring.modulate = _color
-	add_child(_ring)
-
-	_core = Sprite2D.new()
-	_core.texture = load("res://assets/sprites/player_core.png")
-	_core_material = ShaderMaterial.new()
-	_core_material.shader = load("res://assets/shaders/flash.gdshader")
-	_core.material = _core_material
-	_core.scale = Vector2(0.27, 0.27)
-	_core.modulate = _color
-	add_child(_core)
-
-	_spark = Sprite2D.new()
-	_spark.texture = load("res://assets/sprites/atlas/orb.png")
-	_spark.material = additive
-	_spark.scale = Vector2(0.24, 0.24)
-	_spark.modulate = Color(1, 1, 1, 0.9)
-	add_child(_spark)
+	_shield.material = additive
+	_shield.scale = Vector2(0.52, 0.52)
+	_shield.modulate = Color(0.75, 0.95, 1.0, 0.9)
+	_shield.visible = false
+	add_child(_shield)
 
 
 ## Re-resolves every stat from the build. Call after the build changes.
@@ -122,6 +114,7 @@ func apply_stats() -> void:
 	area = b.player_stat("area", GameData.num(_base, "area", 1.0))
 	projectile_speed = b.player_stat("projectile_speed", GameData.num(_base, "projectile_speed", 1.0))
 	extra_projectiles = int(b.player_stat("extra_projectiles", GameData.num(_base, "extra_projectiles", 0.0)))
+	extra_pierce = int(b.mod("extra_pierce"))
 	duration = b.player_stat("duration", GameData.num(_base, "duration", 1.0))
 	# A larger maximum never costs current health; a smaller one clamps it.
 	if max_hp < old_max:
@@ -129,6 +122,11 @@ func apply_stats() -> void:
 	_phase_enabled = b.enabled("fx.phase")
 	_phase_interval = b.mod("fx.phase_interval", 10.0)
 	_phase_duration = b.mod("fx.phase_duration", 1.5)
+	_buffer_every = b.mod("fx.buffer")
+	if _buffer_every > 0.0 and not _last_buffer_set:
+		_last_buffer_set = true
+		_buffer_ready = true
+	_last_stand = _last_stand or b.enabled("fx.last_stand")
 
 
 func update(dt: float, input: Vector2) -> void:
@@ -158,27 +156,39 @@ func update(dt: float, input: Vector2) -> void:
 	if _phasing > 0.0:
 		_phasing -= dt
 
+	if _buffer_every > 0.0 and not _buffer_ready:
+		_buffer_cd -= dt
+		if _buffer_cd <= 0.0:
+			_buffer_ready = true
+			_a.fx.ring(x, y, 60.0, 30.0, 0.25, Color(0.75, 0.95, 1.0), 0.08)
 	if velocity.length_squared() > 900.0 and _a.step_count % 2 == 0:
-		_a.gfx.particles.emit(x - velocity.x * 0.03, y - velocity.y * 0.03, -velocity.x * 0.25, -velocity.y * 0.25,
-			0.3, 20.0, 3.0, Color(_color.r, _color.g, _color.b, 0.55), 3.0)
+		_emit_trail()
 	_draw_state(dt)
+
+
+## One puff of the skin's trail. `rise` makes it drift up the screen like heat,
+## `stretch` draws it as a streak. Looks only.
+func _emit_trail() -> void:
+	var drift := GameData.num(_trail, "drift", 0.25)
+	_a.gfx.particles.emit(x - velocity.x * 0.03, y - velocity.y * 0.03,
+		-velocity.x * drift, -velocity.y * drift - GameData.num(_trail, "rise", 0.0),
+		GameData.num(_trail, "life", 0.3), GameData.num(_trail, "size", 20.0), GameData.num(_trail, "end", 3.0),
+		_trail_color, GameData.num(_trail, "drag", 3.0), GameData.num(_trail, "stretch", 0.0))
 
 
 func _draw_state(dt: float) -> void:
 	position = Vector2(x, y)
-	_spin += dt * 1.8
-	_ring.rotation = _spin
-	_core.rotation = -_spin * 0.35
 	if _flash > 0.0:
 		_flash = maxf(_flash - dt * 5.0, 0.0)
-	_core_material.set_shader_parameter("flash", _flash)
-	var pulse := 1.0 + 0.06 * sin(_a.time * 6.0)
-	_glow.scale = Vector2(1.7, 1.7) * pulse
+	_visual.set_flash(_flash)
+	_visual.animate(dt, 1.3 if _phasing > 0.0 else 1.0)
+	_shield.visible = _buffer_ready
+	if _buffer_ready:
+		_shield.rotation = -_a.time * 2.2
+		_shield.scale = Vector2.ONE * (0.52 + 0.02 * sin(_a.time * 7.0))
 	if _phasing > 0.0:
 		modulate = Color(0.65, 0.9, 1.0, 0.45)
-		_ring.scale = Vector2(0.52, 0.52)
 	else:
-		_ring.scale = Vector2(0.4, 0.4)
 		# Blink while the post-hit grace period lasts.
 		var blink := invulnerable_for > 0.0 and int(_a.time * 22.0) % 2 == 0
 		modulate = Color(1, 1, 1, 0.45 if blink else 1.0)
@@ -187,6 +197,13 @@ func _draw_state(dt: float) -> void:
 ## Applies a hit from an enemy source. Returns false if it was ignored.
 func take_hit(amount: float, from_x: float, from_y: float) -> bool:
 	if not alive or invulnerable_for > 0.0 or not _a.is_playing():
+		return false
+	if _buffer_ready:
+		_buffer_ready = false
+		_buffer_cd = _buffer_every
+		invulnerable_for = _iframes
+		_a.sfx("phase")
+		_a.fx.shockwave(x, y, 140.0, Color(0.75, 0.95, 1.0))
 		return false
 	var dealt := maxf(amount - armor, amount * _armor_min)
 	hp -= dealt
@@ -199,6 +216,10 @@ func take_hit(amount: float, from_x: float, from_y: float) -> bool:
 		hp = 0.0
 		alive = false
 		_a.on_player_down()
+	elif _last_stand and not _last_stand_used and hp < max_hp * 0.25:
+		_last_stand_used = true
+		invulnerable_for = 2.0
+		_a.on_last_stand()
 	return true
 
 
@@ -231,6 +252,4 @@ func hp_fraction() -> float:
 
 func set_tint(color: Color) -> void:
 	_color = color
-	_ring.modulate = color
-	_core.modulate = color
-	_glow.modulate = Color(color.r, color.g, color.b, 0.55)
+	_visual.set_tint(color)

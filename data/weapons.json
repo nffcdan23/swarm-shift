@@ -1,6 +1,18 @@
 {
   "max_level": 5,
 
+  "mastery": {
+    "_doc": "Weapon mastery. 'xp' is the total needed for each rank. A run's budget = per_minute x minutes (active time, capped at minutes_cap) x tier scale, plus boss and clear bonuses; it is shared between weapons by the square root of the damage each landed. kills_per_minute is the kill rate below which a run counts as not really fighting. idle_after is how long the player can stand still before the time stops counting. Each weapon's 'mastery' list holds its perks and 'evolutions' its two evolved forms; 'mods' use the weapon's own stat names and may add stats the script reads with a default.",
+    "ranks": [
+      { "name": "TRAINED", "xp": 100 },
+      { "name": "SKILLED", "xp": 300 },
+      { "name": "VETERAN", "xp": 800 },
+      { "name": "EXPERT", "xp": 2000 },
+      { "name": "MASTER", "xp": 5000 }
+    ],
+    "run_xp": { "per_minute": 30, "minutes_cap": 6, "kills_per_minute": 60, "per_tier": 0.05, "tier_cap": 2.0, "boss": 40, "bosses_cap": 2, "clear": 60, "idle_after": 6 }
+  },
+
   "weapons": {
     "pulse": {
       "name": "Pulse Cannon", "icon": "w_pulse", "color": "#2de2ff", "script": "pulse_cannon",
@@ -8,6 +20,18 @@
       "unlock": { "type": "default" },
       "tags": ["projectile"],
       "base": { "damage": 10, "cooldown": 0.42, "projectiles": 1, "pierce": 0, "speed": 800, "range": 640, "radius": 8, "spread": 9, "knockback": 90 },
+      "mastery": [
+        { "rank": 2, "desc": "Bolts fly 15% further and faster", "mods": {"range_pct": 0.15, "speed_pct": 0.15} },
+        { "rank": 4, "desc": "Bolts pierce +1", "mods": {"pierce": 1} }
+      ],
+      "evolutions": {
+        "repeater": { "name": "Storm Repeater", "role": "BOSS KILLER", "rank": 3, "cost": 5000, "color": "#7df9ff",
+          "desc": "One tight, relentless stream of bolts. Melts a single target.",
+          "mods": {"cooldown_pct": -0.6, "projectiles": -2, "spread_pct": -1.0, "damage_pct": 0.6} },
+        "breach": { "name": "Breach Cannon", "role": "SWARM CLEARER", "rank": 4, "cost": 9000, "color": "#c8f7ff",
+          "desc": "Slow, heavy shells that plough through the swarm, blasting everything they touch.",
+          "mods": {"cooldown_pct": 1.2, "damage_pct": 2.0, "pierce": 3, "blast_radius": 62, "radius_pct": 0.6} }
+      },
       "levels": [
         { "desc": "Fires energy bolts at the nearest enemy." },
         { "desc": "+1 bolt per volley", "mods": { "projectiles": 1 } },
@@ -22,11 +46,23 @@
       "tagline": "Close-range cone of pellets. Devastating up close.",
       "unlock": { "type": "default" },
       "tags": ["projectile"],
-      "base": { "damage": 7, "cooldown": 1.05, "projectiles": 5, "pierce": 0, "speed": 640, "range": 300, "radius": 6, "spread": 46, "knockback": 220 },
+      "base": { "damage": 9, "cooldown": 0.92, "projectiles": 5, "pierce": 0, "speed": 640, "range": 320, "radius": 7, "spread": 46, "knockback": 220 },
+      "mastery": [
+        { "rank": 2, "desc": "+15% range", "mods": {"range_pct": 0.15} },
+        { "rank": 4, "desc": "+2 pellets", "mods": {"projectiles": 2} }
+      ],
+      "evolutions": {
+        "flak": { "name": "Flak Burster", "role": "MID RANGE", "rank": 3, "cost": 6000, "color": "#ffc46b",
+          "desc": "Fewer, longer-ranged shells that burst into flak where they land.",
+          "mods": {"projectiles": -5, "range_pct": 0.7, "blast_radius": 72, "damage_pct": 1.1, "pierce": -2} },
+        "slug": { "name": "Slug Thrower", "role": "BOSS KILLER", "rank": 4, "cost": 10000, "color": "#ff7a3d",
+          "desc": "A tight cone of massive slugs. Brutal up close, useless at range.",
+          "mods": {"spread_pct": -0.72, "projectiles": -4, "damage_pct": 2.4, "knockback_pct": 0.8, "pierce": 1} }
+      },
       "levels": [
         { "desc": "Close-range cone of pellets." },
         { "desc": "+2 pellets", "mods": { "projectiles": 2 } },
-        { "desc": "+45% damage", "mods": { "damage_pct": 0.45 } },
+        { "desc": "+45% damage, pellets pierce +1", "mods": { "damage_pct": 0.45, "pierce": 1 } },
         { "desc": "+25% fire rate, +20% range", "mods": { "cooldown_pct": -0.2, "range_pct": 0.2 } },
         { "desc": "+3 pellets, pellets pierce +1", "mods": { "projectiles": 3, "pierce": 1 } }
       ]
@@ -38,6 +74,18 @@
       "unlock": { "type": "default" },
       "tags": ["melee"],
       "base": { "damage": 13, "blades": 3, "orbit_radius": 92, "rot_speed": 4.2, "hit_cooldown": 0.3, "radius": 19, "knockback": 270 },
+      "mastery": [
+        { "rank": 2, "desc": "+10% orbit radius", "mods": {"orbit_radius_pct": 0.1} },
+        { "rank": 4, "desc": "+15% spin speed", "mods": {"rot_speed_pct": 0.15} }
+      ],
+      "evolutions": {
+        "ripper": { "name": "Ripper Discs", "role": "REACH", "rank": 3, "cost": 6000, "color": "#a8ffd8",
+          "desc": "Blades fling out at distant targets, so the ring reaches past the swarm.",
+          "mods": {"disc_cooldown": 1.1, "disc_damage": 1.8, "disc_range": 560} },
+        "aegis": { "name": "Aegis Halo", "role": "DEFENCE", "rank": 4, "cost": 9000, "color": "#5cf0ff",
+          "desc": "A wider ring whose blades destroy enemy shots on contact.",
+          "mods": {"orbit_radius_pct": 0.3, "blades": 1, "aegis": 1, "knockback_pct": 0.4} }
+      },
       "levels": [
         { "desc": "Three blades orbit you, shredding and repelling." },
         { "desc": "+1 blade", "mods": { "blades": 1 } },
@@ -53,6 +101,18 @@
       "unlock": { "type": "default" },
       "tags": ["area", "cold"],
       "base": { "damage": 16, "cooldown": 3.2, "radius": 180, "chill_time": 2.4, "freeze_time": 0.0, "knockback": 60 },
+      "mastery": [
+        { "rank": 2, "desc": "+10% radius", "mods": {"radius_pct": 0.1} },
+        { "rank": 4, "desc": "Chill lasts 0.8 s longer", "mods": {"chill_time": 0.8} }
+      ],
+      "evolutions": {
+        "permafrost": { "name": "Permafrost", "role": "CONTROL", "rank": 3, "cost": 7000, "color": "#bdeeff",
+          "desc": "Every pulse leaves a frozen field that chills and grinds whatever stands in it.",
+          "mods": {"field_time": 3.5, "field_damage": 14, "chill_time": 1.0} },
+        "glacial": { "name": "Glacial Spikes", "role": "BOSS KILLER", "rank": 4, "cost": 10000, "color": "#6fc7ff",
+          "desc": "Pulses also hurl heavy ice spikes at the toughest enemies in range.",
+          "mods": {"spikes": 8, "spike_damage": 64} }
+      },
       "levels": [
         { "desc": "Frost pulse damages and slows nearby enemies." },
         { "desc": "+25% radius", "mods": { "radius_pct": 0.25 } },
@@ -67,11 +127,23 @@
       "tagline": "Lightning that leaps from enemy to enemy.",
       "unlock": { "type": "level", "level": 2, "cost": 400 },
       "tags": ["lightning"],
-      "base": { "damage": 16, "cooldown": 1.25, "chains": 3, "range": 380, "jump_range": 190, "falloff": 0.9, "forks": 1 },
+      "base": { "damage": 24, "cooldown": 1.0, "chains": 3, "range": 420, "jump_range": 200, "falloff": 0.92, "forks": 1 },
+      "mastery": [
+        { "rank": 2, "desc": "+20% jump range", "mods": {"jump_range_pct": 0.2} },
+        { "rank": 4, "desc": "+1 jump", "mods": {"chains": 1} }
+      ],
+      "evolutions": {
+        "conductor": { "name": "Storm Conductor", "role": "SWARM CLEARER", "rank": 3, "cost": 7000, "color": "#d7cbff",
+          "desc": "Lightning that does not fade: far more jumps, far further apart.",
+          "mods": {"chains": 9, "falloff": 0.08, "jump_range_pct": 0.4} },
+        "overload": { "name": "Overload Coil", "role": "BOSS KILLER", "rank": 4, "cost": 11000, "color": "#8f7bff",
+          "desc": "Fewer jumps, far harder strikes, and every enemy struck explodes.",
+          "mods": {"chains": -6, "damage_pct": 1.4, "overload_radius": 62, "overload_damage": 0.35} }
+      },
       "levels": [
         { "desc": "Lightning chains between 4 enemies." },
         { "desc": "+2 chain jumps", "mods": { "chains": 2 } },
-        { "desc": "+45% damage", "mods": { "damage_pct": 0.45 } },
+        { "desc": "+60% damage", "mods": { "damage_pct": 0.6 } },
         { "desc": "+33% fire rate", "mods": { "cooldown_pct": -0.25 } },
         { "desc": "+3 jumps, strikes 2 targets at once", "mods": { "chains": 3, "forks": 1 } }
       ]
@@ -83,6 +155,18 @@
       "unlock": { "type": "level", "level": 3, "cost": 700 },
       "tags": ["projectile", "explosive"],
       "base": { "damage": 26, "cooldown": 2.0, "projectiles": 1, "blast_radius": 80, "speed": 420, "turn_rate": 7.0, "lifetime": 3.0, "knockback": 160 },
+      "mastery": [
+        { "rank": 2, "desc": "Missiles fly and turn 15% faster", "mods": {"speed_pct": 0.15, "turn_rate_pct": 0.15} },
+        { "rank": 4, "desc": "+15% blast radius", "mods": {"blast_radius_pct": 0.15} }
+      ],
+      "evolutions": {
+        "hive": { "name": "Hive Pods", "role": "SWARM CLEARER", "rank": 3, "cost": 7000, "color": "#ffb199",
+          "desc": "A cloud of small missiles, each hunting its own target.",
+          "mods": {"projectiles": 6, "damage_pct": -0.45, "blast_radius_pct": -0.3, "cooldown_pct": -0.2, "missile_size": 30} },
+        "buster": { "name": "Bunker Buster", "role": "BOSS KILLER", "rank": 4, "cost": 11000, "color": "#ff3d2e",
+          "desc": "One heavy warhead that goes straight for the toughest enemy on screen.",
+          "mods": {"projectiles": -4, "damage_pct": 16.0, "speed_pct": 0.3, "hunt": 1, "missile_size": 84} }
+      },
       "levels": [
         { "desc": "Launches a homing missile." },
         { "desc": "+1 missile", "mods": { "projectiles": 1 } },
@@ -98,6 +182,18 @@
       "unlock": { "type": "level", "level": 4, "cost": 1000 },
       "tags": ["area", "explosive"],
       "base": { "damage": 44, "cooldown": 1.2, "blast_radius": 115, "arm_time": 0.25, "trigger_radius": 70, "max_mines": 10, "lifetime": 14, "knockback": 220, "cluster": 0, "throw": 170, "seek_range": 300, "chill_time": 0 },
+      "mastery": [
+        { "rank": 2, "desc": "+2 max mines", "mods": {"max_mines": 2} },
+        { "rank": 4, "desc": "+15% blast radius", "mods": {"blast_radius_pct": 0.15} }
+      ],
+      "evolutions": {
+        "shaped": { "name": "Shaped Charges", "role": "BOSS KILLER", "rank": 3, "cost": 8000, "color": "#ffa3e8",
+          "desc": "Tight, focused blasts for three times the damage. Lobbed further.",
+          "mods": {"damage_pct": 3.4, "blast_radius_pct": -0.4, "cluster": -3, "throw_pct": 0.5, "seek_range_pct": 0.4} },
+        "stasis": { "name": "Stasis Field", "role": "AREA DENIAL", "rank": 4, "cost": 12000, "color": "#d05cff",
+          "desc": "Each blast leaves a field that slows and burns everything inside it.",
+          "mods": {"field_time": 4.0, "field_damage": 7, "cluster": -3} }
+      },
       "levels": [
         { "desc": "Lobs proximity mines towards nearby enemies." },
         { "desc": "+40% damage", "mods": { "damage_pct": 0.4 } },
@@ -112,7 +208,19 @@
       "tagline": "An autonomous wingman that picks its own targets.",
       "unlock": { "type": "level", "level": 5, "cost": 1400 },
       "tags": ["projectile"],
-      "base": { "damage": 9, "cooldown": 0.34, "drones": 1, "pierce": 0, "speed": 780, "range": 430, "radius": 6, "follow_distance": 74, "knockback": 50 },
+      "base": { "damage": 10, "cooldown": 0.34, "drones": 1, "pierce": 1, "speed": 780, "range": 430, "radius": 6, "follow_distance": 74, "knockback": 50 },
+      "mastery": [
+        { "rank": 2, "desc": "+20% range", "mods": {"range_pct": 0.2} },
+        { "rank": 4, "desc": "+15% fire rate", "mods": {"cooldown_pct": -0.13} }
+      ],
+      "evolutions": {
+        "pack": { "name": "Hunter Pack", "role": "SWARM CLEARER", "rank": 3, "cost": 8000, "color": "#fff08a",
+          "desc": "One more drone, firing rounds that curve into their targets.",
+          "mods": {"drones": 1, "range_pct": 0.3, "seeking": 1} },
+        "siege": { "name": "Siege Platform", "role": "BOSS KILLER", "rank": 4, "cost": 12000, "color": "#ffb43d",
+          "desc": "Heavy rounds aimed at the toughest enemy in range, ignoring everything else.",
+          "mods": {"damage_pct": 5.5, "cooldown_pct": 1.2, "pierce": -1, "speed_pct": 0.6, "radius_pct": 0.5, "hunt": 1} }
+      },
       "levels": [
         { "desc": "Deploys a drone that fires on its own." },
         { "desc": "+45% damage", "mods": { "damage_pct": 0.45 } },
@@ -128,6 +236,18 @@
       "unlock": { "type": "level", "level": 7, "cost": 2200 },
       "tags": ["beam"],
       "base": { "damage": 10, "cooldown": 1.8, "duration": 1.2, "length": 620, "width": 28, "beams": 1, "tick": 0.1, "turn_rate": 1.2, "charge": 0.45, "knockback": 26 },
+      "mastery": [
+        { "rank": 2, "desc": "+10% length and width", "mods": {"length_pct": 0.1, "width_pct": 0.1} },
+        { "rank": 4, "desc": "Charges 20% faster", "mods": {"charge_pct": -0.2} }
+      ],
+      "evolutions": {
+        "rail": { "name": "Rail Lance", "role": "BOSS KILLER", "rank": 3, "cost": 9000, "color": "#ff9ec6",
+          "desc": "One narrow, instant lance aimed at the toughest enemy. Huge damage, no sweep.",
+          "mods": {"beams": -2, "duration_pct": -1.1, "width_pct": -0.4, "damage_pct": 11.0, "cooldown_pct": -0.35, "hunt": 1} },
+        "sweep": { "name": "Sweeping Lance", "role": "SWARM CLEARER", "rank": 4, "cost": 13000, "color": "#ff2f7e",
+          "desc": "Wider beams that sweep across the screen, burning everything they pass.",
+          "mods": {"width_pct": 0.7, "sweep": 1.5, "duration_pct": 0.3, "damage_pct": 0.1} }
+      },
       "levels": [
         { "desc": "Charges, then burns through every enemy in its line." },
         { "desc": "+40% damage", "mods": { "damage_pct": 0.4 } },
@@ -142,13 +262,63 @@
       "tagline": "Launches a black hole that drags the swarm in and implodes.",
       "unlock": { "type": "level", "level": 10, "cost": 3500 },
       "tags": ["area", "gravity"],
-      "base": { "damage": 8, "cooldown": 5.6, "duration": 2.6, "radius": 165, "pull": 270, "throw_distance": 250, "tick": 0.2, "implosion_damage": 90 },
+      "base": { "damage": 11, "cooldown": 3.8, "duration": 2.4, "radius": 175, "pull": 300, "throw_distance": 260, "tick": 0.2, "implosion_damage": 130 },
+      "mastery": [
+        { "rank": 2, "desc": "+10% radius", "mods": {"radius_pct": 0.1} },
+        { "rank": 4, "desc": "Lasts 0.6 s longer", "mods": {"duration": 0.6} }
+      ],
+      "evolutions": {
+        "collapsar": { "name": "Collapsar", "role": "CONTROL", "rank": 3, "cost": 9000, "color": "#c2a3ff",
+          "desc": "A larger, longer-lived hole that pins the swarm in place.",
+          "mods": {"duration": 2.2, "radius_pct": 0.35, "pull_pct": 0.7, "cooldown_pct": -0.1} },
+        "supernova": { "name": "Supernova", "role": "BURST", "rank": 4, "cost": 13000, "color": "#ff8bf0",
+          "desc": "Collapses fast and detonates for colossal damage over a huge radius.",
+          "mods": {"duration": -1.2, "implosion_damage_pct": 2.5, "cooldown_pct": -0.2, "blast_scale": 1.5} }
+      },
       "levels": [
         { "desc": "Black hole pulls enemies in, then implodes." },
         { "desc": "+25% pull radius", "mods": { "radius_pct": 0.25 } },
         { "desc": "+40% damage, lasts 1s longer", "mods": { "damage_pct": 0.4, "duration": 1.0 } },
         { "desc": "+33% fire rate", "mods": { "cooldown_pct": -0.25 } },
         { "desc": "Implosion deals 2.5x damage", "mods": { "implosion_damage_pct": 1.5, "radius_pct": 0.15 } }
+      ]
+    },
+
+    "railgun": {
+      "name": "Railgun", "icon": "w_railgun", "color": "#7dd3ff", "script": "railgun",
+      "tagline": "Hunts the toughest enemy on screen with one instant, piercing shot.",
+      "unlock": { "type": "research", "id": "r_railgun" },
+      "tags": ["beam"],
+      "base": { "damage": 120, "cooldown": 2.0, "charge": 0.3, "width": 20, "length": 1100, "range": 900, "knockback": 240, "shots": 1, "line_damage": 0.6 },
+      "mastery": [
+        { "rank": 2, "desc": "Charges 20% faster", "mods": { "charge_pct": -0.2 } },
+        { "rank": 4, "desc": "+25% beam width", "mods": { "width_pct": 0.25 } }
+      ],
+      "levels": [
+        { "desc": "Fires an instant shot at the toughest enemy on screen." },
+        { "desc": "+45% damage", "mods": { "damage_pct": 0.45 } },
+        { "desc": "+25% fire rate", "mods": { "cooldown_pct": -0.2 } },
+        { "desc": "+1 shot, at another enemy", "mods": { "shots": 1 } },
+        { "desc": "+60% damage, full damage along the whole line", "mods": { "damage_pct": 0.6, "line_damage": 0.4 } }
+      ]
+    },
+
+    "nanite": {
+      "name": "Nanite Swarm", "icon": "w_nanite", "color": "#9dff6b", "script": "nanite_swarm",
+      "tagline": "Infects enemies. Eats them from within, and spreads when they die.",
+      "unlock": { "type": "research", "id": "r_nanite" },
+      "tags": ["area"],
+      "base": { "damage": 3, "cooldown": 1.4, "range": 440, "hosts": 1, "duration": 5.0, "health_share": 0.008, "share_cap": 30, "spread": 2, "spread_range": 140, "max_infected": 10 },
+      "mastery": [
+        { "rank": 2, "desc": "Infection lasts 1.5 s longer", "mods": { "duration": 1.5 } },
+        { "rank": 4, "desc": "Spreads to 1 more enemy", "mods": { "spread": 1 } }
+      ],
+      "levels": [
+        { "desc": "Infects the nearest enemy, and spreads when it dies." },
+        { "desc": "+1 infection per cast", "mods": { "hosts": 1 } },
+        { "desc": "+50% damage, more hosts at once", "mods": { "damage_pct": 0.5, "health_share_pct": 0.5, "max_infected": 12 } },
+        { "desc": "Spreads to +2 enemies, further", "mods": { "spread": 2, "spread_range_pct": 0.35 } },
+        { "desc": "+1 infection per cast, +50% damage", "mods": { "hosts": 1, "damage_pct": 0.5, "health_share_pct": 0.5, "max_infected": 30 } }
       ]
     }
   }

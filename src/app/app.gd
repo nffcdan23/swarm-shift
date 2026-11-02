@@ -23,6 +23,8 @@ var economy: Economy
 var stats: StatsService
 var account: AccountService
 var meta: MetaService
+var mastery: MasteryService
+var goals: GoalService
 var arsenal: ArsenalService
 var campaign: CampaignService
 var missions: MissionService
@@ -82,6 +84,8 @@ func boot(backend: SaveBackend = null) -> void:
 	economy = Economy.new(self)
 	account = AccountService.new(self)
 	meta = MetaService.new(self)
+	mastery = MasteryService.new(self)
+	goals = GoalService.new(self)
 	arsenal = ArsenalService.new(self)
 	campaign = CampaignService.new(self)
 	missions = MissionService.new(self)
@@ -193,7 +197,7 @@ func open_url(url: String) -> void:
 
 ## True for any of the balance/performance modes in tests/sim_runner.gd.
 func is_sim_tool() -> bool:
-	for flag: String in ["sim", "bench", "weapons", "weapon-bench", "campaign", "track-value"]:
+	for flag: String in ["sim", "bench", "weapons", "weapon-bench", "campaign", "track-value", "weapon-load"]:
 		if cli.has(flag):
 			return true
 	return false

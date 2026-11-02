@@ -24,7 +24,7 @@ func fill(arena: Arena) -> void:
 	for weapon_id in build.weapon_order:
 		var def := data.weapon(weapon_id)
 		weapons.add_child(_chip(GameData.text(def, "icon", "star"), GameData.color(def, "color", Palette.CYAN),
-			build.weapon_level(weapon_id), max_weapon))
+			build.weapon_level(weapon_id), max_weapon, build.evolved.has(weapon_id)))
 	add_child(weapons)
 
 	if not build.passive_order.is_empty() or not build.augments.is_empty():
@@ -45,7 +45,7 @@ func _row() -> HBoxContainer:
 	return row
 
 
-func _chip(icon_id: String, color: Color, level: int, max_level: int) -> PanelContainer:
+func _chip(icon_id: String, color: Color, level: int, max_level: int, evolved: bool = false) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var maxed := max_level > 0 and level >= max_level
 	var style := UiTheme.box(Palette.with_alpha(color, 0.1), Palette.with_alpha(Palette.GOLD if maxed else color, 0.75), 12, 2)
@@ -59,6 +59,7 @@ func _chip(icon_id: String, color: Color, level: int, max_level: int) -> PanelCo
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(IconGlyph.make(icon_id, 40.0, color))
 	if max_level > 0:
-		box.add_child(UiKit.label("MAX" if maxed else str(level), UiTheme.TINY, Palette.GOLD if maxed else Palette.MUTED, HORIZONTAL_ALIGNMENT_CENTER))
+		var note := "EVO" if evolved else ("MAX" if maxed else str(level))
+		box.add_child(UiKit.label(note, UiTheme.TINY, Palette.GOLD if maxed else Palette.MUTED, HORIZONTAL_ALIGNMENT_CENTER))
 	panel.add_child(box)
 	return panel

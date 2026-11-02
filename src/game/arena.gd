@@ -16,6 +16,7 @@ signal player_revived
 signal boss_appeared(display_name: String)
 signal boss_gone
 signal synergy_activated(synergy: Dictionary)
+signal weapon_evolved(evolution: Dictionary)
 signal pause_changed(paused: bool)
 
 enum State { PLAYING, CHOOSING, PAUSED, DOWNED, ENDING, ENDED }
@@ -33,6 +34,9 @@ var state := State.PLAYING
 ## Identifies this run to the ledger, so it can only ever be paid out once.
 var run_id := ""
 var time := 0.0
+## Seconds of the run spent not moving, past a short grace. Weapon mastery does
+## not count them, so leaving the game running earns nothing.
+var idle_time := 0.0
 var step_count := 0
 var level := 1
 var xp := 0.0
@@ -81,6 +85,8 @@ var diag := RunDiagnostics.new()
 
 var _weapon_by_id: Dictionary = {}
 var _run_cfg: Dictionary
+var _still_for := 0.0
+var _idle_after := 6.0
 var _feel: Dictionary
 var _pending_levels := 0
 var _pending_caches := 0
@@ -137,6 +143,10 @@ func setup(p_app: AppRoot, p_config: RunConfig) -> void:
 	fx.setup(gfx, GameData.dict(_feel, "shake"))
 
 	build = RunBuild.new(data, config.base_mods)
+	for augment_id in config.start_augments:
+		build.add_augment(augment_id)
+	build.recompute()
+	_idle_after = GameData.num(GameData.dict(GameData.dict(data.weapons, "mastery"), "run_xp"), "idle_after", 6.0)
 	combat = Combat.new()
 	combat.setup(self)
 	_src_reactive = combat.source("reactive")
@@ -254,6 +264,12 @@ func step(dt: float) -> void:
 
 	if autopilot != null:
 		move_input = autopilot.decide(dt)
+	if move_input.length_squared() > 0.01:
+		_still_for = 0.0
+	else:
+		_still_for += dt
+		if _still_for > _idle_after:
+			idle_time += dt
 	player.update(dt, move_input)
 	if state == State.PLAYING:
 		director.update(dt)
@@ -384,7 +400,7 @@ func choice_level() -> int:
 func _begin_choice(is_cache: bool) -> void:
 	if state != State.PLAYING:
 		return
-	var offers := upgrades.roll(GameData.integer(_run_cfg, "elite_cache_choices", 3) if is_cache else 3, is_cache)
+	var offers := upgrades.roll((GameData.integer(_run_cfg, "elite_cache_choices", 3) if is_cache else 3) + int(build.mod("run.extra_choices")), is_cache)
 	if offers.is_empty():
 		# Nothing to offer: never wait on a choice that cannot be made.
 		_pending_caches = maxi(_pending_caches - (1 if is_cache else 0), 0)
@@ -501,6 +517,22 @@ func grant_weapon(weapon_id: String, weapon_level: int) -> void:
 		_weapon_by_id[weapon_id] = weapon
 	weapon.level = weapon_level
 	refresh_build()
+
+
+## A weapon takes its evolved form. Announced like a synergy: it is earned.
+func evolve_weapon(weapon_id: String, path: String) -> void:
+	var weapon: Weapon = _weapon_by_id.get(weapon_id)
+	if weapon == null:
+		return
+	build.evolved[weapon_id] = path
+	weapon.evolve(path)
+	refresh_build()
+	var entry := GameData.dict(GameData.dict(weapon.def, "evolutions"), path)
+	sfx("synergy")
+	haptic("success")
+	fx.shockwave(player.x, player.y, 360.0, weapon.color)
+	fx.shake(FxSystem.Shake.LIGHT)
+	weapon_evolved.emit({"weapon": weapon_id, "path": path, "name": GameData.text(entry, "name"), "desc": GameData.text(entry, "desc")})
 
 
 ## The live weapon object for `weapon_id`, or null if the build lacks it.
@@ -643,6 +675,16 @@ func on_boss_phase(phase_index: int) -> void:
 	haptic("heavy")
 
 
+## Last Stand (research): a moment to get out of trouble.
+func on_last_stand() -> void:
+	var radius := GameData.num(_run_cfg, "levelup_shockwave_radius", 230.0)
+	enemies.repel(player.x, player.y, radius, GameData.num(_run_cfg, "levelup_shockwave_force", 520.0))
+	fx.shockwave(player.x, player.y, radius, Color(1.0, 0.85, 0.5))
+	sfx("phase")
+	haptic("heavy")
+	announce("LAST STAND", "warning")
+
+
 func on_boss_killed(x: float, y: float) -> void:
 	boss.die()
 	bullets.clear()
@@ -765,19 +807,24 @@ func _shutdown_audio() -> void:
 
 func build_result(cleared: bool, died: bool, abandoned: bool) -> Dictionary:
 	var by_source: Dictionary = {}
+	var dealt: Dictionary = {}
+	var kills_by: Dictionary = {}
 	for i in combat.source_names.size():
 		if combat.damage_by_source[i] > 0.0:
 			by_source[combat.source_names[i]] = combat.damage_by_source[i]
+			dealt[combat.source_names[i]] = combat.dealt_by_source[i]
+			kills_by[combat.source_names[i]] = combat.kills_by_source[i]
 	return {
 		"run_id": run_id,
 		"mode": config.mode, "tier": config.tier, "effective_tier": director.effective_tier(), "core": config.core,
-		"time": time, "kills": combat.kills, "elites": combat.elites_killed, "bosses": combat.bosses_killed,
+		"time": time, "active_time": maxf(time - idle_time, 0.0), "kills": combat.kills, "elites": combat.elites_killed, "bosses": combat.bosses_killed,
 		"level": level, "level_ups": level - 1, "damage": combat.total_damage,
 		"credits_picked": int(round(credits)), "credit_gain": player.credit_gain,
 		"cleared": cleared, "died": died, "abandoned": abandoned,
 		"synergies": build.synergies.duplicate(), "revives": revives_used,
 		"weapons": build.weapons.duplicate(), "passives": build.passives.duplicate(), "augments": build.augments.duplicate(),
-		"damage_by_source": by_source, "cycle": director.cycle,
+		"damage_by_source": by_source, "dealt_by_source": dealt, "kills_by_source": kills_by,
+		"evolved": build.evolved.duplicate(), "cycle": director.cycle,
 	}
 
 

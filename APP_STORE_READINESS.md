@@ -308,7 +308,8 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 - **Verify.** Unit test with a clock moved back and forward.
 - **Complexity.** S.
 
-#### M-6 Overdrive payout looks too generous for the economy
+#### M-6 Overdrive payout looks too generous for the economy (addressed November 2026, needs human confirmation)
+- **Update.** Overdrive's reward tier is now capped at the highest sector cleared plus one, and the economy has far more to spend on; see `docs/progression/README.md`. Whether the pace feels right needs real players.
 - **Description.** The design doc reports Overdrive at 50% upgrades pays about 6,000 Credits and 7,500 XP per run; full permanent upgrades cost about 130,000 Credits, so a strong player could finish the meta in roughly 20 Overdrive runs.
 - **Evidence.** GAME_DESIGN.md "Clear rates", final paragraph.
 - **Fix.** Decide the intended time-to-max; cap or curve the Overdrive multiplier; re-run the simulator.

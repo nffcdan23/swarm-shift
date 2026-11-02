@@ -111,7 +111,16 @@ godot --headless --path . -- --weapon-bench
 # Full runs where each weapon is the only one the run can have
 godot --headless --path . -- --weapons=8 --sector=2 --meta=0.15
 
-# A free player's campaign on one profile: play, bank, buy the cheapest upgrade, repeat
+# Every weapon's evolutions on the same bench
+godot --headless --path . -- --weapon-bench --evolved
+
+# What each permanent upgrade is worth, per thousand Credits
+godot --headless --path . -- --track-value=16 --sector=8 --meta=0.3
+
+# What each weapon and evolution costs among 400 enemies, ms per step
+godot --headless --path . -- --weapon-load
+
+# A free player's campaign on one profile: play, bank, research, repeat
 godot --headless --path . -- --campaign=8 --skill=0.6
 
 # Screenshot of every screen (needs a window)

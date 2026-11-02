@@ -13,6 +13,7 @@ signal play_again_pressed
 signal home_pressed
 
 const MAX_EXTRA_LINES := 3
+const MAX_MASTERY_LINES := 3
 const XP_PARTS: Array[Array] = [
 	["time", "Time survived"], ["kills", "Enemies defeated"], ["level", "Run Level reached"],
 	["bosses", "Bosses defeated"], ["clear", "Sector cleared"],
@@ -250,7 +251,8 @@ func _extras_card() -> PanelContainer:
 	var total := maxf(float(_result.get("damage", 0.0)), 1.0)
 	var names := sources.keys()
 	names.sort_custom(func(a: String, b: String) -> bool: return float(sources[a]) > float(sources[b]))
-	if lines.is_empty() and names.is_empty():
+	var mastery: Array = _summary.get("mastery", [])
+	if lines.is_empty() and names.is_empty() and mastery.is_empty():
 		return null
 	var card := UiKit.card(Palette.LINE.lightened(0.3), 16, 6)
 	var body := UiKit.card_body(card)
@@ -259,13 +261,41 @@ func _extras_card() -> PanelContainer:
 		body.add_child(_line(str(lines[i][0]), str(lines[i][1]), lines[i][2]))
 	if lines.size() > MAX_EXTRA_LINES:
 		body.add_child(UiKit.caption("+ %d MORE" % (lines.size() - MAX_EXTRA_LINES), UiTheme.TINY, Palette.MUTED))
-	if not names.is_empty():
+	if not mastery.is_empty():
 		if not lines.is_empty():
 			body.add_child(UiKit.divider())
+		body.add_child(UiKit.caption("WEAPON MASTERY", UiTheme.TINY, Palette.MUTED))
+		for i in mini(mastery.size(), MAX_MASTERY_LINES):
+			body.add_child(_mastery_row(mastery[i]))
+	if not names.is_empty():
+		if not lines.is_empty() or not mastery.is_empty():
+			body.add_child(UiKit.divider())
 		body.add_child(UiKit.caption("TOP DAMAGE", UiTheme.TINY, Palette.MUTED))
-		for i in mini(names.size(), 2 if lines.size() > 1 else 3):
+		for i in mini(names.size(), 2 if lines.size() > 1 or not mastery.is_empty() else 3):
 			body.add_child(_damage_row(str(names[i]), float(sources[names[i]]) / total))
 	return card
+
+
+## Weapon, XP gained, a bar through the current rank, and a tag on a new rank.
+func _mastery_row(entry: Dictionary) -> HBoxContainer:
+	var id := str(entry.get("id", ""))
+	var weapon := App.data.weapon(id)
+	var color := GameData.color(weapon, "color", Palette.CYAN)
+	var row := UiKit.hbox(10)
+	var name_label := UiKit.label(GameData.text(weapon, "name", id), UiTheme.TINY + 1, Palette.TEXT)
+	name_label.custom_minimum_size = Vector2(210, 0)
+	name_label.clip_text = true
+	row.add_child(name_label)
+	var bar := MeterBar.make(color, 9.0)
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.set_value(float(entry.get("fraction_after", 0.0)), true)
+	row.add_child(bar)
+	if int(entry.get("rank_after", 0)) > int(entry.get("rank_before", 0)):
+		row.add_child(UiKit.tag(App.mastery.rank_name(int(entry.rank_after)), Palette.GOLD))
+	var gained := UiKit.label("+%d" % int(entry.get("gained", 0)), UiTheme.TINY + 1, color, HORIZONTAL_ALIGNMENT_RIGHT)
+	gained.custom_minimum_size = Vector2(62, 0)
+	row.add_child(gained)
+	return row
 
 
 func _line(icon_id: String, text: String, color: Color) -> HBoxContainer:

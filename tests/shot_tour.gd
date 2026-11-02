@@ -26,6 +26,54 @@ func _ready() -> void:
 	get_tree().quit()
 
 
+## Research, mastery, evolutions and skins, on a profile well into the game.
+func _progression(menu: MenuShell) -> void:
+	App.account.add_xp(140000, "tour")
+	App.economy.grant(Economy.CREDITS, 90000, "tour")
+	for id: String in ["m_damage", "m_hp", "m_credits", "r_evo_lab", "r_flex_rack", "d_glass", "d_bulwark", "r_railgun"]:
+		App.meta.buy_many(id, 3)
+	App.meta.select_doctrine("d_glass")
+	App.save.section("mastery")["pulse"] = {"xp": 1500, "kills": 18400, "damage": 2400000.0, "runs": 38}
+	App.save.section("mastery")["mine"] = {"xp": 420, "kills": 5200, "damage": 900000.0, "runs": 11}
+	App.save.section("mastery")["orbit"] = {"xp": 90, "kills": 800, "damage": 90000.0, "runs": 3}
+	App.mastery.unlock_evolution("pulse", "repeater")
+	App.arsenal.unlock(ArsenalService.SKINS, "inferno")
+	App.arsenal.select_skin("inferno")
+	menu.set_active(true)
+	await _wait(3.6)
+	await _shot("06_progress_home")
+	menu.show_tab("upgrades")
+	var research := menu.screen("upgrades") as UpgradesScreen
+	for category: String in App.meta.categories():
+		research.show_branch(category)
+		await _wait(0.5)
+		await _shot("06_progress_research_%s" % category)
+	menu.show_tab("arsenal")
+	var arsenal := menu.screen("arsenal") as ArsenalScreen
+	arsenal._tabs.select(1)
+	arsenal.refresh()
+	await _wait(0.5)
+	await _shot("06_progress_arsenal_weapons")
+	var modal := WeaponModal.new(menu, "pulse")
+	menu.open_dialog(modal)
+	await _wait(0.8)
+	await _shot("06_progress_weapon_modal")
+	modal.close()
+	await _wait(0.4)
+	arsenal._tabs.select(2)
+	arsenal.refresh()
+	await _wait(0.8)
+	await _shot("06_progress_arsenal_skins")
+	# Every skin at lobby size, one after another.
+	for id: String in App.data.skins():
+		App.save.section("loadout")["skin"] = id
+		App.arsenal.grant(ArsenalService.SKINS, id, "tour")
+		menu.show_tab("home", true)
+		await _wait(0.5)
+		await _shot("07_progress_skin_%s" % id)
+	App.arsenal.select_skin("default")
+
+
 func _wait(seconds: float) -> void:
 	await get_tree().create_timer(seconds).timeout
 
@@ -99,6 +147,10 @@ func _run() -> void:
 			dialog.close()
 			await _wait(0.4)
 
+	if _wants("progress"):
+		await _progression(menu)
+	if _wants("evolved"):
+		await _evolutions()
 	if _wants("sector"):
 		await _sector_three()
 	if _wants("combat"):
@@ -208,6 +260,82 @@ func _sector_three() -> void:
 
 ## Readability under load: enemy fire through a crowd and explosions, then the
 ## Prism Lance and Plasma Mines working a swarm.
+## Evolved weapons at work, each in a different skin, and the card that offers them.
+func _evolutions() -> void:
+	App.economy.grant(Economy.CREDITS, 900000, "tour")
+	App.account.add_xp(900000, "tour")
+	App.meta.buy("r_evo_lab")
+	App.save.section("mastery")["pulse"] = {"xp": 4000}
+	App.mastery.unlock_evolution("pulse", "repeater")
+	App.mastery.unlock_evolution("pulse", "breach")
+	var shots: Array[Array] = [
+		["void", "pulse", "breach"], ["solar", "laser", "sweep"], ["quantum", "chain", "conductor"], ["inferno", "mine", "stasis"],
+		["glacier", "nova", "permafrost"], ["paragon", "orbit", "ripper"], ["default", "railgun", ""], ["overseer", "nanite", ""],
+		["ember", "singularity", "supernova"], ["rose", "missile", "hive"], ["amethyst", "laser", "rail"],
+	]
+	for entry: Array in shots:
+		App.save.section("loadout")["skin"] = str(entry[0])
+		App.arsenal.grant(ArsenalService.SKINS, str(entry[0]), "tour")
+		App.cli["seed"] = "21"
+		App.campaign.select(1)
+		_main.start_run(CampaignService.MODE_SECTOR)
+		await _wait(1.2)
+		var arena: Arena = _main.arena
+		arena.autopilot = null
+		arena.director.paused = true
+		arena.player.invulnerable_for = 1000.0
+		var weapon_id := str(entry[1])
+		arena.grant_weapon(weapon_id, 5)
+		if not str(entry[2]).is_empty():
+			arena.evolve_weapon(weapon_id, str(entry[2]))
+		arena.player.xp_gain = 0.0
+		var hud: Hud = _main.hud
+		var types := ["swarmer", "swarmer", "swarmer", "brute", "splitter"]
+		for k in 180:
+			var angle := arena.rng.randf() * TAU
+			var dist := arena.rng.randf_range(170.0, 620.0)
+			arena.enemies.spawn(arena.enemies.type_of(types[k % types.size()]), arena.player.x + cos(angle) * dist, arena.player.y + sin(angle) * dist)
+		arena.enemies.spawn(arena.enemies.type_of("tank"), arena.player.x + 300.0, arena.player.y - 280.0)
+		for s in 110:
+			arena.move_input = Vector2(cos(float(s) * 0.05), sin(float(s) * 0.05)) * 0.7
+			arena.step(DT)
+			if arena.enemies.count < 90:
+				for k in 40:
+					var angle := arena.rng.randf() * TAU
+					arena.enemies.spawn(arena.enemies.type_of("swarmer"), arena.player.x + cos(angle) * 380.0, arena.player.y + sin(angle) * 380.0)
+		for k in 6:
+			await get_tree().process_frame
+		await _shot("08_evolved_%s_%s" % [str(entry[0]), str(entry[2]) if not str(entry[2]).is_empty() else weapon_id])
+		_main._teardown_run()
+		await _wait(0.3)
+
+	# The choice itself: both paths side by side on the level-up screen.
+	App.save.section("loadout")["skin"] = "default"
+	_main.start_run(CampaignService.MODE_SECTOR)
+	await _wait(1.2)
+	var arena: Arena = _main.arena
+	arena.autopilot = null
+	arena.director.paused = true
+	arena.grant_weapon("pulse", 5)
+	arena.add_xp(arena.xp_needed + 1.0)
+	await _wait(1.3)
+	await _shot("08_evolved_choice_card")
+	if arena.state == Arena.State.CHOOSING:
+		arena.choose(0)
+	await _wait(1.0)
+	await _shot("08_evolved_banner")
+	# Priority Signal: four cards must still fit, with the buttons below them.
+	arena.config.base_mods["run.extra_choices"] = 1.0
+	arena.build.recompute()
+	arena.add_xp(arena.xp_needed + 1.0)
+	await _wait(1.3)
+	await _shot("08_evolved_four_cards")
+	if arena.state == Arena.State.CHOOSING:
+		arena.choose(0)
+	_main._teardown_run()
+	await _wait(0.3)
+
+
 func _combat_readability() -> void:
 	App.cli["seed"] = "12"
 	App.campaign.select(1)

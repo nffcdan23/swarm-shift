@@ -48,7 +48,7 @@ func setup(data: GameData, enemy_capacity: int, pickup_capacity: int, bullet_cap
 	telegraphs = Telegraphs.new()
 	telegraphs.name = "Telegraphs"
 	add_child(telegraphs)
-	zones = _batch("Zones", 48, _ring)
+	zones = _batch("Zones", 72, _ring)
 	pickups = _batch("Pickups", pickup_capacity + 16, _mix)
 	# Elites add an aura instance each, hence the headroom.
 	enemies = _batch("Enemies", enemy_capacity + 48, _mix)

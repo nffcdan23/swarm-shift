@@ -1,6 +1,9 @@
 extends Weapon
 ## Scatter Shot - a wide cone of short-lived pellets. Huge damage point blank,
 ## nothing at range, and enough knockback to punch a hole in a closing ring.
+##
+## Flak Burster: fewer, longer-ranged shells that burst where they land. Slug
+## Thrower: a tight cone of heavy slugs for point-blank single-target damage.
 
 var _damage := 7.0
 var _cooldown := 1.05
@@ -11,6 +14,7 @@ var _range := 300.0
 var _radius := 6.0
 var _spread := 0.8
 var _kb := 220.0
+var _blast := 0.0
 var _cell := 0.0
 
 
@@ -28,6 +32,7 @@ func _on_stats() -> void:
 	_radius = stat("radius")
 	_spread = deg_to_rad(stat("spread"))
 	_kb = stat("knockback")
+	_blast = stat("blast_radius", 0.0)
 
 
 func update(dt: float) -> void:
@@ -49,8 +54,12 @@ func update(dt: float) -> void:
 		var along := (float(k) + 0.5) / float(n) - 0.5
 		var angle := aim + along * _spread + rng.randf_range(-0.04, 0.04)
 		fire_bullet(player.x + cos(angle) * 18.0, player.y + sin(angle) * 18.0, angle, _damage,
-			_speed * rng.randf_range(0.82, 1.1), _range, _radius, _cell, 50.0, _pierce, _kb)
+			_speed * rng.randf_range(0.82, 1.1), _range, _radius, _cell, 76.0 if evolved_shot() else 50.0, _pierce, _kb, 0, _blast)
 	_a.fx.flash(player.x + cos(aim) * 30.0, player.y + sin(aim) * 30.0, 90.0, color, 0.09)
 	_a.gfx.particles.burst(player.x, player.y, 6, 200.0, 520.0, 0.1, 0.22, 10.0, 1.0, color, 5.0, 2.0, aim, _spread)
 	_a.sfx("shoot_scatter")
 	player.aim_angle = aim
+
+
+func evolved_shot() -> bool:
+	return not evolution.is_empty()

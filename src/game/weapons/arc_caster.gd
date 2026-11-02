@@ -1,6 +1,9 @@
 extends Weapon
 ## Arc Caster - instant lightning that jumps between enemies, losing a little
 ## power with each jump. Best against tightly packed swarms.
+##
+## Storm Conductor: no fade and far more jumps, for the widest possible net.
+## Overload Coil: fewer jumps, far harder strikes, and each one bursts.
 
 var _damage := 14.0
 var _cooldown := 1.3
@@ -9,6 +12,8 @@ var _range := 380.0
 var _jump := 190.0
 var _falloff := 0.88
 var _forks := 1
+var _overload_radius := 0.0
+var _overload_damage := 0.0
 
 var _visited := PackedInt32Array()
 
@@ -21,6 +26,8 @@ func _on_stats() -> void:
 	_jump = stat("jump_range")
 	_falloff = stat("falloff")
 	_forks = maxi(int(stat("forks")), 1)
+	_overload_radius = stat("overload_radius", 0.0)
+	_overload_damage = stat("overload_damage", 0.0)
 
 
 func update(dt: float) -> void:
@@ -58,6 +65,8 @@ func _cast(start: int, from_x: float, from_y: float) -> void:
 		_visited.append(enemies.id[current])
 		a.fx.lightning(fx_x, fx_y, ex, ey, color, 12.0 if jump == 0 else 9.0)
 		a.combat.hit(current, dmg, src)
+		if _overload_radius > 0.0:
+			a.combat.blast(ex, ey, _overload_radius * a.player.area, dmg * _overload_damage, src, color, 90.0)
 		dmg *= _falloff
 		fx_x = ex
 		fx_y = ey

@@ -104,6 +104,7 @@ func _ready() -> void:
 	arena.boss_appeared.connect(_on_boss_appeared)
 	arena.boss_gone.connect(_on_boss_gone)
 	arena.synergy_activated.connect(_on_synergy)
+	arena.weapon_evolved.connect(_on_evolved)
 	arena.run_ended.connect(_on_run_ended)
 
 	_start = Vector2(arena.player.x, arena.player.y)
@@ -457,6 +458,10 @@ func _fade_boss_box(alpha: float, seconds: float) -> void:
 func _on_run_ended(_result: Dictionary) -> void:
 	joystick.enabled = false
 	_hint.visible = false
+
+
+func _on_evolved(evolution: Dictionary) -> void:
+	_banners.notify(str(evolution.get("name", "")).to_upper(), str(evolution.get("desc", "")), "evolution")
 
 
 func _on_announced(text: String, style: String) -> void:

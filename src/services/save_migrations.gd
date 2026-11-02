@@ -12,8 +12,15 @@ extends RefCounted
 ##   3. add its `N:` arm to the `match` in `migrate()`
 ## Steps run in sequence, so a player returning from any old build is walked
 ## forward one version at a time. Never delete a step once it has shipped.
+##
+## Keep a fixture of the old format in tests/fixtures and load it in a test.
 
-const CURRENT_VERSION := 1
+const CURRENT_VERSION := 2
+
+## Version 1 to 2: the head start in weapon mastery for existing players.
+const VETERAN_XP_PER_RUN := 6.0
+const VETERAN_XP_CAP := 300
+const VETERAN_STARTERS: Array[String] = ["pulse", "scatter", "orbit", "nova"]
 
 
 static func defaults() -> Dictionary:
@@ -27,7 +34,10 @@ static func defaults() -> Dictionary:
 		"currencies": {"credits": 0, "crystals": 0},
 		"meta_upgrades": {},
 		"unlocks": {"weapons": [], "cores": [], "skins": []},
-		"loadout": {"core": "vanguard", "skin": "default"},
+		"loadout": {"core": "vanguard", "skin": "default", "doctrine": "", "start_weapon": ""},
+		# Per weapon: {"xp", "kills", "damage", "runs"} (see MasteryService).
+		"mastery": {},
+		"evolutions": {"unlocked": []},
 		"sectors": {"highest_cleared": 0, "selected": 1, "best_times": {}, "endless_best": 0.0},
 		"stats": {},
 		"achievements": {"claimed": []},
@@ -54,12 +64,37 @@ static func migrate(payload: Dictionary) -> Dictionary:
 	var version := int(payload.get("version", 1))
 	while version < CURRENT_VERSION:
 		match version:
-			# 1: payload = _from_v1(payload)
+			1:
+				payload = _from_v1(payload)
 			_:
 				push_warning("Save: no migration registered from version %d" % version)
 		version += 1
 	payload["version"] = maxi(version, CURRENT_VERSION)
 	fill_defaults(payload, defaults())
+	return payload
+
+
+## Version 2 (November 2026, the progression overhaul) adds weapon mastery. No
+## existing progress changes: upgrade levels, unlocks, skins and balances are
+## all still valid. So that a veteran does not start the new system from
+## nothing, every weapon they own gets Mastery XP in proportion to the runs they
+## have played, up to Rank 2, which is what the new start-weapon and perk
+## systems look at first.
+static func _from_v1(payload: Dictionary) -> Dictionary:
+	var stats: Dictionary = payload.get("stats", {})
+	var runs := float(stats.get("runs", 0.0))
+	var grant := mini(int(runs * VETERAN_XP_PER_RUN), VETERAN_XP_CAP)
+	if grant <= 0:
+		return payload
+	var unlocks: Dictionary = payload.get("unlocks", {})
+	var weapons: Array = VETERAN_STARTERS.duplicate()
+	for id: String in unlocks.get("weapons", []):
+		if not weapons.has(id):
+			weapons.append(id)
+	var mastery: Dictionary = payload.get("mastery", {})
+	for id: String in weapons:
+		mastery[id] = {"xp": grant, "kills": 0, "damage": 0.0, "runs": 0}
+	payload["mastery"] = mastery
 	return payload
 
 

@@ -128,6 +128,42 @@
       "desc": "Chilled enemies take a further +75% damage and shatter into more shards.",
       "requires": ["w:nova", "a:shatter", "p:lethality"],
       "mods": { "fx.chilled_damage_pct": 0.75, "fx.shatter_shards": 4 }
+    },
+    "gravity_lens": {
+      "name": "GRAVITY LENS",
+      "desc": "Prism Lance beams are 40% wider and Singularity lasts 1 second longer.",
+      "requires": ["w:singularity", "w:laser"], "needs": "unlock.codex_1",
+      "mods": { "w.laser.width_pct": 0.4, "w.singularity.duration": 1 }
+    },
+    "chain_reaction": {
+      "name": "CHAIN REACTION",
+      "desc": "Arc Caster gains +2 jumps and missile blasts are 25% wider.",
+      "requires": ["w:chain", "w:missile"], "needs": "unlock.codex_1",
+      "mods": { "w.chain.chains": 2, "w.missile.blast_radius_pct": 0.25 }
+    },
+    "hail_of_steel": {
+      "name": "HAIL OF STEEL",
+      "desc": "+2 Scatter pellets and +1 Combat Drone.",
+      "requires": ["w:scatter", "w:drone"], "needs": "unlock.codex_1",
+      "mods": { "w.scatter.projectiles": 2, "w.drone.drones": 1 }
+    },
+    "cold_fusion": {
+      "name": "COLD FUSION",
+      "desc": "Mine blasts are 25% wider and chill longer; Cryo Nova pulses 25% faster.",
+      "requires": ["w:nova", "w:mine"], "needs": "unlock.codex_2",
+      "mods": { "w.mine.blast_radius_pct": 0.25, "w.mine.chill_time": 1.5, "w.nova.cooldown_pct": -0.2 }
+    },
+    "dead_eye": {
+      "name": "DEAD EYE",
+      "desc": "Railgun deals +35% damage and charges 30% faster; Pulse bolts pierce +1.",
+      "requires": ["w:railgun", "w:pulse"], "needs": "unlock.codex_2",
+      "mods": { "w.railgun.damage_pct": 0.35, "w.railgun.charge_pct": -0.3, "w.pulse.pierce": 1 }
+    },
+    "plague_engine": {
+      "name": "PLAGUE ENGINE",
+      "desc": "Nanites spread to 2 more enemies and Orbit Blades gain +2 blades.",
+      "requires": ["w:nanite", "w:orbit"], "needs": "unlock.codex_2",
+      "mods": { "w.nanite.spread": 2, "w.orbit.blades": 2 }
     }
   }
 }

@@ -1,5 +1,8 @@
 extends Weapon
 ## Pulse Cannon - the starter. Fast, accurate bolts at the nearest enemy.
+##
+## Storm Repeater: one tight stream, for single targets. Breach Cannon: slow
+## shells that burst on everything they pass through, for the swarm.
 
 var _damage := 10.0
 var _cooldown := 0.42
@@ -10,7 +13,9 @@ var _range := 640.0
 var _radius := 8.0
 var _spread := 0.15
 var _kb := 90.0
+var _blast := 0.0
 var _cell := 0.0
+var _shots := 0
 
 
 func _on_setup() -> void:
@@ -27,6 +32,7 @@ func _on_stats() -> void:
 	_radius = stat("radius")
 	_spread = deg_to_rad(stat("spread"))
 	_kb = stat("knockback")
+	_blast = stat("blast_radius", 0.0)
 
 
 func update(dt: float) -> void:
@@ -44,7 +50,10 @@ func update(dt: float) -> void:
 	var n := shot_count(_projectiles)
 	for k in n:
 		var angle := aim + (float(k) - float(n - 1) * 0.5) * _spread
-		fire_bullet(player.x + cos(angle) * 20.0, player.y + sin(angle) * 20.0, angle, _damage, _speed, _range, _radius, _cell, 64.0, _pierce, _kb)
-	_a.fx.flash(player.x + cos(aim) * 24.0, player.y + sin(aim) * 24.0, 44.0, color, 0.07)
-	_a.sfx("shoot_pulse")
+		fire_bullet(player.x + cos(angle) * 20.0, player.y + sin(angle) * 20.0, angle, _damage, _speed, _range, _radius, _cell, 8.0 * _radius, _pierce, _kb, 0, _blast)
+	_a.fx.flash(player.x + cos(aim) * 24.0, player.y + sin(aim) * 24.0, 80.0 if _blast > 0.0 else 44.0, color, 0.07)
+	_shots += 1
+	# At Repeater speed every shot would be a buzz, not a rhythm.
+	if evolution.is_empty() or _shots % 3 == 0:
+		_a.sfx("shoot_pulse", 0.72 if _blast > 0.0 else 1.0)
 	player.aim_angle = aim
