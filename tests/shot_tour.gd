@@ -261,6 +261,24 @@ func _combat_readability() -> void:
 	for k in 4:
 		await get_tree().process_frame
 	await _shot("36_combat_lance_and_mines")
+	# The longest synergy text, then a banner under the boss bar. A bot at the
+	# wheel stops a lost window focus from pausing the run mid-capture.
+	arena.autopilot = Autopilot.new()
+	arena.autopilot.setup(arena, 0.7, 12)
+	var hud: Hud = _main.hud
+	hud._banners.notify_synergy("ABSOLUTE ZERO", GameData.text(App.data.synergies().get("zero_shatter", {}), "desc", "Chilled enemies take a further +75% damage and shatter into more shards."))
+	# It may have to wait for the sector title to finish.
+	for k in 80:
+		if hud._banners.current_title() == "ABSOLUTE ZERO":
+			break
+		await _wait(0.05)
+	await _wait(0.5)
+	await _shot("37_combat_synergy_banner")
+	await _wait(2.6)
+	hud._on_boss_appeared("THE OVERSEER")
+	hud._banners.notify("WARNING  THE OVERSEER", "", "boss")
+	await _wait(0.7)
+	await _shot("38_combat_banner_under_boss_bar")
 	arena.move_input = Vector2.ZERO
 	_main._teardown_run()
 	_main.menu.set_active(true)

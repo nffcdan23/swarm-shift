@@ -56,7 +56,7 @@ godot --headless --path . --import          # once after adding files
 godot --headless --path . -- --test
 ```
 
-160 tests, about 2,810 checks, two to three minutes (most of it the stability suite).
+167 tests, about 2,840 checks, two to three minutes (most of it the stability suite).
 
 | Suite | Covers |
 | --- | --- |
@@ -65,6 +65,7 @@ godot --headless --path . -- --test
 | `services` | Save, economy, missions, achievements, ads and store policy |
 | `upgrades` | Upgrade cards: a person-like player picking and rerolling at random over six runs, maxed weapons and passives never offered, over-cap and stale cards refused, a full build still dealt a fair hand, pause during a choice |
 | `combat` | Enemy fire drawn on top at its true hit size, every shot visible in a dense fight, Shooter firing cue; Prism Lance aiming, piercing and level scaling; Plasma Mines placement, trigger radius, arming and slowing; damage and kill attribution; load; old saves with both weapons |
+| `banners` | In-run notifications: below the HUD and boss bar, compact, gone in two to three seconds, queued and merged, never catching a touch, waiting behind upgrade screens, never slowing the run |
 | `shake` | Camera shake: one subtle shake for a chain of hundreds of exploding enemies, none for ordinary explosions or weapon fire, no request can extend a shake, big moments still land, and the Off / Low / Normal setting |
 | `pickups` | Rewards on the floor: hundreds of deaths in one step, a saturated field, merging that keeps energy and Credits apart and exact, collection after merging, explosions, long heavy runs |
 | `ads` | AdMob provider and consent flow against a scripted stand-in for the native bridge: consent timing, preloading, retries, rewards only on the reward callback, timeouts |

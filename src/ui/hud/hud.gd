@@ -2,7 +2,8 @@ class_name Hud
 extends CanvasLayer
 ## In-run interface. Deliberately small: health, run energy, Run Level, timer,
 ## kills, Credits collected and a pause button along the top edge, with the
-## middle of the screen left clear for the fight. Everything else (level-up,
+## middle of the screen left clear for the fight. Notifications go in one
+## compact banner directly below that (RunBanners). Everything else (level-up,
 ## pause, revive) is an overlay that only exists while it is needed.
 ##
 ## Two things are colour-coded and never mixed: green is run energy and the
@@ -35,9 +36,7 @@ var _credits: Label
 var _boss_box: VBoxContainer
 var _boss_bar: MeterBar
 var _boss_name: Label
-var _banner: Label
-var _banner_tween: Tween
-var _synergy: PanelContainer
+var _banners: RunBanners
 var _hint: PanelContainer
 var _hint_rows: VBoxContainer
 var _hint_timer := 0.0
@@ -55,7 +54,6 @@ var _shown_level := -1
 var _hint_stage := 0
 var _start := Vector2.ZERO
 var _reroll_busy := false
-var _synergy_tween: Tween
 var _boss_tween: Tween
 var _recover_serial := -1
 var _recover_tries := 0
@@ -85,10 +83,11 @@ func _ready() -> void:
 	column.add_child(_xp)
 	column.add_child(_build_top_row())
 	column.add_child(_build_boss_box())
+	_banners = RunBanners.new()
+	_banners.holds = _banners_should_wait
+	column.add_child(_banners)
 	column.add_child(UiKit.spacer(false))
 
-	_build_banner()
-	_build_synergy()
 	_build_hint()
 	_build_perf()
 
@@ -180,43 +179,6 @@ func _build_boss_box() -> VBoxContainer:
 	_boss_bar.segments = 3
 	_boss_box.add_child(UiKit.margin(_boss_bar, 40, 0, 40, 0))
 	return _boss_box
-
-
-func _build_banner() -> void:
-	_banner = UiKit.title("", UiTheme.TITLE, Palette.CYAN)
-	_banner.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_banner.anchor_top = 0.24
-	_banner.anchor_bottom = 0.24
-	_banner.offset_top = 0.0
-	_banner.offset_bottom = 70.0
-	_banner.add_theme_constant_override("outline_size", 10)
-	_banner.add_theme_color_override("font_outline_color", Color(0.01, 0.02, 0.04, 0.85))
-	_banner.modulate.a = 0.0
-	_root.add_child(_banner)
-
-
-func _build_synergy() -> void:
-	_synergy = PanelContainer.new()
-	_synergy.add_theme_stylebox_override("panel", UiTheme.box(Palette.PANEL_SOLID, Palette.GOLD, 18, 2, 22.0))
-	_synergy.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_synergy.anchor_top = 0.34
-	_synergy.anchor_bottom = 0.34
-	_synergy.offset_left = 50.0
-	_synergy.offset_right = -50.0
-	_synergy.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var body := UiKit.vbox(6)
-	body.add_child(UiKit.caption("SYNERGY ACTIVATED", UiTheme.TINY, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
-	var name_label := UiKit.title("", UiTheme.HEADING, Palette.GOLD)
-	name_label.name = "Name"
-	body.add_child(name_label)
-	var desc := UiKit.paragraph("", UiTheme.SMALL, Palette.TEXT, HORIZONTAL_ALIGNMENT_CENTER)
-	desc.name = "Desc"
-	body.add_child(desc)
-	var pad := UiKit.margin(body, 22, 16, 22, 18)
-	pad.name = "Pad"
-	_synergy.add_child(pad)
-	_synergy.visible = false
-	_root.add_child(_synergy)
 
 
 func _build_hint() -> void:
@@ -436,9 +398,6 @@ func _show_pause() -> void:
 
 
 func _on_choice_started(offers: Array, is_cache: bool) -> void:
-	if _banner_tween != null and _banner_tween.is_valid():
-		_banner_tween.kill()
-	_banner.modulate.a = 0.0
 	_levelup.present(offers, is_cache, arena.choice_serial)
 
 
@@ -501,58 +460,14 @@ func _on_run_ended(_result: Dictionary) -> void:
 
 
 func _on_announced(text: String, style: String) -> void:
-	var color := Palette.CYAN
-	var hold := 1.5
-	var size := UiTheme.TITLE
-	match style:
-		"warning":
-			color = Palette.AMBER
-		"boss":
-			color = Palette.RED
-			hold = 2.2
-			size = 46
-		"elite":
-			color = Palette.GOLD
-			size = 32
-		"good":
-			color = Palette.GREEN
-			hold = 2.0
-			size = 46
-		"title":
-			color = Palette.TEXT
-			hold = 1.8
-			size = 52
-	# Shrink long announcements until they fit the screen width.
-	var room := _root.size.x - 48.0
-	var font := UiTheme.font_title()
-	while size > 22 and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size).x > room:
-		size -= 2
-	_banner.text = text
-	_banner.add_theme_font_size_override("font_size", size)
-	_banner.add_theme_color_override("font_color", color)
-	if _banner_tween != null and _banner_tween.is_valid():
-		_banner_tween.kill()
-	_banner.pivot_offset = _banner.size * 0.5
-	_banner.scale = Vector2(1.5, 1.5)
-	_banner.modulate.a = 0.0
-	_banner_tween = create_tween()
-	_banner_tween.set_parallel(true)
-	_banner_tween.tween_property(_banner, "modulate:a", 1.0, 0.14)
-	_banner_tween.tween_property(_banner, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_banner_tween.chain().tween_interval(hold)
-	_banner_tween.chain().tween_property(_banner, "modulate:a", 0.0, 0.4)
+	_banners.notify(text, "", style)
 
 
 func _on_synergy(synergy: Dictionary) -> void:
-	(_synergy.get_node("Pad").get_child(0).get_node("Name") as Label).text = str(synergy.get("name", ""))
-	(_synergy.get_node("Pad").get_child(0).get_node("Desc") as Label).text = str(synergy.get("desc", ""))
-	_synergy.visible = true
-	_synergy.modulate.a = 0.0
-	# A second synergy can arrive before the first banner has gone.
-	if _synergy_tween != null and _synergy_tween.is_valid():
-		_synergy_tween.kill()
-	_synergy_tween = create_tween()
-	_synergy_tween.tween_property(_synergy, "modulate:a", 1.0, 0.2)
-	_synergy_tween.tween_interval(3.2)
-	_synergy_tween.tween_property(_synergy, "modulate:a", 0.0, 0.5)
-	_synergy_tween.tween_callback(func() -> void: _synergy.visible = false)
+	_banners.notify_synergy(str(synergy.get("name", "")), str(synergy.get("desc", "")))
+
+
+## An upgrade screen or the pause menu would hide a banner, so the queue waits
+## behind them. The run itself never waits for a banner.
+func _banners_should_wait() -> bool:
+	return is_instance_valid(arena) and (arena.state == Arena.State.CHOOSING or arena.state == Arena.State.PAUSED)

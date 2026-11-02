@@ -88,6 +88,10 @@ Rules that keep this safe:
 
 Input: Godot turns only the first finger on the glass into mouse events, and buttons listen to the mouse. `TouchTaps` (a child of `App`) mirrors that rule and converts a quick tap by any other finger into a click, so buttons work while a thumb is steering. The joystick keeps tracking its finger while disabled, so steering resumes after an overlay without re-touching.
 
+### In-run notifications
+
+`RunBanners` (`src/ui/hud/run_banners.gd`) is the only place a run notifies the player: synergies and everything `Arena.announce()` sends (sector titles, surges, elites, mutators, boss warnings and phases). It sits in the HUD's column, so it is always directly below the top row and the boss bar, inside the safe area, and every node in it ignores input. One banner shows at a time, for two to three seconds. Repeats merge, boss notices jump the queue, announcements older than 2.5 s are dropped because their moment has passed, synergies are never dropped, and a banner is cut short when others wait. While an upgrade screen or the pause menu is up the queue holds, so a synergy earned by a card is seen after it. Nothing in the run waits for a banner. Add new notifications with `notify()`, not new floating labels.
+
 ### Rendering
 
 Everything on the battlefield is drawn by a handful of `SpriteBatch` nodes (`MultiMeshInstance2D`), one draw call each regardless of count, all sampling one atlas that is packed at startup from the individual PNGs in `assets/sprites/atlas/`. Systems write 16 floats per instance straight into a buffer.
