@@ -4,7 +4,8 @@ extends RefCounted
 ## One packed-array pool for all of them; behaviour differences are flags.
 
 const F_HOMING := 1       ## hard homing on a target (missiles)
-const F_SEEK := 2         ## gentle curve towards the nearest enemy (Seeker Rounds)
+## 2 was F_SEEK (Seeker Rounds, removed in November 2026: it bent Scatter
+## Shot's pellets onto one target, which defeats the point of a scatter).
 const F_EXPLODE := 4      ## blast on impact or expiry
 const F_SPLIT := 8        ## splits in two after its first hit
 const F_NO_CRIT := 16
@@ -93,7 +94,6 @@ func update(dt: float) -> void:
 	var o := _batch.count * SpriteBatch.STRIDE
 	var drawn := _batch.count
 	var room := _batch.capacity
-	var seek_turn := combat.seeker_turn
 	var i := count - 1
 	while i >= 0:
 		var fl := flags[i]
@@ -103,27 +103,23 @@ func update(dt: float) -> void:
 		var bvy := vy[i]
 		var left := life[i] - dt
 
-		if (fl & (F_HOMING | F_SEEK)) != 0:
+		if (fl & F_HOMING) != 0:
 			var ti := target_idx[i]
 			if not enemies.is_valid(ti, target_id[i]):
 				ti = -1
 				seek_cd[i] -= dt
 				if seek_cd[i] <= 0.0:
 					seek_cd[i] = 0.14
-					if (fl & F_HOMING) != 0:
-						ti = enemies.random_in_range(bx, by, 560.0)
-					else:
-						ti = enemies.nearest(bx, by, 250.0, last_hit[i])
+					ti = enemies.random_in_range(bx, by, 560.0)
 					target_idx[i] = ti
 					target_id[i] = enemies.id[ti] if ti >= 0 else -1
 			if ti >= 0:
 				var speed := sqrt(bvx * bvx + bvy * bvy)
 				var heading := atan2(bvy, bvx)
 				var want := atan2(enemies.y[ti] - by, enemies.x[ti] - bx)
-				var rate := turn[i] if (fl & F_HOMING) != 0 else seek_turn
+				var rate := turn[i]
 				heading += clampf(wrapf(want - heading, -PI, PI), -rate * dt, rate * dt)
-				if (fl & F_HOMING) != 0:
-					speed = minf(speed * (1.0 + 1.6 * dt), 980.0)
+				speed = minf(speed * (1.0 + 1.6 * dt), 980.0)
 				bvx = cos(heading) * speed
 				bvy = sin(heading) * speed
 

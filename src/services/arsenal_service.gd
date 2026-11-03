@@ -67,7 +67,11 @@ func unlock_info(category: String, id: String) -> Dictionary:
 		"affordable": false,
 	}
 	info.level_met = _app.account.level() >= int(info.level)
-	info.affordable = kind in ["level", "crystals"] and bool(info.level_met) and _app.economy.can_afford(str(info.currency), int(info.cost))
+	# Owned items are never "affordable": the Arsenal badges count this, and an
+	# owned weapon whose price the player could pay again kept the WEAPONS
+	# badge lit with nothing to buy.
+	info.affordable = not bool(info.owned) and kind in ["level", "crystals"] and bool(info.level_met) \
+		and _app.economy.can_afford(str(info.currency), int(info.cost))
 	return info
 
 

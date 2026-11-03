@@ -85,3 +85,9 @@ Thirty runs is roughly plus or minus 17 points, sixty plus or minus 12, ninety p
 - On a phone: how the spin looks and reads in a dense fight, and whether the cut numbers clutter the screen.
 - Whether players notice what the Lance is doing. The damage numbers show the cut, but nothing yet marks an enemy as "at its floor".
 - No new sound: each pass that cuts something plays the existing charge sound, higher, at most every 0.45 s.
+
+## 6. After build 6
+
+**Seeker Rounds removed.** The augment bent every projectile towards the nearest enemy. On Scatter Shot that pulled the cone onto one target, which defeats the point of a scatter. Pulse Cannon and Combat Drone shots are aimed and already land, so excluding Scatter would have left it doing nothing. It is gone from the augment pool, along with its projectile flag and turn-rate code. **Striker Awakening** started every Striker run with Seeker Rounds; it now starts with **Phase Shift** (1.5 seconds of invulnerability every 10 seconds), which suits a fast, fragile core. Anyone who already researched it keeps it and gets the new augment.
+
+**WEAPONS badge fixed.** The Arsenal's badges count items that can be bought. `ArsenalService.unlock_info()` worked "affordable" out from Player Level and Credits alone, without checking ownership. Once a player's Credits were above the price of a weapon they already owned (Arc Caster costs 400), the WEAPONS tab and the ARSENAL button showed "1" with nothing to buy. Cores had the same fault. An owned item is now never affordable. A test buys a weapon and checks that the badge goes out; it fails without the fix.

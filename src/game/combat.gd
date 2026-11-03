@@ -37,7 +37,6 @@ var dealt_by_source := PackedFloat32Array()
 var kills_by_source := PackedInt32Array()
 
 # Effect switches and parameters, cached from the build by `refresh()`.
-var seeker_turn := 0.0
 var explosive_pct := 0.0
 var explosive_radius := 0.0
 var split_pct := 0.55
@@ -151,20 +150,17 @@ func refresh() -> void:
 	_siphon_every = maxi(int(b.mod("fx.siphon_kills", 12.0)), 1)
 	_boss_bonus = b.mod("boss_damage_pct")
 	_execute = b.mod("fx.execute")
-	seeker_turn = b.mod("fx.seeker_turn")
 	explosive_pct = b.mod("fx.explosive_damage_pct")
 	explosive_radius = b.mod("fx.explosive_radius")
 	split_pct = b.mod("fx.split_damage_pct", 0.55)
 	_bonus_projectile_flags = 0
-	if b.enabled("fx.seeker"):
-		_bonus_projectile_flags |= ProjectileSystem.F_SEEK
 	if b.enabled("fx.explosive"):
 		_bonus_projectile_flags |= ProjectileSystem.F_EXPLODE
 	if b.enabled("fx.split"):
 		_bonus_projectile_flags |= ProjectileSystem.F_SPLIT
 
 
-## Flags that augments add to ordinary bullets (seeking, exploding, splitting).
+## Flags that augments add to ordinary bullets (exploding, splitting).
 func projectile_flags() -> int:
 	return _bonus_projectile_flags
 

@@ -60,12 +60,6 @@
       "requires": { "min_level": 5 },
       "mods": { "fx.phase": 1, "fx.phase_interval": 10, "fx.phase_duration": 1.5 }
     },
-    "seeker": {
-      "name": "Seeker Rounds", "icon": "seeker", "rarity": "rare",
-      "desc": "Your projectiles home in on enemies.",
-      "requires": { "any": ["w:pulse", "w:scatter", "w:drone"] },
-      "mods": { "fx.seeker": 1, "fx.seeker_turn": 4.5 }
-    },
     "explosive_rounds": {
       "name": "Explosive Rounds", "icon": "bomb", "rarity": "epic",
       "desc": "Projectile hits explode, damaging nearby enemies.",

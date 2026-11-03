@@ -177,6 +177,22 @@ func test_player_levels_unlock_content() -> void:
 	check((rewards.unlocks as Array).has("Rapid Cyclers"), "the level-3 reward names the upgrade it opens")
 
 
+## The Arsenal's badges count "affordable" items. An item already owned must
+## never count, however many Credits the player has.
+func test_owned_items_never_light_the_arsenal_badges() -> void:
+	fresh_profile()
+	app.account.add_xp(app.account.xp_needed(1), "test")
+	check_eq(app.account.level(), 2, "Player Level 2: Arc Caster is the only weapon on offer")
+	app.economy.grant(Economy.CREDITS, 100000, "test")
+	check(bool(app.arsenal.unlock_info(ArsenalService.WEAPONS, "chain").affordable), "before buying, it is affordable")
+	check(app.arsenal.any_affordable_unlock(), "and the badge shows")
+	check(app.arsenal.unlock(ArsenalService.WEAPONS, "chain"), "bought")
+	check(not bool(app.arsenal.unlock_info(ArsenalService.WEAPONS, "chain").affordable), "an owned weapon is not affordable again")
+	check(not bool(app.arsenal.unlock_info(ArsenalService.WEAPONS, "pulse").affordable), "nor is a starter")
+	check(not app.arsenal.any_affordable_unlock(), "so with nothing left to buy, no badge")
+	check(not app.mastery.any_affordable_evolution(), "and no evolution can be bought without the Evolution Lab")
+
+
 # ------------------------------------------------------------------ banking
 
 func test_a_run_is_banked_exactly_once() -> void:

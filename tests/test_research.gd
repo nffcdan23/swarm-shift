@@ -210,6 +210,16 @@ func test_awakening_gives_the_selected_core_its_augment() -> void:
 	_free(arena)
 	app.arsenal.select_core("tempest")
 	check_eq(RunConfig.from_profile(app).start_augments, ["storm_crit"], "each core has its own")
+	# Striker's was Seeker Rounds until that augment was removed.
+	app.arsenal.grant(ArsenalService.CORES, "striker", "test")
+	check(app.meta.buy("a_striker"), "Striker Awakening can be researched")
+	app.arsenal.select_core("striker")
+	config = RunConfig.from_profile(app)
+	check_eq(config.start_augments, ["phase_shift"], "Striker starts with Phase Shift")
+	arena = _arena(config)
+	check(arena.build.enabled("fx.phase"), "and it works from the first second")
+	_free(arena)
+	check(not app.data.augments().has("seeker"), "Seeker Rounds is gone from the augment pool")
 
 
 func test_boss_damage_only_applies_to_bosses_and_elites() -> void:
