@@ -49,7 +49,7 @@ Limits: 4 weapons (5 levels each), 5 passives, any number of augments.
 | Seeker Missiles | Homing, explosive, spreads its targets | Level 3 |
 | Plasma Mines | Lobbed into the path of whatever is chasing you (or dropped at your feet); big proximity blasts, slowing from level 4, cluster blasts at 5 | Level 4 |
 | Combat Drone | A wingman that picks its own targets | Level 5 |
-| Prism Lance | Support. Beams spin around the player; each pass cuts 30-40% of an enemy's maximum health but never below 12%, so it never kills, and then any weapon's next hit does. Smaller cuts on elites, much smaller on bosses (never below half). Cannot be a Flex Rack starting weapon | Level 7 |
+| Prism Lance | Support. A short charge, then a burst of beams that spin about one full turn around the player, then a cooldown. Each pass cuts 30-40% of an enemy's maximum health but never below 12%, so it never kills, and then any weapon's next hit does. Elites take the full cut; bosses a small one, never below half. Cuts on big enemies show as a percentage. Cannot be a Flex Rack starting weapon | Level 7 |
 | Singularity | Drags the swarm into a ball, then implodes | Level 10 |
 | Railgun | Marks the toughest enemy on screen, charges, and fires one instant line through it. Nothing else in the game aims this way | Research |
 | Nanite Swarm | Infects enemies: damage over time, part of it a share of their health, spreading when they die. Bosses take a capped share | Research |
@@ -134,7 +134,7 @@ At its final level a weapon can evolve, if the path has been unlocked (Evolution
 | Seeker Missiles | Hive Pods / Bunker Buster | A cloud of small missiles / one heavy warhead at the toughest enemy |
 | Plasma Mines | Shaped Charges / Stasis Field | Tight, heavy blasts / blasts that leave a slowing, burning field |
 | Combat Drone | Hunter Pack / Siege Platform | An extra drone with curving rounds / heavy rounds at the toughest enemy |
-| Prism Lance | Sundering Lance / Prism Wheel | Two long spokes that cut bosses (to a quarter) and elites as deep as anything else / six faster spokes for crowds |
+| Prism Lance | Sundering Lance / Prism Wheel | Two long spokes that cut bosses eight times as deep, down to a quarter / six faster spokes for crowds |
 | Singularity | Collapsar / Supernova | A longer hole that pins the swarm / a quick collapse into one colossal blast |
 
 A test holds this to account: on the weapon bench, neither path of any weapon may beat the other at everything.
@@ -158,7 +158,7 @@ Skins are looks only. Tests prove it: the same seed plays out identically in eve
 
 | Currency | Earned from | Spent on |
 | --- | --- | --- |
-| **Credits** (soft) | Gold pickups in a run, a survival bonus (10 per minute), clearing a sector, Player Levels, missions, login calendar, optional ads | Research, weapon and core unlocks, evolutions, skins |
+| **Credits** (soft) | Gold pickups in a run, a survival bonus (10 per minute), clearing a sector (300, raised from 120 in November 2026 so a clear pays clearly more than dying at the boss; both scale 30% per sector), Player Levels, missions, login calendar, optional ads | Research, weapon and core unlocks, evolutions, skins |
 | **Crystals** (premium) | Achievements, first clears, every fifth Player Level, the daily mission bonus, day 3/6/7 of the login calendar, purchase | Core skins, one core, exchange for Credits |
 
 Nothing in the game requires Crystals to progress.
@@ -169,7 +169,7 @@ Nothing in the game requires Crystals to progress.
 
 The results screen shows time survived, enemies defeated, Run Level reached and bosses defeated, then collects the rewards in sequence: Credits line by line (picked up, survival bonus, sector clear), then Player XP line by line into the Player Level bar, with any level-ups and what they unlock. A tap skips the sequence; it never changes what was earned.
 
-Rough income for a player with no upgrades: about 200 Credits for a three-minute run, 600-800 for a cleared Sector 1. The first upgrade levels cost 100-250, so the first runs each buy one or two.
+Rough income for a player with no upgrades: about 200 Credits for a three-minute run, 800-1,000 for a cleared Sector 1. The first upgrade levels cost 100-250, so the first runs each buy one or two.
 
 ## Retention
 

@@ -299,6 +299,8 @@ func _evolutions() -> void:
 		for s in 110:
 			arena.move_input = Vector2(cos(float(s) * 0.05), sin(float(s) * 0.05)) * 0.7
 			arena.step(DT)
+			if weapon_id == "laser" and s >= 50 and arena.weapon_node("laser").is_firing():
+				break
 			if arena.enemies.count < 90:
 				for k in 40:
 					var angle := arena.rng.randf() * TAU
@@ -381,9 +383,11 @@ func _combat_readability() -> void:
 		var angle := arena.rng.randf() * TAU
 		var dist := arena.rng.randf_range(160.0, 600.0)
 		arena.enemies.spawn(arena.enemies.type_of("swarmer" if k % 4 else "brute"), arena.player.x + cos(angle) * dist, arena.player.y + sin(angle) * dist)
-	for s in 75:
+	for s in 120:
 		arena.move_input = Vector2(cos(float(s) * 0.05), sin(float(s) * 0.05)) * 0.6
 		arena.step(DT)
+		if arena.weapon_node("laser").is_firing() and s > 40:
+			break
 	for k in 4:
 		await get_tree().process_frame
 	await _shot("36_combat_lance_and_mines")

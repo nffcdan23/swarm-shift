@@ -88,6 +88,7 @@ func test_refused_consent_requests_nothing() -> void:
 	check_eq(fake.starts, 0, "SDK not started")
 	check_eq(fake.rewarded_loads + fake.interstitial_loads, 0, "no ad requested")
 	check(not ads.rewarded_available(AdsService.DOUBLE_REWARDS), "no rewarded offers")
+	check(not ads.rewarded_enabled(AdsService.DOUBLE_REWARDS), "and no button left waiting for an ad that cannot come")
 	app.stats.add("runs", 5.0)
 	app.ads = ads
 	ads.note_run_finished()

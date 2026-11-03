@@ -209,8 +209,10 @@ func hit(i: int, base_damage: float, src: int, kb_x: float = 0.0, kb_y: float = 
 ## Takes `share` of an enemy's maximum health away, plus `flat` damage (raised
 ## by the player's damage bonus), but never below `floor_share` of it: a cut
 ## never kills. No crits, no armour: it is a fraction of the enemy, not a hit.
-## Returns the health removed.
-func cut(i: int, share: float, floor_share: float, src: int, flat: float = 0.0) -> float:
+## On anything big it shows as a percentage in `tint`, because a big enemy
+## that has lost most of its health otherwise looks untouched. Returns the
+## health removed.
+func cut(i: int, share: float, floor_share: float, src: int, flat: float = 0.0, tint: Color = Color.WHITE) -> float:
 	var enemies := _a.enemies
 	var health := enemies.hp[i]
 	if health <= 0.0:
@@ -228,7 +230,11 @@ func cut(i: int, share: float, floor_share: float, src: int, flat: float = 0.0) 
 	total_damage += removed
 	damage_by_source[src] += removed
 	dealt_by_source[src] += removed
-	_a.fx.number(enemies.x[i], enemies.y[i] - enemies.radius[i], removed, false)
+	var top_y := enemies.y[i] - enemies.radius[i]
+	if (enemies.flags[i] & (EnemySystem.F_BIG | EnemySystem.F_ELITE | EnemySystem.F_BOSS)) != 0:
+		_a.fx.text(enemies.x[i], top_y, "-%d%%" % maxi(roundi(removed / top * 100.0), 1), tint.lerp(Color.WHITE, 0.25), 1.15)
+	else:
+		_a.fx.number(enemies.x[i], top_y, removed, false)
 	return removed
 
 

@@ -85,6 +85,13 @@ func show_privacy_options() -> void:
 
 # ----------------------------------------------------------------- rewarded
 
+## Whether this placement offers rewarded ads at all, loaded or not. A screen
+## shows its ad button on this and waits for `rewarded_available()` to light
+## it: an ad still loading on the phone must not make the button vanish.
+func rewarded_enabled(placement: String) -> bool:
+	return GameData.flag(GameData.dict(GameData.dict(_cfg, "rewarded"), placement), "enabled", false) and provider.rewarded_possible()
+
+
 func rewarded_available(placement: String) -> bool:
 	var cfg := GameData.dict(GameData.dict(_cfg, "rewarded"), placement)
 	if not GameData.flag(cfg, "enabled", false) or not provider.is_rewarded_ready():

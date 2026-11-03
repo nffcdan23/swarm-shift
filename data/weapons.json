@@ -232,27 +232,27 @@
 
     "laser": {
       "name": "Prism Lance", "icon": "w_laser", "color": "#ff4d9d", "script": "prism_lance",
-      "tagline": "Spinning beams carve every enemy down to a sliver. Anything else finishes them.",
+      "tagline": "Bursts of spinning beams carve every enemy down to a sliver. Anything else finishes them.",
       "unlock": { "type": "level", "level": 7, "cost": 2200 },
       "tags": ["beam"], "support": true,
-      "base": { "damage": 5, "cut": 0.3, "floor": 0.12, "elite_cut": 0.5, "boss_cut": 0.01, "boss_floor": 0.5, "beams": 2, "spin": 2.2, "length": 260, "width": 20, "knockback": 30 },
+      "base": { "damage": 5, "cut": 0.3, "floor": 0.12, "boss_cut": 0.025, "boss_floor": 0.5, "beams": 2, "spin": 4.0, "charge": 0.35, "duration": 1.6, "cooldown": 2.2, "length": 260, "width": 20, "knockback": 30 },
       "mastery": [
         { "rank": 2, "desc": "+10% reach", "mods": {"length_pct": 0.1} },
-        { "rank": 4, "desc": "Spins 15% faster", "mods": {"spin_pct": 0.15} }
+        { "rank": 4, "desc": "Beams last 15% longer", "mods": {"duration_pct": 0.15} }
       ],
       "evolutions": {
         "rail": { "name": "Sundering Lance", "role": "BOSS KILLER", "rank": 3, "cost": 9000, "color": "#ff9ec6",
-          "desc": "Two long spokes that cut bosses and elites as deep as anything else.",
-          "mods": {"beams": -2, "length_pct": 0.4, "boss_cut": 0.044, "boss_floor": -0.25, "elite_cut": 0.5, "damage_pct": 2.0} },
+          "desc": "Two long spokes that cut bosses eight times as deep, down to a quarter of their health.",
+          "mods": {"beams": -2, "length_pct": 0.4, "boss_cut": 0.175, "boss_floor": -0.25, "damage_pct": 2.0} },
         "sweep": { "name": "Prism Wheel", "role": "SWARM CLEARER", "rank": 4, "cost": 13000, "color": "#ff2f7e",
           "desc": "Six spokes spinning faster. Nothing near you stays healthy for long.",
           "mods": {"beams": 2, "spin_pct": 0.3, "damage_pct": 0.2} }
       },
       "levels": [
-        { "desc": "Two spinning beams. Each pass cuts 30% of an enemy's health, never below 12%." },
+        { "desc": "Bursts of two spinning beams. Each pass cuts 30% of an enemy's health, never below 12%." },
         { "desc": "+40% damage, cuts 35%", "mods": { "damage_pct": 0.4, "cut": 0.05 } },
         { "desc": "+1 beam, +20% reach", "mods": { "beams": 1, "length_pct": 0.2 } },
-        { "desc": "Spins 25% faster, +30% damage", "mods": { "spin_pct": 0.25, "damage_pct": 0.3 } },
+        { "desc": "+30% beam duration, +30% damage", "mods": { "duration_pct": 0.3, "damage_pct": 0.3 } },
         { "desc": "+1 beam, cuts 40%, +15% reach", "mods": { "beams": 1, "cut": 0.05, "length_pct": 0.15 } }
       ]
     },

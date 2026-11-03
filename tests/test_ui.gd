@@ -551,6 +551,46 @@ func _level_credits(summary: Dictionary) -> int:
 	return total
 
 
+## An ad network that has not finished loading a rewarded ad yet.
+class SlowAds extends MockAdProvider:
+	var ready := false
+
+	func is_rewarded_ready() -> bool:
+		return ready
+
+	func rewarded_possible() -> bool:
+		return true
+
+
+## The double-Credits button used to be left out whenever no ad was loaded at
+## the moment the results opened, which on a phone is often.
+func test_double_credits_waits_for_an_ad_instead_of_vanishing() -> void:
+	fresh_profile()
+	var slow := SlowAds.new()
+	slow.initialize(app)
+	var real := app.ads.provider
+	app.ads.provider = slow
+	var result := {
+		"run_id": "ui-slow-ad", "mode": CampaignService.MODE_SECTOR, "tier": 1, "effective_tier": 1.0, "core": "vanguard",
+		"time": 200.0, "kills": 900, "elites": 1, "bosses": 0, "level": 15, "level_ups": 14, "damage": 50000.0,
+		"credits_picked": 120, "credit_gain": 1.0, "cleared": false, "died": true, "abandoned": false,
+		"synergies": [], "revives": 0, "weapons": {"pulse": 4}, "passives": {}, "augments": [], "damage_by_source": {"pulse": 50000.0}, "cycle": 0,
+	}
+	var screen := ResultsScreen.new(result, RunLedger.settle(app, result))
+	host.add_child(screen)
+	await _frames(3)
+	check(screen._double.visible, "the double button is there while the ad loads")
+	check(screen._double.disabled, "but cannot be pressed yet")
+	check(_has_text(screen, "LOADING AD..."), "and says why")
+	slow.ready = true
+	await _frames(2)
+	check(not screen._double.disabled, "once the ad has loaded it can be pressed")
+	check(_has_text(screen, "DOUBLE CREDITS"), "and says what it does")
+	screen.queue_free()
+	await _frames(1)
+	app.ads.provider = real
+
+
 func test_results_screen_lists_everything_and_collects_once() -> void:
 	fresh_profile()
 	var result := {

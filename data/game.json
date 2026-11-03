@@ -103,7 +103,7 @@
 
   "rewards": {
     "credits_per_minute": 10,
-    "sector_clear_credits": 120,
+    "sector_clear_credits": 300,
     "first_clear_crystals": 10,
     "xp_per_second": 0.6,
     "xp_per_kill": 0.08,

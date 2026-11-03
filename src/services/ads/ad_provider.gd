@@ -17,6 +17,13 @@ func is_interstitial_ready() -> bool:
 	return false
 
 
+## Whether a rewarded ad could still arrive, even if none is loaded yet. False
+## when the network can never serve one (no SDK, consent refuses ads), so a
+## screen does not wait on an ad that will not come.
+func rewarded_possible() -> bool:
+	return is_rewarded_ready()
+
+
 ## Returns true only if the player earned the reward (watched to completion).
 func show_rewarded(_placement: String) -> bool:
 	return false

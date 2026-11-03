@@ -65,7 +65,7 @@ godot --headless --path . -- --test
 | `data` | Tables load and cross-reference; every blast gives enough warning to walk out of |
 | `services` | Save, economy, missions, achievements, ads and store policy |
 | `upgrades` | Upgrade cards: a person-like player picking and rerolling at random over six runs, maxed weapons and passives never offered, over-cap and stale cards refused, a full build still dealt a fair hand, pause during a choice |
-| `combat` | Enemy fire drawn on top at its true hit size, every shot visible in a dense fight, Shooter firing cue; Prism Lance spinning, cutting to a floor and never killing, smaller cuts on bosses and elites; Plasma Mines placement, trigger radius, arming and slowing; damage and kill attribution; load; old saves with both weapons |
+| `combat` | Enemy fire drawn on top at its true hit size, every shot visible in a dense fight, Shooter firing cue; Prism Lance charging, spinning in bursts, cutting to a floor and never killing, full cuts on elites and small ones on bosses; Plasma Mines placement, trigger radius, arming and slowing; damage and kill attribution; load; old saves with both weapons |
 | `banners` | In-run notifications: below the HUD and boss bar, compact, gone in two to three seconds, queued and merged, never catching a touch, waiting behind upgrade screens, never slowing the run |
 | `shake` | Camera shake: one subtle shake for a chain of hundreds of exploding enemies, none for ordinary explosions or weapon fire, no request can extend a shake, big moments still land, and the Off / Low / Normal setting |
 | `pickups` | Rewards on the floor: hundreds of deaths in one step, a saturated field, merging that keeps energy and Credits apart and exact, collection after merging, explosions, long heavy runs |

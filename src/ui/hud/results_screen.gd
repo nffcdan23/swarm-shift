@@ -40,6 +40,8 @@ var _double: NeonButton
 var _skip_hint: Label
 var _tweens: Array[Tween] = []
 var _busy := false
+var _double_ready := false
+var _double_synced := false
 var _skipped := false
 var _done := false
 
@@ -101,8 +103,12 @@ func _ready() -> void:
 
 	_actions = UiKit.vbox(10)
 	_double = NeonButton.make("DOUBLE CREDITS", NeonButton.Kind.SECONDARY, Palette.AMBER, "ad", 76.0)
+	# Shown whenever there is something to double. Until an ad has loaded it
+	# says so and waits (see _process): it used to be left out whenever no ad
+	# was ready at the moment this screen opened, which on a phone is often.
 	_double.visible = int(_summary.get("credits", 0)) > 0 and not bool(_summary.get("doubled", false)) \
-		and App.ads.rewarded_available(AdsService.DOUBLE_REWARDS)
+		and App.ads.rewarded_enabled(AdsService.DOUBLE_REWARDS)
+	_sync_double()
 	_double.pressed.connect(_on_double)
 	_actions.add_child(_double)
 	var again := NeonButton.make("PLAY AGAIN", NeonButton.Kind.PRIMARY, Palette.CYAN, "play", 96.0, UiTheme.HEADING)
@@ -498,6 +504,23 @@ func _on_gui_input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
 	if click != null and click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
 		skip()
+
+
+func _process(_delta: float) -> void:
+	_sync_double()
+
+
+## Lights the double button once an ad is ready; until then it reads LOADING AD.
+func _sync_double() -> void:
+	if _double == null or not _double.visible or _busy:
+		return
+	var ready := App.ads.rewarded_available(AdsService.DOUBLE_REWARDS)
+	if ready == _double_ready and _double_synced:
+		return
+	_double_synced = true
+	_double_ready = ready
+	_double.set_label("DOUBLE CREDITS" if ready else "LOADING AD...")
+	_double.set_enabled(ready)
 
 
 func _on_double() -> void:

@@ -91,3 +91,32 @@ Thirty runs is roughly plus or minus 17 points, sixty plus or minus 12, ninety p
 **Seeker Rounds removed.** The augment bent every projectile towards the nearest enemy. On Scatter Shot that pulled the cone onto one target, which defeats the point of a scatter. Pulse Cannon and Combat Drone shots are aimed and already land, so excluding Scatter would have left it doing nothing. It is gone from the augment pool, along with its projectile flag and turn-rate code. **Striker Awakening** started every Striker run with Seeker Rounds; it now starts with **Phase Shift** (1.5 seconds of invulnerability every 10 seconds), which suits a fast, fragile core. Anyone who already researched it keeps it and gets the new augment.
 
 **WEAPONS badge fixed.** The Arsenal's badges count items that can be bought. `ArsenalService.unlock_info()` worked "affordable" out from Player Level and Credits alone, without checking ownership. Once a player's Credits were above the price of a weapon they already owned (Arc Caster costs 400), the WEAPONS tab and the ARSENAL button showed "1" with nothing to buy. Cores had the same fault. An owned item is now never affordable. A test buys a weapon and checks that the badge goes out; it fails without the fix.
+
+## 7. Before build 7
+
+Feedback on the always-on Lance: it should fire for a few seconds, as before, but spin instead of aim. It also did not seem to hurt big enemies.
+
+**Bursts.** A cycle is now: wait until an enemy is within reach; charge for 0.35 s, with faint lines where the spokes will appear, light gathering at the core and the old charge sound; fire for 1.6 s, with the spokes turning at 4 radians a second, about one full turn, and the old fire sound; switch off for 2.2 s, shortened by fire-rate bonuses. The spokes fade out at the end of a burst. Level 4 now adds 30% beam duration instead of spin speed, and Mastery Rank 4 makes beams last 15% longer. Player duration bonuses lengthen the burst.
+
+**Big enemies.** Measured in a real run, big enemies were being cut; it just did not show:
+- **Elites took only half a cut**, so an elite needed about six passes to reach its floor and usually got to the player first. Elites now take the full cut.
+- **Bosses took 1% of a cut**, which nobody could notice. They now take 2.5% of it (0.75-1% of their health a pass), still never below half. Sundering Lance raises that eightfold, down to a quarter.
+- **Nothing showed the cut.** Enemies have no health bars, and damage numbers are capped in a crowd. A cut on anything big (Brutes, Tanks, Splitters, elites, bosses) now pops up as a pink percentage, such as "-30%", which always gets through the cap.
+
+Bench beside a level 5 Pulse Cannon (single / swarm / kills / kite / kills): Lance 1 200 / 975 / 333 / 641 / 88; Lance 5 610 / 1127 / 322 / 1036 / 146; Sundering 2504 / 1375 / 282 / 1007 / 210; Prism Wheel 1173 / 1196 / 323 / 1075 / 279. Pulse alone kills 125 and 63. Sector 8 at 40% of upgrades, skill 0.45, 60 runs: **33%**, against 41% for the always-on Lance and 27% before any of this.
+
+**Double Credits button.** The results screen showed it only if a rewarded ad was already loaded at the moment the screen opened, and never checked again. On a phone that is often not the case: just after another ad (a revive or a reroll), while AdMob is still loading, or while a failed load waits on its retry timer (10 s up to 5 minutes). It is now always there when there are Credits to double. It reads LOADING AD... and cannot be pressed until an ad is ready, then becomes DOUBLE CREDITS. It is hidden only when no ad can come: the placement is switched off, or consent does not allow ads. A UI test covers the waiting state.
+
+**Clear bonus.** A clear paid 120 Credits on top of the run (scaled 30% per sector: about 370 at Sector 8), so dying at the boss paid almost as much as winning. It is now 300: about 930 at Sector 8, and a cleared Sector 8 run averages about 2,700 Credits against about 1,100 for one that dies. Overdrive has no clears, so its income is unchanged.
+
+Campaign, free player, sectors only, skill 0.6 (`--campaign=20 --skill=0.6`), against the same sim in the [progression report](../progression/README.md). The new clear bonus and the Lance and Scatter changes are measured together:
+
+| Milestone, hours of play | Before | Now |
+| --- | --- | --- |
+| First evolution | 3.0 | 1.3 |
+| Sector 12 cleared | 3.2 | 2.6 |
+| Sector 16 cleared | 5.0 | 3.8 |
+| Sector 20 cleared | 8.7 | 7.7 |
+| 25% of research, by Credits | 8.6 | 7.8 |
+
+Progress is roughly 10-25% faster. Sector 17 is still the slowest wall (21 attempts).

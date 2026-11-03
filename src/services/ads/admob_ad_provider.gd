@@ -176,6 +176,12 @@ func is_rewarded_ready() -> bool:
 	return _supported() and _started and _bridge.consent_can_request_ads() and _bridge.is_rewarded_loaded()
 
 
+## Until consent has been checked an ad may still come; after that, only if
+## consent allows ads to be requested.
+func rewarded_possible() -> bool:
+	return _supported() and (not _consent_checked or _bridge.consent_can_request_ads())
+
+
 func is_interstitial_ready() -> bool:
 	return _supported() and _started and _bridge.consent_can_request_ads() and _bridge.is_interstitial_loaded()
 

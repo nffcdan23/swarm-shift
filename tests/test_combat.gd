@@ -155,31 +155,50 @@ func test_shooters_show_a_cue_before_they_fire() -> void:
 
 # ------------------------------------------------------------ Prism Lance
 
-func test_lance_spins_and_cuts_without_killing() -> void:
+func test_lance_bursts_spin_and_cut_without_killing() -> void:
 	fresh_profile()
 	var arena := _arena("laser", 1)
 	var lance: Variant = arena.weapon_node("laser")
-	# Eight Brutes in a ring, held in place: half a turn of two opposite
-	# spokes sweeps the whole circle.
+	# Eight Brutes in a ring, held in place: one burst of two opposite spokes
+	# turns far enough to sweep the whole circle.
 	var ring: Array[int] = []
 	for k in 8:
 		var angle := TAU * float(k) / 8.0
 		ring.append(arena.enemies.id[_spawn(arena, "brute", cos(angle) * 180.0, sin(angle) * 180.0)])
 	var start: float = lance.beam_angles()[0]
 	var top := arena.enemies.max_hp[arena.enemies.find_id(ring[0])]
+	var charged := false
+	var cut_while_charging := 0.0
 	for s in int(1.5 / DT):
 		for k in ring.size():
 			var angle := TAU * float(k) / 8.0
 			_pin(arena, ring[k], Vector2(cos(angle) * 180.0, sin(angle) * 180.0))
 		arena.step(DT)
+		if lance.is_charging():
+			charged = true
+			cut_while_charging = maxf(cut_while_charging, arena.combat.dealt_by_source[lance.src])
+	check(charged, "it charges first")
+	check_near(cut_while_charging, 0.0, 0.001, "and cuts nothing while charging")
+	check(lance.is_firing(), "then fires")
 	check(absf(wrapf(lance.beam_angles()[0] - start, -PI, PI)) > 0.5, "the spokes turned")
 	var cut := 0
 	for enemy_id in ring:
 		var i := arena.enemies.find_id(enemy_id)
-		check(i >= 0 and arena.enemies.hp[i] > 0.0, "a single pass kills nothing at full health")
+		check(i >= 0 and arena.enemies.hp[i] > 0.0, "a burst kills nothing at full health")
 		if i >= 0 and arena.enemies.hp[i] <= top * 0.72:
 			cut += 1
-	check_eq(cut, 8, "every Brute in the ring lost at least 28% of its health in one pass")
+	check_eq(cut, 8, "every Brute in the ring lost at least 28% of its health in one burst")
+	# It is a burst, not a permanent ring: it switches off, then fires again.
+	var off := false
+	for s in int(5.0 / DT):
+		for k in ring.size():
+			var angle := TAU * float(k) / 8.0
+			_pin(arena, ring[k], Vector2(cos(angle) * 180.0, sin(angle) * 180.0))
+		arena.step(DT)
+		if not lance.is_firing() and not lance.is_charging():
+			off = true
+	check(off, "the spokes switch off between bursts")
+	check_eq(lance.bursts, 2, "and come back for a second burst within five seconds")
 	_free(arena)
 
 
@@ -218,7 +237,7 @@ func test_after_the_lance_any_weapon_finishes_a_tank() -> void:
 	_free(arena)
 
 
-func test_bosses_and_elites_take_smaller_cuts() -> void:
+func test_bosses_take_smaller_cuts_and_elites_full_ones() -> void:
 	fresh_profile()
 	var arena := _arena("laser", 5)
 	var boss := _spawn(arena, "tank", 150.0, 0.0)
@@ -235,7 +254,8 @@ func test_bosses_and_elites_take_smaller_cuts() -> void:
 	check(share >= 0.5, "twenty seconds of a maxed Lance leave a boss at half health or more (%.2f)" % share)
 	check(share < 0.99, "though it does cut it")
 	_free(arena)
-	# An elite and an ordinary Brute, one pass each.
+	# An elite takes the full cut, like an ordinary Brute: big enemies are what
+	# the Lance is for.
 	arena = _arena("laser", 1)
 	var elite := _spawn(arena, "brute", 180.0, 0.0)
 	arena.enemies.flags[elite] |= EnemySystem.F_ELITE
@@ -248,8 +268,8 @@ func test_bosses_and_elites_take_smaller_cuts() -> void:
 		arena.step(DT)
 	var e := arena.enemies.find_id(elite_id)
 	var p := arena.enemies.find_id(plain_id)
-	check(e >= 0 and p >= 0 and arena.enemies.hp[e] / arena.enemies.max_hp[e] > arena.enemies.hp[p] / arena.enemies.max_hp[p],
-		"an elite keeps more of its health than an ordinary enemy")
+	check(e >= 0 and p >= 0 and arena.enemies.hp[e] / arena.enemies.max_hp[e] < 0.72,
+		"an elite loses as big a share as an ordinary enemy (%.2f)" % (arena.enemies.hp[e] / arena.enemies.max_hp[e] if e >= 0 else 1.0))
 	_free(arena)
 
 
