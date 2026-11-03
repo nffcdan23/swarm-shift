@@ -131,9 +131,9 @@
     },
     "gravity_lens": {
       "name": "GRAVITY LENS",
-      "desc": "Prism Lance beams are 40% wider and Singularity lasts 1 second longer.",
+      "desc": "Prism Lance beams reach 30% further and Singularity lasts 1 second longer.",
       "requires": ["w:singularity", "w:laser"], "needs": "unlock.codex_1",
-      "mods": { "w.laser.width_pct": 0.4, "w.singularity.duration": 1 }
+      "mods": { "w.laser.length_pct": 0.3, "w.singularity.duration": 1 }
     },
     "chain_reaction": {
       "name": "CHAIN REACTION",

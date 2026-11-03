@@ -1,57 +1,50 @@
 extends Weapon
-## Prism Lance - a heavy, piercing beam for dense formations.
+## Prism Lance - beams that spin around the player like the spokes of a wheel.
 ##
-## Each cycle: choose the line through the most enemies within reach, charge
-## for a moment (an aim line brightens along it and the core gathers light),
-## then fire a beam that burns everything along that line for `duration`.
-## Extra beams take the next-best lines, at least `SPREAD` apart, so every
-## upgrade adds damage where it counts. Against a single target - a boss -
-## all beams converge on it, slightly fanned.
+## It does not aim. Each time a beam sweeps over an enemy it cuts away a share
+## of that enemy's maximum health (`cut`) plus a little flat damage (`damage`),
+## but never below a floor (`floor`). It cannot kill anything: three or so
+## passes leave an enemy at a sliver, and then any weapon's next hit finishes
+## it. So the Lance is a partner weapon - it makes everything else one-shot -
+## and stays useful at every sector because it scales with the enemy, not the
+## run. For the same reason it cannot be the weapon a run starts with.
 ##
-## The trade-off against fast weapons is time: it charges, fires in bursts and
-## then cools down, and it does little against a lone enemy that is out of reach.
+## Elites take a smaller cut, bosses a much smaller one and only down to
+## `boss_floor`, so it never melts a boss on its own.
 ##
-## Rail Lance: one narrow, near-instant shot aimed at the toughest enemy. Sweeping
-## Lance: wider beams that swing across their line instead of tracking.
+## Prism Wheel: more spokes, spinning faster. Sundering Lance: fewer, longer
+## spokes that cut bosses and elites hard.
 ##
-## (Until October 2026 it tracked the nearest enemy with a thin beam, and at
-## two or more beams it stopped tracking and spun in a fixed circle, so its
-## single-target damage fell from level 3 to level 5.)
+## (Until November 2026 it charged and fired a beam down the most crowded line.
+## Players found it did almost nothing, so it became this.)
 
-## Directions are tried towards up to this many of the nearest enemies.
-const CANDIDATES := 10
-## Minimum angle between two beams aimed at different lines.
-const SPREAD := 0.42
-## Beams with no separate line to take fan out this far around the best one.
-const FAN := 0.45
+## Where a beam starts, clear of the core.
+const MUZZLE := 22.0
+## Faint copies drawn behind each spoke so the spin reads at a glance.
+const TRAIL_STEPS := 3
+const TRAIL_GAP := 0.07
+## Shortest gap between two cutting sounds.
+const SOUND_GAP := 0.45
 
-var _damage := 10.0
-var _cooldown := 1.8
-var _duration := 1.2
-var _length := 620.0
-var _width := 28.0
-var _beams := 1
-var _tick := 0.1
-var _turn := 1.2
-var _charge := 0.45
-var _push := 26.0
-var _hunt := false
-var _sweep := 0.0
-var _sweep_side := 1.0
+var _damage := 5.0
+var _cut := 0.3
+var _floor := 0.12
+var _elite_cut := 0.5
+var _boss_cut := 0.01
+var _boss_floor := 0.5
+var _beams := 2
+var _spin := 2.2
+var _length := 260.0
+var _width := 20.0
+var _push := 30.0
 
-var _charging := 0.0
-var _firing := 0.0
-var _tick_cd := 0.0
-var _angles := PackedFloat32Array()
-var _anchors := PackedInt32Array()
+## Angle of the first spoke; the rest follow at equal steps.
+var _angle := 0.0
+var _sound_cd := 0.0
 var _beam_cell := 0.0
 var _glow_cell := 0.0
-var _order: Array = []
-# The enemies within reach at aiming time, relative to the player, so each
-# candidate line scans a compact list instead of the whole swarm.
-var _rx := PackedFloat32Array()
-var _ry := PackedFloat32Array()
-var _rr := PackedFloat32Array()
+## Enemies cut so far, for the tests.
+var cuts := 0
 
 
 func _on_setup() -> void:
@@ -61,224 +54,109 @@ func _on_setup() -> void:
 
 func _on_stats() -> void:
 	_damage = stat("damage")
-	_cooldown = stat("cooldown")
-	_duration = stat("duration")
+	_cut = clampf(stat("cut"), 0.0, 0.95)
+	_floor = clampf(stat("floor"), 0.0, 1.0)
+	_elite_cut = stat("elite_cut", 0.5)
+	_boss_cut = stat("boss_cut", 0.01)
+	_boss_floor = clampf(stat("boss_floor", 0.5), 0.0, 1.0)
+	_beams = maxi(int(stat("beams")), 1)
+	_spin = stat("spin")
 	_length = stat("length")
 	_width = stat("width")
-	_beams = maxi(int(stat("beams")), 1)
-	_tick = maxf(stat("tick"), 0.03)
-	_turn = stat("turn_rate")
-	_charge = maxf(stat("charge", 0.45), 0.05)
-	_push = stat("knockback", 26.0)
-	_hunt = stat("hunt", 0.0) > 0.0
-	_sweep = stat("sweep", 0.0)
+	_push = stat("knockback")
 
 
-func is_charging() -> bool:
-	return _charging > 0.0
-
-
-func is_firing() -> bool:
-	return _firing > 0.0
-
-
-## The directions the beams are (or will be) aimed along, in radians.
+## The directions the spokes point along now, in radians.
 func beam_angles() -> PackedFloat32Array:
-	return _angles
+	var out := PackedFloat32Array()
+	for k in _beams:
+		out.append(_angle + TAU * float(k) / float(_beams))
+	return out
+
+
+## Radians per second, after the player's fire-rate bonus.
+func spin_speed() -> float:
+	return _spin * maxf(_a.player.fire_rate, 0.1)
 
 
 func update(dt: float) -> void:
 	var a := _a
 	var player := a.player
 	var reach := _length * player.area
-	var half_width := _width * player.area * 0.5
-
-	if _firing <= 0.0 and _charging <= 0.0:
-		_cd -= dt
-		if _cd > 0.0:
-			return
-		if not _aim(reach, half_width):
-			_cd = 0.0
-			return
-		_charging = _charge
-		a.sfx("lance_charge")
-
-	if _charging > 0.0:
-		_charging -= dt
-		var progress := clampf(1.0 - _charging / _charge, 0.0, 1.0)
-		for k in _angles.size():
-			var ux := cos(_angles[k])
-			var uy := sin(_angles[k])
-			a.gfx.telegraphs.lane(player.x + ux * 22.0, player.y + uy * 22.0, player.x + ux * reach, player.y + uy * reach,
-				half_width * 2.0, color, progress)
-		a.gfx.beams.add_sprite(player.x, player.y, 0.0, 40.0 + 70.0 * progress, Color(color.r, color.g, color.b, 0.35 + 0.5 * progress), _glow_cell)
-		if _charging > 0.0:
-			return
-		# Re-aim at the moment of release: the swarm has moved during the charge
-		# and the enemy it was aimed at may be gone.
-		_aim(reach, half_width)
-		_firing = _duration * player.duration
-		_tick_cd = 0.0
-		if _sweep > 0.0:
-			# Start to one side, so the swing crosses the line it was aimed at.
-			_sweep_side = -_sweep_side
-			for k in _angles.size():
-				_angles[k] -= _sweep_side * _sweep * _firing * 0.5
-		_cd = cooldown_time(_cooldown)
-		a.sfx("lance_fire")
-		a.fx.flash(player.x, player.y, 120.0, color, 0.12)
-
-	_firing -= dt
-	if _sweep > 0.0:
-		for k in _angles.size():
-			_angles[k] += _sweep_side * _sweep * dt
-	else:
-		_track(dt)
-	_tick_cd -= dt
-	var burn := _tick_cd <= 0.0
-	if burn:
-		_tick_cd += _tick
-	var flicker := 0.85 + 0.15 * sin(a.time * 60.0)
-	var beams := a.gfx.beams
-	for k in _angles.size():
-		var ux := cos(_angles[k])
-		var uy := sin(_angles[k])
-		var x0 := player.x + ux * 22.0
-		var y0 := player.y + uy * 22.0
-		var x1 := player.x + ux * reach
-		var y1 := player.y + uy * reach
-		# Outer glow, then a white core as wide as the burn itself.
-		beams.add_segment(x0, y0, x1, y1, half_width * 5.0 * flicker, Color(color.r, color.g, color.b, 0.85), _beam_cell)
-		beams.add_segment(x0, y0, x1, y1, half_width * 2.0, Color(1, 1, 1, 0.95), _beam_cell)
-		if burn:
-			_burn_line(player.x, player.y, ux, uy, reach, half_width)
-	a.fx.flash(player.x, player.y, 80.0, color, 0.05)
+	var step := spin_speed() * dt
+	var before := _angle
+	_angle = wrapf(_angle + step, 0.0, TAU)
+	_sound_cd -= dt
+	if _cut_crossed(player.x, player.y, before, step, reach) > 0 and _sound_cd <= 0.0:
+		_sound_cd = SOUND_GAP
+		a.sfx("lance_charge", 1.35)
+	_draw(player.x, player.y, reach)
 
 
-## Chooses the beam directions. Returns false if no enemy is within reach.
-func _aim(reach: float, half_width: float) -> bool:
+## Cuts every enemy a spoke swept over this step: those whose bearing lies
+## between where a spoke was and where it is now. Each pass over an enemy
+## counts once, however wide the beam. Returns how many were cut.
+func _cut_crossed(px: float, py: float, from: float, step: float, reach: float) -> int:
 	var a := _a
 	var enemies := a.enemies
-	var px := a.player.x
-	var py := a.player.y
-	if _hunt:
-		var mark := enemies.strongest(px, py, reach)
-		if mark < 0:
-			return false
-		_angles.resize(1)
-		_anchors.resize(1)
-		_angles[0] = atan2(enemies.y[mark] - py, enemies.x[mark] - px)
-		_anchors[0] = enemies.id[mark]
-		return true
-	var reach2 := reach * reach
-	_order.clear()
-	_rx.resize(0)
-	_ry.resize(0)
-	_rr.resize(0)
+	var combat := a.combat
+	var gap := TAU / float(_beams)
 	var ex := enemies.x
 	var ey := enemies.y
 	var er := enemies.radius
 	var ehp := enemies.hp
+	var ef := enemies.flags
+	var n := 0
 	for i in enemies.count:
 		if ehp[i] <= 0.0:
 			continue
 		var dx := ex[i] - px
 		var dy := ey[i] - py
-		var d2 := dx * dx + dy * dy
 		var far := reach + er[i]
-		if d2 <= far * far:
-			_rx.append(dx)
-			_ry.append(dy)
-			_rr.append(er[i])
-		if d2 <= reach2:
-			_order.append(Vector2(d2, float(i)))
-	if _order.is_empty():
-		return false
-	_order.sort()
-	var candidates: Array = []
-	for k in mini(_order.size(), CANDIDATES):
-		var i := int((_order[k] as Vector2).y)
-		var angle := atan2(enemies.y[i] - py, enemies.x[i] - px)
-		candidates.append([_count_line(cos(angle), sin(angle), reach, half_width), -k, angle, enemies.id[i]])
-	# Most enemies in line first; nearer anchor breaks ties.
-	candidates.sort_custom(func(l: Array, r: Array) -> bool: return l[0] > r[0] or (l[0] == r[0] and l[1] > r[1]))
-	_angles.resize(0)
-	_anchors.resize(0)
-	for c: Array in candidates:
-		if _angles.size() >= _beams:
-			break
-		var clear := true
-		for taken in _angles:
-			if absf(wrapf(float(c[2]) - taken, -PI, PI)) < SPREAD:
-				clear = false
-				break
-		if clear:
-			_angles.append(float(c[2]))
-			_anchors.append(int(c[3]))
-	# Not enough separate lines: fan the rest around the best one.
-	var best := _angles[0]
-	var extra := 0
-	while _angles.size() < _beams:
-		extra += 1
-		_angles.append(best + FAN * floorf(float(extra + 1) / 2.0) * (1.0 if extra % 2 == 1 else -1.0))
-		_anchors.append(_anchors[0])
-	return true
-
-
-## How many of the enemies within reach a beam along (ux, uy) would touch.
-func _count_line(ux: float, uy: float, reach: float, half_width: float) -> int:
-	var n := 0
-	for k in _rx.size():
-		var rx := _rx[k]
-		var ry := _ry[k]
-		var r := _rr[k]
-		var along := rx * ux + ry * uy
-		if along < -r or along > reach + r:
+		var d2 := dx * dx + dy * dy
+		if d2 > far * far or d2 < 1.0:
 			continue
-		if absf(rx * uy - ry * ux) <= half_width + r:
-			n += 1
+		if fposmod(atan2(dy, dx) - from, gap) >= step:
+			continue
+		var f := ef[i]
+		if (f & EnemySystem.F_BOSS) != 0:
+			combat.cut(i, _cut * _boss_cut, _boss_floor, src, _damage)
+		elif (f & EnemySystem.F_ELITE) != 0:
+			combat.cut(i, _cut * _elite_cut, _floor, src, _damage)
+		else:
+			combat.cut(i, _cut, _floor, src, _damage)
+		var d := sqrt(d2)
+		# Each pass also shoves outwards: the Lance buys room as well.
+		if (f & EnemySystem.F_HEAVY) == 0:
+			enemies.kx[i] += dx / d * _push * enemies.inv_mass[i]
+			enemies.ky[i] += dy / d * _push * enemies.inv_mass[i]
+		a.gfx.particles.emit(ex[i], ey[i], dx / d * 120.0 + randf_range(-60.0, 60.0), dy / d * 120.0 + randf_range(-60.0, 60.0), 0.25, 14.0, 1.0, color, 4.0)
+		n += 1
+	cuts += n
 	return n
 
 
-## Each beam turns after the enemy it was aimed at, by at most turn_rate * dt.
-func _track(dt: float) -> void:
+func _draw(px: float, py: float, reach: float) -> void:
 	var a := _a
-	var enemies := a.enemies
-	for k in _angles.size():
-		var i := enemies.find_id(_anchors[k])
-		if i < 0:
-			continue
-		var want := atan2(enemies.y[i] - a.player.y, enemies.x[i] - a.player.x)
-		if k > 0 and _anchors[k] == _anchors[0]:
-			want += _angles[k] - _angles[0]
-		_angles[k] += clampf(wrapf(want - _angles[k], -PI, PI), -_turn * dt, _turn * dt)
-
-
-## Damages every enemy within `half_width` of the segment. A straight scan of
-## the swarm is cheaper and more exact than tiling the beam with circle queries.
-func _burn_line(ox: float, oy: float, ux: float, uy: float, reach: float, half_width: float) -> void:
-	var a := _a
-	var enemies := a.enemies
-	var ex := enemies.x
-	var ey := enemies.y
-	var er := enemies.radius
-	var ehp := enemies.hp
-	for i in enemies.count:
-		if ehp[i] <= 0.0:
-			continue
-		var rx := ex[i] - ox
-		var ry := ey[i] - oy
-		var along := rx * ux + ry * uy
-		if along < -er[i] or along > reach + er[i]:
-			continue
-		var off := absf(rx * uy - ry * ux)
-		if off <= half_width + er[i]:
-			# Each tick also shoves along the beam: the lance buys room as well.
-			a.combat.hit(i, _damage, src, ux * _push, uy * _push)
-			if (i + a.step_count) % 3 == 0:
-				a.gfx.particles.emit(ex[i], ey[i], -ux * 60.0 + randf_range(-90.0, 90.0), -uy * 60.0 + randf_range(-90.0, 90.0), 0.22, 12.0, 1.0, color, 4.0)
-
-
-func clear() -> void:
-	_firing = 0.0
-	_charging = 0.0
+	var beams := a.gfx.beams
+	var half_width := _width * a.player.area * 0.5
+	var flicker := 0.88 + 0.12 * sin(a.time * 50.0)
+	var glow := Color(color.r, color.g, color.b, 0.8)
+	for k in _beams:
+		var angle := _angle + TAU * float(k) / float(_beams)
+		# The trail first, fading out behind the direction of spin.
+		for t in range(TRAIL_STEPS, 0, -1):
+			var back := angle - TRAIL_GAP * float(t)
+			var fade := 0.32 * (1.0 - float(t) / float(TRAIL_STEPS + 1))
+			beams.add_segment(px + cos(back) * MUZZLE, py + sin(back) * MUZZLE, px + cos(back) * reach, py + sin(back) * reach,
+				half_width * 3.0, Color(color.r, color.g, color.b, fade), _beam_cell)
+		var ux := cos(angle)
+		var uy := sin(angle)
+		var x0 := px + ux * MUZZLE
+		var y0 := py + uy * MUZZLE
+		var x1 := px + ux * reach
+		var y1 := py + uy * reach
+		beams.add_segment(x0, y0, x1, y1, half_width * 4.0 * flicker, glow, _beam_cell)
+		beams.add_segment(x0, y0, x1, y1, half_width * 1.4, Color(1, 1, 1, 0.9), _beam_cell)
+		beams.add_sprite(x1, y1, 0.0, half_width * 5.0, glow, _glow_cell)
+	beams.add_sprite(px, py, 0.0, 70.0, Color(color.r, color.g, color.b, 0.35), _glow_cell)

@@ -16,6 +16,7 @@ Built with **Godot 4.7.2** and GDScript. No backend, no third-party SDKs yet - a
 - [docs/playtest-1](docs/playtest-1/README.md) - the freeze found in the first device playtest: cause, evidence and fix
 - [docs/playtest-2](docs/playtest-2/README.md) - pickups that stopped appearing in big fights, and the "maxed upgrade" card report
 - [docs/playtest-3](docs/playtest-3/README.md) - enemy shots lost in the swarm, and the Prism Lance and Plasma Mines rework, with the weapon measurements
+- [docs/playtest-4](docs/playtest-4/README.md) - the Prism Lance rebuilt as spinning beams that carve enemies down for other weapons, and a stronger Scatter Shot
 
 ## Requirements
 
@@ -64,7 +65,7 @@ godot --headless --path . -- --test
 | `data` | Tables load and cross-reference; every blast gives enough warning to walk out of |
 | `services` | Save, economy, missions, achievements, ads and store policy |
 | `upgrades` | Upgrade cards: a person-like player picking and rerolling at random over six runs, maxed weapons and passives never offered, over-cap and stale cards refused, a full build still dealt a fair hand, pause during a choice |
-| `combat` | Enemy fire drawn on top at its true hit size, every shot visible in a dense fight, Shooter firing cue; Prism Lance aiming, piercing and level scaling; Plasma Mines placement, trigger radius, arming and slowing; damage and kill attribution; load; old saves with both weapons |
+| `combat` | Enemy fire drawn on top at its true hit size, every shot visible in a dense fight, Shooter firing cue; Prism Lance spinning, cutting to a floor and never killing, smaller cuts on bosses and elites; Plasma Mines placement, trigger radius, arming and slowing; damage and kill attribution; load; old saves with both weapons |
 | `banners` | In-run notifications: below the HUD and boss bar, compact, gone in two to three seconds, queued and merged, never catching a touch, waiting behind upgrade screens, never slowing the run |
 | `shake` | Camera shake: one subtle shake for a chain of hundreds of exploding enemies, none for ordinary explosions or weapon fire, no request can extend a shake, big moments still land, and the Off / Low / Normal setting |
 | `pickups` | Rewards on the floor: hundreds of deaths in one step, a saturated field, merging that keeps energy and Credits apart and exact, collection after merging, explosions, long heavy runs |
@@ -113,6 +114,10 @@ godot --headless --path . -- --weapons=8 --sector=2 --meta=0.15
 
 # Every weapon's evolutions on the same bench
 godot --headless --path . -- --weapon-bench --evolved
+
+# A support weapon beside a level 5 partner, counting both weapons' kills
+# (how the Prism Lance is measured: it cannot kill on its own)
+godot --headless --path . -- --weapon-bench --evolved --only=laser --partner=pulse
 
 # What each permanent upgrade is worth, per thousand Credits
 godot --headless --path . -- --track-value=16 --sector=8 --meta=0.3

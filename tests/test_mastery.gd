@@ -470,6 +470,9 @@ func test_flex_rack_lets_a_mastered_weapon_start() -> void:
 	check_eq(RunConfig.from_profile(app).start_weapon, "orbit", "the run starts with it")
 	check(app.arsenal.select_start_weapon(""), "and back")
 	check_eq(app.arsenal.start_weapon(), "pulse", "to the core's own")
+	app.arsenal.grant(ArsenalService.WEAPONS, "laser", "test")
+	app.save.section("mastery")["laser"] = {"xp": app.mastery.rank_xp(1)}
+	check(not app.arsenal.select_start_weapon("laser"), "but never the Prism Lance, which cannot kill on its own")
 
 
 # --------------------------------------------------------------- performance

@@ -1,5 +1,5 @@
 extends TestSuite
-## Readable enemy fire and the reworked Prism Lance and Plasma Mines.
+## Readable enemy fire, the spinning Prism Lance and Plasma Mines.
 ## Weapon numbers come from `godot --headless --path . -- --weapon-bench`;
 ## these tests pin the behaviour that makes those numbers possible.
 
@@ -155,68 +155,114 @@ func test_shooters_show_a_cue_before_they_fire() -> void:
 
 # ------------------------------------------------------------ Prism Lance
 
-func test_lance_aims_down_the_most_crowded_line() -> void:
+func test_lance_spins_and_cuts_without_killing() -> void:
 	fresh_profile()
 	var arena := _arena("laser", 1)
 	var lance: Variant = arena.weapon_node("laser")
-	# One Brute close by to the north; six in a row further east.
-	var lone := _spawn(arena, "brute", 0.0, -160.0)
-	var row: Array[int] = []
-	for k in 6:
-		row.append(arena.enemies.id[_spawn(arena, "brute", 220.0 + 60.0 * k, 0.0)])
-	var lone_id := arena.enemies.id[lone]
-	var charged := false
-	var damaged_during_charge := 0.0
-	for s in int(2.5 / DT):
-		_pin(arena, lone_id, Vector2(0.0, -160.0), 1.0e6)
-		for k in row.size():
-			_pin(arena, row[k], Vector2(220.0 + 60.0 * k, 0.0), 1.0e6)
+	# Eight Brutes in a ring, held in place: half a turn of two opposite
+	# spokes sweeps the whole circle.
+	var ring: Array[int] = []
+	for k in 8:
+		var angle := TAU * float(k) / 8.0
+		ring.append(arena.enemies.id[_spawn(arena, "brute", cos(angle) * 180.0, sin(angle) * 180.0)])
+	var start: float = lance.beam_angles()[0]
+	var top := arena.enemies.max_hp[arena.enemies.find_id(ring[0])]
+	for s in int(1.5 / DT):
+		for k in ring.size():
+			var angle := TAU * float(k) / 8.0
+			_pin(arena, ring[k], Vector2(cos(angle) * 180.0, sin(angle) * 180.0))
 		arena.step(DT)
-		if lance.is_charging():
-			charged = true
-			damaged_during_charge = maxf(damaged_during_charge, arena.combat.dealt_by_source[lance.src])
-		if lance.is_firing():
-			break
-	check(charged, "it charges before firing")
-	check_near(damaged_during_charge, 0.0, 0.001, "and does no damage while charging")
-	check(lance.is_firing(), "then fires")
-	check_near(wrapf(lance.beam_angles()[0], -PI, PI), 0.0, 0.2, "east, along the row of six, not at the nearer lone Brute")
-	for s in 20:
-		for k in row.size():
-			_pin(arena, row[k], Vector2(220.0 + 60.0 * k, 0.0))
-		_pin(arena, lone_id, Vector2(0.0, -160.0))
-		arena.step(DT)
-	var burned := 0
-	for enemy_id in row:
+	check(absf(wrapf(lance.beam_angles()[0] - start, -PI, PI)) > 0.5, "the spokes turned")
+	var cut := 0
+	for enemy_id in ring:
 		var i := arena.enemies.find_id(enemy_id)
-		if i >= 0 and arena.enemies.hp[i] < 1.0e6:
-			burned += 1
-	check_eq(burned, 6, "it pierces: all six in the line were burned")
-	var lone_i := arena.enemies.find_id(lone_id)
-	check(lone_i >= 0 and arena.enemies.hp[lone_i] >= 1.0e6, "the Brute off the line was not touched")
+		check(i >= 0 and arena.enemies.hp[i] > 0.0, "a single pass kills nothing at full health")
+		if i >= 0 and arena.enemies.hp[i] <= top * 0.72:
+			cut += 1
+	check_eq(cut, 8, "every Brute in the ring lost at least 28% of its health in one pass")
 	_free(arena)
 
 
-func test_lance_extra_beams_take_other_lines() -> void:
+func test_a_cut_stops_at_the_floor() -> void:
+	fresh_profile()
+	var arena := _arena("laser", 1)
+	var i := _spawn(arena, "tank", 2000.0, 0.0)
+	var top := arena.enemies.max_hp[i]
+	arena.combat.cut(i, 0.3, 0.15, 0)
+	check_near(arena.enemies.hp[i], top * 0.7, 0.01, "30% off a full-health Tank")
+	arena.combat.cut(i, 0.3, 0.15, 0)
+	arena.combat.cut(i, 0.3, 0.15, 0)
+	check_near(arena.enemies.hp[i], top * 0.15, 0.01, "three cuts leave it at the 15% floor")
+	arena.combat.cut(i, 0.3, 0.15, 0)
+	check_near(arena.enemies.hp[i], top * 0.15, 0.01, "and more cuts take nothing further")
+	_free(arena)
+
+
+func test_after_the_lance_any_weapon_finishes_a_tank() -> void:
+	fresh_profile()
+	var arena := _arena("laser", 3)
+	var tank := arena.enemies.id[_spawn(arena, "tank", 200.0, 0.0)]
+	var top := arena.enemies.max_hp[arena.enemies.find_id(tank)]
+	for s in int(6.0 / DT):
+		_pin(arena, tank, Vector2(200.0, 0.0))
+		arena.step(DT)
+	var i := arena.enemies.find_id(tank)
+	check(i >= 0, "six seconds of the Lance alone have not killed a Tank")
+	check(i >= 0 and absf(arena.enemies.hp[i] - top * 0.12) < 0.5, "but cut it to its 12%% floor (%.0f of %.0f)" % [arena.enemies.hp[i] if i >= 0 else 0.0, top])
+	# One Scatter Shot volley at level 1: five pellets of its base damage.
+	var pellet := GameData.num(GameData.dict(app.data.weapon("scatter"), "base"), "damage")
+	for k in 5:
+		if i >= 0 and arena.enemies.hp[i] > 0.0:
+			arena.combat.hit(i, pellet, 0, 0.0, 0.0, false)
+	check(i >= 0 and arena.enemies.hp[i] <= 0.0, "and one starter volley finishes it")
+	_free(arena)
+
+
+func test_bosses_and_elites_take_smaller_cuts() -> void:
+	fresh_profile()
+	var arena := _arena("laser", 5)
+	var boss := _spawn(arena, "tank", 150.0, 0.0)
+	arena.enemies.flags[boss] |= EnemySystem.F_BOSS
+	# A real boss's health: the Lance's small ordinary hit barely shows on it.
+	arena.enemies.max_hp[boss] = 16000.0
+	arena.enemies.hp[boss] = 16000.0
+	var boss_id := arena.enemies.id[boss]
+	for s in int(20.0 / DT):
+		_pin(arena, boss_id, Vector2(150.0, 0.0))
+		arena.step(DT)
+	var b := arena.enemies.find_id(boss_id)
+	var share := arena.enemies.hp[b] / arena.enemies.max_hp[b] if b >= 0 else 0.0
+	check(share >= 0.5, "twenty seconds of a maxed Lance leave a boss at half health or more (%.2f)" % share)
+	check(share < 0.99, "though it does cut it")
+	_free(arena)
+	# An elite and an ordinary Brute, one pass each.
+	arena = _arena("laser", 1)
+	var elite := _spawn(arena, "brute", 180.0, 0.0)
+	arena.enemies.flags[elite] |= EnemySystem.F_ELITE
+	var plain := _spawn(arena, "brute", -180.0, 0.0)
+	var elite_id := arena.enemies.id[elite]
+	var plain_id := arena.enemies.id[plain]
+	for s in int(1.6 / DT):
+		_pin(arena, elite_id, Vector2(180.0, 0.0))
+		_pin(arena, plain_id, Vector2(-180.0, 0.0))
+		arena.step(DT)
+	var e := arena.enemies.find_id(elite_id)
+	var p := arena.enemies.find_id(plain_id)
+	check(e >= 0 and p >= 0 and arena.enemies.hp[e] / arena.enemies.max_hp[e] > arena.enemies.hp[p] / arena.enemies.max_hp[p],
+		"an elite keeps more of its health than an ordinary enemy")
+	_free(arena)
+
+
+func test_lance_extra_beams_are_evenly_spaced() -> void:
 	fresh_profile()
 	var arena := _arena("laser", 5)
 	var lance: Variant = arena.weapon_node("laser")
-	for k in 4:
-		_spawn(arena, "brute", 240.0 + 50.0 * k, 0.0)
-		_spawn(arena, "brute", -240.0 - 50.0 * k, 0.0)
-		_spawn(arena, "brute", 0.0, 240.0 + 50.0 * k)
-	for s in int(3.0 / DT):
-		arena.step(DT)
-		if lance.is_firing():
-			break
 	var angles: PackedFloat32Array = lance.beam_angles()
-	check_eq(angles.size(), 3, "three beams at level 5")
-	var apart := true
-	for p in angles.size():
-		for q in range(p + 1, angles.size()):
-			if absf(wrapf(angles[p] - angles[q], -PI, PI)) < 0.4:
-				apart = false
-	check(apart, "each on its own line (%s)" % str(angles))
+	check_eq(angles.size(), 4, "four spokes at level 5")
+	for k in angles.size():
+		check_near(absf(wrapf(angles[(k + 1) % angles.size()] - angles[k], -PI, PI)), PI / 2.0, 0.01, "a quarter turn apart")
+	arena.evolve_weapon("laser", "sweep")
+	check_eq(lance.beam_angles().size(), 6, "six on the Prism Wheel")
 	_free(arena)
 
 
@@ -251,7 +297,7 @@ func _crowd_dps(weapon_id: String, level: int) -> float:
 
 func test_every_lance_and_mine_level_is_an_upgrade() -> void:
 	fresh_profile()
-	for weapon_id: String in ["laser", "mine"]:
+	for weapon_id: String in ["mine"]:
 		var single := [_single_target_dps(weapon_id, 1), _single_target_dps(weapon_id, 3), _single_target_dps(weapon_id, 5)]
 		var crowd := [_crowd_dps(weapon_id, 1), _crowd_dps(weapon_id, 3), _crowd_dps(weapon_id, 5)]
 		print("    [weapon] %s single %.0f / %.0f / %.0f   crowd %.0f / %.0f / %.0f" % [weapon_id, single[0], single[1], single[2], crowd[0], crowd[1], crowd[2]])
@@ -259,8 +305,11 @@ func test_every_lance_and_mine_level_is_an_upgrade() -> void:
 		check(single[1] > single[0] and single[2] > single[1], "%s: single-target damage rises at levels 3 and 5" % weapon_id)
 		check(crowd[1] > crowd[0] and crowd[2] > crowd[1], "%s: crowd damage rises at levels 3 and 5" % weapon_id)
 		check(crowd[0] > single[0] * 3.0, "%s is a crowd weapon first (crowd %.0f vs single %.0f)" % [weapon_id, crowd[0], single[0]])
-	var pulse := _single_target_dps("pulse", 5)
-	check(_single_target_dps("laser", 5) < pulse, "a maxed Lance does not out-damage a maxed Pulse Cannon on one target")
+	# The Lance cuts a share of health, so a dummy with a million of it says
+	# nothing; a crowd of real enemies does.
+	var lance := [_crowd_dps("laser", 1), _crowd_dps("laser", 3), _crowd_dps("laser", 5)]
+	print("    [weapon] laser crowd %.0f / %.0f / %.0f" % [lance[0], lance[1], lance[2]])
+	check(lance[1] > lance[0] and lance[2] > lance[1], "laser: crowd damage rises at levels 3 and 5")
 
 
 # ------------------------------------------------------------ Plasma Mines
@@ -347,7 +396,7 @@ func test_mine_level_four_blasts_slow_enemies() -> void:
 
 func test_damage_and_kills_are_credited_to_the_weapon() -> void:
 	fresh_profile()
-	for weapon_id: String in ["laser", "mine"]:
+	for weapon_id: String in ["mine"]:
 		var arena := _arena(weapon_id, 3, 120)
 		for k in 120:
 			var angle := TAU * float(k) / 120.0
@@ -359,6 +408,24 @@ func test_damage_and_kills_are_credited_to_the_weapon() -> void:
 		check_eq(arena.combat.kills_by_source[src], arena.combat.kills, "%s: every kill is credited to it" % weapon_id)
 		check(arena.combat.dealt_by_source[src] <= arena.combat.damage_by_source[src] + 0.01, "%s: landed damage never exceeds raw damage" % weapon_id)
 		_free(arena)
+
+
+func test_the_lance_alone_never_kills() -> void:
+	fresh_profile()
+	var arena := _arena("laser", 5, 120)
+	for k in 120:
+		var angle := TAU * float(k) / 120.0
+		_spawn(arena, "swarmer", cos(angle) * (100.0 + float(k % 5) * 50.0), sin(angle) * (100.0 + float(k % 5) * 50.0))
+	for s in int(8.0 / DT):
+		arena.step(DT)
+	var src: int = arena.weapon_node("laser").src
+	check(arena.combat.dealt_by_source[src] > 0.0, "it cut them (%.0f health)" % arena.combat.dealt_by_source[src])
+	check_eq(arena.combat.kills, 0, "but killed none")
+	var lowest := 1.0
+	for i in arena.enemies.count:
+		lowest = minf(lowest, arena.enemies.hp[i] / arena.enemies.max_hp[i])
+	check(lowest >= 0.12 - 0.001, "none below the 12%% floor (lowest %.3f)" % lowest)
+	_free(arena)
 
 
 func test_lance_and_mines_on_a_crowded_field_stay_fast() -> void:
@@ -408,21 +475,4 @@ func test_old_saves_with_these_weapons_still_load_and_play() -> void:
 	for s in int(20.0 / DT):
 		arena.step(DT)
 	check(arena.combat.kills > 0 and is_finite(arena.player.x), "a run from that profile plays with both (%d kills)" % arena.combat.kills)
-	_free(arena)
-
-
-func test_lance_aiming_is_cheap_on_a_full_field() -> void:
-	fresh_profile()
-	var arena := _arena("laser", 5, 420)
-	for k in 410:
-		var angle := arena.rng.randf() * TAU
-		_spawn(arena, "swarmer", cos(angle) * arena.rng.randf_range(100.0, 600.0), sin(angle) * arena.rng.randf_range(100.0, 600.0))
-	var lance: Variant = arena.weapon_node("laser")
-	var mark := Time.get_ticks_usec()
-	for k in 50:
-		lance._aim(620.0, 18.0)
-	var per_aim := float(Time.get_ticks_usec() - mark) / 1000.0 / 50.0
-	print("    [aim] %.2f ms per aim with %d enemies" % [per_aim, arena.enemies.count])
-	# Once per firing cycle (about every two seconds); keep it far below a frame.
-	check(per_aim < 2.0, "choosing the most crowded line costs %.2f ms with 410 enemies" % per_aim)
 	_free(arena)

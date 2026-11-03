@@ -210,6 +210,7 @@ Damage per second, Sector 8 health. Single target / swarm around a still player 
 | --- | --- | --- | --- |
 | Pulse Cannon | 158 / 225 / 267 | Storm Repeater 284 / 507 / 538 | Breach Cannon 135 / 1192 / 1080 |
 | Scatter Shot | 89 / 408 / 364 | Flak Burster 91 / 913 / 659 | Slug Thrower 289 / 499 / 584 |
+| Scatter Shot (playtest 4) | 143 / 537 / 494 | Flak Burster 124 / 1017 / 716 | Slug Thrower 385 / 807 / 635 |
 | Orbit Blades | 0 / 1127 / 725 | Ripper Discs 71 / 1169 / 821 | Aegis Halo 0 / 1241 / 813, plus destroys shots |
 | Cryo Nova | 12 / 944 / 479 | Permafrost 12 / 1277 / 1021 | Glacial Spikes 217 / 999 / 612 |
 | Arc Caster | 52 / 489 / 473 | Storm Conductor 52 / 1232 / 1175 | Overload Coil 132 / 1123 / 987 |
@@ -217,6 +218,7 @@ Damage per second, Sector 8 health. Single target / swarm around a still player 
 | Plasma Mines | 105 / 1275 / 1107 | Shaped Charges 234 / 838 / 965 | Stasis Field 137 / 1319 / 1176 |
 | Combat Drone | 163 / 380 / 368 | Hunter Pack 217 / 784 / 529 | Siege Platform 315 / 354 / 400 |
 | Prism Lance | 83 / 1169 / 1237 | Rail Lance 231 / 731 / 645 | Sweeping Lance 55 / 1280 / 1148 |
+| Prism Lance (playtest 4) | rebuilt as a support weapon that cannot kill; measured beside a partner, see [playtest 4](../playtest-4/README.md) | Sundering Lance | Prism Wheel |
 | Singularity | 90 / 1009 / 1052 | Collapsar 88 / 1341 / 1143 | Supernova 172 / 1263 / 1230 |
 
 The first pass failed this: Overload Coil beat Storm Conductor, Stasis Field beat Shaped Charges and Siege Platform beat Hunter Pack, on nearly every column. They were retuned, and a test now fails if any path beats its sibling at everything.
@@ -234,7 +236,7 @@ Rendered review found two things tests had not: the long loadout caption pushed 
 ## 6. Known limitations
 
 - **None of this has been played by a person.** Every balance number above is the bot, and bots are not players. Whether evolutions feel earned, whether the first weeks feel too fast or too slow, whether Mastery is noticed at all, needs people.
-- **The first attempts at Sectors 1-3 got easier** (Sector 1 with no upgrades: 48% to 68% in the bot's hands), mostly from the Scatter Shot buff. Probably right for a beginner sector, but it needs a person's view. If it is too much, trim Scatter's damage first: `hp_per_tier` does nothing at Sector 1.
+- **The first attempts at Sectors 1-3 got easier** (Sector 1 with no upgrades: 48% to 68% in the bot's hands), mostly from the Scatter Shot buff. Probably right for a beginner sector, but it needs a person's view. If it is too much, trim Scatter's damage first: `hp_per_tier` does nothing at Sector 1. (Playtest 4 then buffed Scatter Shot again because a person found it weak as a lone starter: see [playtest 4](../playtest-4/README.md).)
 - **Sector 17 is the next wall** for a weaker bot (77 attempts at skill 0.35, 21 at the others). It carries Volatile and Artillery together. It may be right for that stage of the game; it may need the same look Sector 8 got.
 - **Railgun is poor on its own by design** (2:23 alone, never reaches a boss) and **Singularity is still the weakest of the original ten alone** (4:04), though far better.
 - **Railgun and Nanite Swarm have no evolutions**, so those two have no reason to reach Rank 3 or 4 beyond their perk.

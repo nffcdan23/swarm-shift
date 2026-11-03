@@ -152,7 +152,8 @@ func start_weapon_options() -> Array[String]:
 	if _app.meta.mod_total("run.flex_rack") <= 0.0:
 		return out
 	for id: String in unlocked_weapons():
-		if _app.mastery.rank(id) >= 1:
+		# A support weapon (the Prism Lance) cannot kill on its own.
+		if _app.mastery.rank(id) >= 1 and not GameData.flag(_app.data.weapon(id), "support"):
 			out.append(id)
 	return out
 

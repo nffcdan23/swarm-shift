@@ -33,6 +33,9 @@ extends Node
 ##       have Sector 8 health so strong weapons do not run out of targets.
 ##       --only=laser,mine limits the weapons; --seconds=N changes the length.
 ##       Add --evolved to add a row for each evolution of each weapon.
+##       Add --partner=pulse to fight beside that weapon at level 5 and count
+##       both weapons' kills: how the Prism Lance is measured, since it
+##       cannot kill on its own.
 ##   godot --headless --path . -- --track-value=12 --sector=8 --meta=0.3
 ##       what each permanent upgrade is worth: the same runs with that one
 ##       upgrade maxed on top of --meta, against none, per thousand Credits.
@@ -220,31 +223,41 @@ func _load_row(weapon_id: String, path: String, unarmed: bool = false) -> Dictio
 func _weapon_bench() -> void:
 	var seconds := float(App.cli_text("seconds", "20"))
 	var only := App.cli_text("only")
-	print("\n=== WEAPON BENCH  %d s per scenario, one weapon, no passives ===" % int(seconds))
-	print("  weapon              lvl   single dps   swarm dps  kills   kite dps  kills")
+	var partner := App.cli_text("partner")
+	if not partner.is_empty():
+		print("\n=== WEAPON BENCH  %d s per scenario, beside %s at level 5; kills are by both ===" % [int(seconds), partner])
+		print("  %-18s  lvl   single dps   swarm dps  kills   kite dps  kills" % (partner + " alone"))
+		_bench_row(partner, 5, seconds, "", "")
+	else:
+		print("\n=== WEAPON BENCH  %d s per scenario, one weapon, no passives ===" % int(seconds))
+		print("  weapon              lvl   single dps   swarm dps  kills   kite dps  kills")
 	var ids: Array = App.data.weapon_defs().keys()
 	for weapon_id: String in ids:
 		if not only.is_empty() and not only.split(",").has(weapon_id):
 			continue
+		if weapon_id == partner:
+			continue
 		for level: int in [1, 3, 5]:
-			_bench_row(weapon_id, level, seconds, "")
+			_bench_row(weapon_id, level, seconds, "", partner)
 		if App.cli.has("evolved"):
 			for path: String in GameData.dict(App.data.weapon(weapon_id), "evolutions"):
-				_bench_row(weapon_id, 5, seconds, path)
+				_bench_row(weapon_id, 5, seconds, path, partner)
 
 
 ## Averaged over three seeds: one twenty-second fight is too chaotic.
-func _bench_row(weapon_id: String, level: int, seconds: float, path: String) -> Dictionary:
+func _bench_row(weapon_id: String, level: int, seconds: float, path: String, partner: String = "") -> Dictionary:
 	var row := {"single": 0.0, "swarm": 0.0, "swarm_kills": 0.0, "kite": 0.0, "kite_kills": 0.0}
 	for run_seed: int in [77, 78, 79]:
-		var single := WeaponBench.run(self, App, weapon_id, level, "single", seconds, run_seed, path)
-		var swarm := WeaponBench.run(self, App, weapon_id, level, "swarm", seconds, run_seed, path)
-		var kite := WeaponBench.run(self, App, weapon_id, level, "kite", seconds, run_seed, path)
+		var single := WeaponBench.run(self, App, weapon_id, level, "single", seconds, run_seed, path, partner)
+		var swarm := WeaponBench.run(self, App, weapon_id, level, "swarm", seconds, run_seed, path, partner)
+		var kite := WeaponBench.run(self, App, weapon_id, level, "kite", seconds, run_seed, path, partner)
 		row.single += float(single.dps) / 3.0
 		row.swarm += float(swarm.dps) / 3.0
-		row.swarm_kills += float(swarm.kills) / 3.0
+		# Beside a partner, count every kill: the partner's are the point.
+		var both := 0.0 if partner.is_empty() else 1.0
+		row.swarm_kills += (float(swarm.kills) + both * float(swarm.other_kills)) / 3.0
 		row.kite += float(kite.dps) / 3.0
-		row.kite_kills += float(kite.kills) / 3.0
+		row.kite_kills += (float(kite.kills) + both * float(kite.other_kills)) / 3.0
 	var title := GameData.text(App.data.weapon(weapon_id), "name")
 	if not path.is_empty():
 		title = "  > " + GameData.text(GameData.dict(GameData.dict(App.data.weapon(weapon_id), "evolutions"), path), "name")

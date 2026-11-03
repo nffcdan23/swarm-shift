@@ -42,14 +42,14 @@ Limits: 4 weapons (5 levels each), 5 passives, any number of augments.
 | Weapon | Identity | Unlock |
 | --- | --- | --- |
 | Pulse Cannon | Fast, accurate bolts at the nearest enemy | Start |
-| Scatter Shot | Short-range cone; huge up close, strong knockback | Start |
+| Scatter Shot | Cone of pellets; huge up close, still useful at mid range, strong knockback | Start |
 | Orbit Blades | Always-on ring that shreds and repels | Start |
 | Cryo Nova | Frost pulse; slows, and freezes at max level | Start |
 | Arc Caster | Lightning that chains through packed enemies | Level 2 |
 | Seeker Missiles | Homing, explosive, spreads its targets | Level 3 |
 | Plasma Mines | Lobbed into the path of whatever is chasing you (or dropped at your feet); big proximity blasts, slowing from level 4, cluster blasts at 5 | Level 4 |
 | Combat Drone | A wingman that picks its own targets | Level 5 |
-| Prism Lance | Charges, then fires a piercing beam down the most crowded line; extra beams take the next-best lines. Strong against formations, modest against a single target | Level 7 |
+| Prism Lance | Support. Beams spin around the player; each pass cuts 30-40% of an enemy's maximum health but never below 12%, so it never kills, and then any weapon's next hit does. Smaller cuts on elites, much smaller on bosses (never below half). Cannot be a Flex Rack starting weapon | Level 7 |
 | Singularity | Drags the swarm into a ball, then implodes | Level 10 |
 | Railgun | Marks the toughest enemy on screen, charges, and fires one instant line through it. Nothing else in the game aims this way | Research |
 | Nanite Swarm | Infects enemies: damage over time, part of it a share of their health, spreading when they die. Bosses take a capped share | Research |
@@ -134,7 +134,7 @@ At its final level a weapon can evolve, if the path has been unlocked (Evolution
 | Seeker Missiles | Hive Pods / Bunker Buster | A cloud of small missiles / one heavy warhead at the toughest enemy |
 | Plasma Mines | Shaped Charges / Stasis Field | Tight, heavy blasts / blasts that leave a slowing, burning field |
 | Combat Drone | Hunter Pack / Siege Platform | An extra drone with curving rounds / heavy rounds at the toughest enemy |
-| Prism Lance | Rail Lance / Sweeping Lance | One narrow instant shot at the toughest enemy / wide beams that swing across the screen |
+| Prism Lance | Sundering Lance / Prism Wheel | Two long spokes that cut bosses (to a quarter) and elites as deep as anything else / six faster spokes for crowds |
 | Singularity | Collapsar / Supernova | A longer hole that pins the swarm / a quick collapse into one colossal blast |
 
 A test holds this to account: on the weapon bench, neither path of any weapon may beat the other at everything.

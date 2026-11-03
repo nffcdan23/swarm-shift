@@ -210,6 +210,32 @@ func hit(i: int, base_damage: float, src: int, kb_x: float = 0.0, kb_y: float = 
 	return killed
 
 
+## Takes `share` of an enemy's maximum health away, plus `flat` damage (raised
+## by the player's damage bonus), but never below `floor_share` of it: a cut
+## never kills. No crits, no armour: it is a fraction of the enemy, not a hit.
+## Returns the health removed.
+func cut(i: int, share: float, floor_share: float, src: int, flat: float = 0.0) -> float:
+	var enemies := _a.enemies
+	var health := enemies.hp[i]
+	if health <= 0.0:
+		return 0.0
+	var top := enemies.max_hp[i]
+	var left := maxf(health - top * share - flat * _a.player.damage, top * floor_share)
+	# Health is stored as 32-bit floats, so an enemy already at its floor sits
+	# a hair above it: without a margin every pass would "cut" nothing and
+	# show a 0.
+	if left >= health - 0.5:
+		return 0.0
+	var removed := health - left
+	enemies.hp[i] = left
+	enemies.flash[i] = 1.0
+	total_damage += removed
+	damage_by_source[src] += removed
+	dealt_by_source[src] += removed
+	_a.fx.number(enemies.x[i], enemies.y[i] - enemies.radius[i], removed, false)
+	return removed
+
+
 ## Queues an area hit. Resolved in `flush()`.
 func blast(x: float, y: float, radius: float, base_damage: float, src: int, color: Color,
 		kb: float = 140.0, chill_time: float = 0.0, can_crit: bool = false) -> void:

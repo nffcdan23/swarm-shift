@@ -384,8 +384,6 @@ func _combat_readability() -> void:
 	for s in 75:
 		arena.move_input = Vector2(cos(float(s) * 0.05), sin(float(s) * 0.05)) * 0.6
 		arena.step(DT)
-		if arena.weapon_node("laser").is_firing() and s > 50:
-			break
 	for k in 4:
 		await get_tree().process_frame
 	await _shot("36_combat_lance_and_mines")
