@@ -174,18 +174,20 @@ Thirty runs per sector, 40% of every stat track, skill 0.45:
 
 Sector 8 no longer sits above Sector 9, and it took the Volatile change, not a general reduction, to do it. Campaigns: Sector 8 fell on the first attempt at all three skill levels; before it took 8, 1 and 7.
 
-Early sectors, build 5 and this build through the same sim: 60 runs each, skill 0.6, every weapon in the pool.
+Early sectors, build 5 against this build in the same seeded sim: 60 runs each at skill 0.6, using only the weapons a player could own by that Player Level (`--level-pool`), because a new player does not have every weapon:
 
-| Sector, upgrades | Build 5 | Now |
+| Sector, upgrades, weapons owned | Build 5 | Now |
 | --- | --- | --- |
-| 1, 0% | 58% | 80% |
-| 1, 15% | 87% | 87% |
-| 2, 5% | 52% | 63% |
-| 2, 15% | 68% | 77% |
-| 3, 15% | 45% | 58% |
-| 3, 25% | 70% | 95% |
+| 1, 0%, starters only | 48% | 68% |
+| 1, 5%, up to Level 3 | 62% | 63% |
+| 2, 5%, up to Level 4 | 35% | 45% |
+| 2, 10%, up to Level 5 | 58% | 65% |
+| 3, 10%, up to Level 7 | 38% | 52% |
+| 3, 15%, up to Level 8 | 63% | 65% |
 
-**Early sectors got easier than intended,** because the weak weapons they were tuned around are better now. This table overstates it, because a new player does not own every weapon. A fairer version using only the weapons a player would own at that stage (`--level-pool`) was stopped before the new build's half finished, so the true size of the change is **not known yet**. Build 5's half, for comparison when it is finished: Sector 1 at 0% 48%, at 5% 62%; Sector 2 at 5% 35%, at 10% 58%; Sector 3 at 10% 38%, at 15% 63%.
+**The first attempts at each early sector got easier. Once a player has bought a little, the curve is back where it was.** Sixty runs is roughly plus or minus 12 points, so only the first row has clearly moved. The cause is mostly Scatter Shot, a starting weapon, which is now about 50% stronger. A first Sector 1 clear about two times in three seems right for a beginner sector (the design notes already asked whether 40% was too hard), and Sectors 2 and 3 still fall about half the time at those stages, so nothing was changed. If playtesters find the first runs too easy, trim Scatter's damage first.
+
+With every weapon available from the start, the same sim shows bigger rises (Sector 1 at 0%: 58% to 80%; Sector 3 at 25%: 70% to 95%), but no real player has that.
 
 ### Weapons alone
 
@@ -232,7 +234,7 @@ Rendered review found two things tests had not: the long loadout caption pushed 
 ## 6. Known limitations
 
 - **None of this has been played by a person.** Every balance number above is the bot, and bots are not players. Whether evolutions feel earned, whether the first weeks feel too fast or too slow, whether Mastery is noticed at all, needs people.
-- **Early sectors got easier** as a side effect of the weapon buffs, by an amount not yet measured fairly (see *Sector 8*). If it is too much, trim the Scatter and Arc buffs or raise the early part of `hp_curve`: `hp_per_tier` does nothing at Sector 1.
+- **The first attempts at Sectors 1-3 got easier** (Sector 1 with no upgrades: 48% to 68% in the bot's hands), mostly from the Scatter Shot buff. Probably right for a beginner sector, but it needs a person's view. If it is too much, trim Scatter's damage first: `hp_per_tier` does nothing at Sector 1.
 - **Sector 17 is the next wall** for a weaker bot (77 attempts at skill 0.35, 21 at the others). It carries Volatile and Artillery together. It may be right for that stage of the game; it may need the same look Sector 8 got.
 - **Railgun is poor on its own by design** (2:23 alone, never reaches a boss) and **Singularity is still the weakest of the original ten alone** (4:04), though far better.
 - **Railgun and Nanite Swarm have no evolutions**, so those two have no reason to reach Rank 3 or 4 beyond their perk.

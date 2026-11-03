@@ -535,6 +535,15 @@ func _sim() -> void:
 		config.autopilot_skill = skill
 		config.core = core
 		_drop_research_weapons(config)
+		if App.cli.has("level-pool"):
+			var allowed := App.cli_int("level-pool", 1)
+			var pool: Array[String] = []
+			for weapon_id in config.weapon_pool:
+				var unlock := GameData.dict(App.data.weapon(weapon_id), "unlock")
+				var kind := GameData.text(unlock, "type")
+				if kind == "default" or (kind == "level" and GameData.integer(unlock, "level") <= allowed):
+					pool.append(weapon_id)
+			config.weapon_pool = pool
 		var core_def := GameData.dict(App.data.cores(), core)
 		config.start_weapon = GameData.text(core_def, "start_weapon", "pulse")
 		config.base_mods = _meta_mods(meta)
