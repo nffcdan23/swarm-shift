@@ -263,9 +263,41 @@ func validate() -> PackedStringArray:
 		var every := dict(mutator, "every")
 		if not every.is_empty():
 			_check_event(dict(every, "event"), "mutator '%s' event" % mutator_id, out)
-		var affix := text(mutator, "elite_affix")
-		if not affix.is_empty() and not dict(dict(enemies, "elite"), "affixes").has(affix):
-			out.append("mutator '%s': unknown elite affix '%s'" % [mutator_id, affix])
+		for affix_key: String in ["elite_affix", "elite_extra_affix"]:
+			var affix := text(mutator, affix_key)
+			if not affix.is_empty() and not dict(dict(enemies, "elite"), "affixes").has(affix):
+				out.append("mutator '%s': unknown elite affix '%s'" % [mutator_id, affix])
+		var final_phase := dict(dict(mutator, "boss"), "final_phase")
+		for attack: String in list(final_phase, "attacks"):
+			if not dict(dict(dict(stages, "bosses"), "overseer"), "attacks").has(attack):
+				out.append("mutator '%s': unknown boss attack '%s'" % [mutator_id, attack])
+
+	# Threat levels and challenges name mutators, rules and weapons.
+	var threat_levels := list(dict(stages, "threat"), "levels")
+	if threat_levels.is_empty():
+		out.append("threat: no levels")
+	var last_unlock := 0
+	for i in threat_levels.size():
+		var level: Dictionary = threat_levels[i]
+		if not mutators.has(text(level, "mutator")):
+			out.append("threat level %d: unknown mutator '%s'" % [i + 1, text(level, "mutator")])
+		if integer(level, "unlock_sector") < last_unlock:
+			out.append("threat level %d: unlocks before the level below it" % (i + 1))
+		last_unlock = integer(level, "unlock_sector")
+	var challenges := dict(retention, "challenges")
+	for rule_id: String in dict(challenges, "rules"):
+		for mutator_id: String in list(dict(dict(challenges, "rules"), rule_id), "mutators"):
+			if not mutators.has(mutator_id):
+				out.append("challenge rule '%s': unknown mutator '%s'" % [rule_id, mutator_id])
+	for loadout: Dictionary in list(challenges, "loadouts"):
+		var picks := list(loadout, "weapons")
+		if picks.is_empty():
+			out.append("challenge loadout '%s': no weapons" % text(loadout, "name"))
+		for weapon_id: String in picks:
+			if not weapon_ids.has(weapon_id):
+				out.append("challenge loadout '%s': unknown weapon '%s'" % [text(loadout, "name"), weapon_id])
+		if not picks.is_empty() and flag(weapon(str(picks[0])), "support"):
+			out.append("challenge loadout '%s': starts with a support weapon" % text(loadout, "name"))
 	for brief: Dictionary in list(sectors, "briefs"):
 		for enemy_id: String in list(brief, "new"):
 			if not enemy_ids.has(enemy_id):

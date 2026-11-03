@@ -215,11 +215,17 @@ func test_awakening_gives_the_selected_core_its_augment() -> void:
 	check(app.meta.buy("a_striker"), "Striker Awakening can be researched")
 	app.arsenal.select_core("striker")
 	config = RunConfig.from_profile(app)
-	check_eq(config.start_augments, ["phase_shift"], "Striker starts with Phase Shift")
+	check_eq(config.start_augments, ["explosive_rounds"], "Striker starts with Explosive Rounds")
 	arena = _arena(config)
-	check(arena.build.enabled("fx.phase"), "and it works from the first second")
+	check(arena.build.enabled("fx.explosive"), "and it works from the first second")
 	_free(arena)
 	check(not app.data.augments().has("seeker"), "Seeker Rounds is gone from the augment pool")
+	var seen: Array[String] = []
+	for id: String in app.meta.ids():
+		if GameData.text(app.meta.def(id), "kind") == "awakening":
+			var augment := GameData.text(app.meta.def(id), "augment")
+			check(not seen.has(augment), "%s gives an augment no other core starts with (%s)" % [id, augment])
+			seen.append(augment)
 
 
 func test_boss_damage_only_applies_to_bosses_and_elites() -> void:

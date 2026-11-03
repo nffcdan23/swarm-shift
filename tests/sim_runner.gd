@@ -24,6 +24,11 @@ extends Node
 ##       the run can have (passives and augments as usual), then a table of
 ##       damage per second, kills, survival and clears. Add --immortal to
 ##       measure raw output over --limit seconds without anyone dying.
+##   godot --headless --path . -- --sim=30 --sector=12 --meta=0.6 --threat=5
+##       the same sector sim with a Threat level's modifiers stacked on.
+##   godot --headless --path . -- --sim=20 --meta=0.5 --challenge=weekly --period=2900
+##       a Daily or Weekly Challenge (its sector, weapons, rules), for one
+##       period (default: the current one).
 ##   godot --headless --path . -- --weapon-bench
 ##       each weapon alone at levels 1, 3 and 5, twenty seconds in each of
 ##       three fixed scenarios: one tough target (a boss stand-in), a swarm
@@ -563,6 +568,20 @@ func _sim() -> void:
 		var core_mods := GameData.dict(core_def, "mods")
 		for key: String in core_mods:
 			config.base_mods[key] = float(config.base_mods.get(key, 0.0)) + float(core_mods[key])
+		if App.cli.has("threat"):
+			config.threat = App.cli_int("threat", 0)
+			config.extra_mutators = App.campaign.threat_mutators(config.threat)
+		if App.cli.has("challenge"):
+			# The challenge decides sector, weapons, rules and seed; the profile
+			# is treated as having cleared everything so the sector is not capped.
+			App.save.section("sectors")["highest_cleared"] = App.campaign.sector_count()
+			App.challenges.select(App.cli_text("challenge", ChallengeService.DAILY))
+			var index := App.cli_int("period", App.challenges.period_index(App.challenges.selected_kind()))
+			App.challenges.apply_to(config, index)
+			config.rng_seed += i
+			if i == 0:
+				var c := App.challenges.challenge(App.challenges.selected_kind(), index)
+				print("  %s %s: sector %d, %s, %s" % [c.name, c.id, int(c.tier), c.loadout, ", ".join(c.rule_names)])
 		var out := _play(config, limit, App.cli.has("timeline") and i == 0)
 		var r: Dictionary = out.result
 		var seconds := float(r.time)

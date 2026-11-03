@@ -34,6 +34,8 @@ Three rules hold the structure together:
 | `MissionService` | Daily missions (seeded per day and install) |
 | `AchievementService` | Thresholds over lifetime stats |
 | `DailyRewardService` | Seven-day login calendar |
+| `ChallengeService` | Daily and Weekly Challenges: the on-device schedule, the run each sets up, one reward per period, the clock check |
+| `LeaderboardService` | Where challenge scores go; today a local stand-in, the seam for Game Center later |
 | `StatsService` | Lifetime statistics |
 | `RunLedger` | Turns a run into rewards, exactly once (by run id); checkpoints the run in progress and recovers it if the app never finishes it |
 | `AdsService` + `AdProvider` | Ad policy (caps, rules) + the network adapter |

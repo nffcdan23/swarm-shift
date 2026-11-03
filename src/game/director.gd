@@ -13,7 +13,9 @@ extends RefCounted
 ## Set pieces: `surge` (a closing ring), `elite`, `pack` (one tight group from
 ## one side), `pincer` (two walls from opposite sides), `line` (ranged enemies
 ## spread along one edge) and `bombard` (telegraphed blast zones around the
-## player). Every one of them is announced, and nothing spawns on top of the
+## player). An event with `"drops": false` brings enemies that drop nothing -
+## no energy, Credits or elite cache - which is how Threat adds risk without
+## also handing out extra levels. Every one of them is announced, and nothing spawns on top of the
 ## player or hurts without a visible warning.
 
 var timeline_time := 0.0
@@ -75,9 +77,19 @@ func _in_sector(entry: Dictionary) -> bool:
 	return _gate >= GameData.integer(entry, "min_sector", 1) and _gate <= GameData.integer(entry, "max_sector", 100000)
 
 
-## Mutators in force right now (ids), for the HUD and tests.
+## Mutators in force right now (ids), for the HUD and tests: the sector's own,
+## then any Threat levels or challenge rules on top.
 func mutator_ids() -> Array[String]:
-	return _a.app.campaign.mutator_ids(_a.config.mode, _a.config.tier, cycle)
+	var ids := _a.app.campaign.mutator_ids(_a.config.mode, _a.config.tier, cycle)
+	for id in _a.config.extra_mutators:
+		if not ids.has(id):
+			ids.append(id)
+	return ids
+
+
+## The combined effect of every mutator in force (CampaignService.mutator_effects).
+func mutators() -> Dictionary:
+	return _mutators
 
 
 func _rescale() -> void:
@@ -87,6 +99,12 @@ func _rescale() -> void:
 	var track_mults: Dictionary = _mutators.tracks
 	for track in _tracks:
 		track.mult = float(track_mults.get(str(track.enemy), 1.0))
+	var enemies := _a.enemies
+	enemies.elite_hp_mult = float(_mutators.elite_hp)
+	enemies.elite_extra_affix = str(_mutators.elite_extra_affix)
+	enemies.shooter_spread = int(_mutators.shooter_spread)
+	_a.bullets.speed_mult = float(_mutators.shot_speed)
+	_a.player.heal_mult = float(_mutators.heal)
 	_repeating.clear()
 	for every: Dictionary in _mutators.every:
 		var seconds := maxf(GameData.num(every, "seconds", 30.0), 5.0)
@@ -172,6 +190,7 @@ func update(dt: float) -> void:
 
 func _fire(event: Dictionary) -> void:
 	var enemies := _a.enemies
+	var flags := 0 if GameData.flag(event, "drops", true) else EnemySystem.F_NO_DROPS
 	match GameData.text(event, "type"):
 		"surge":
 			var spawns := GameData.dict(event, "spawns")
@@ -200,7 +219,7 @@ func _fire(event: Dictionary) -> void:
 		"pack":
 			# One tight group from one side: a wedge to sidestep, not a ring.
 			var at := spawn_point()
-			enemies.queue_spawn(GameData.text(event, "enemy"), at.x, at.y, GameData.integer(event, "count", 5), 90.0)
+			enemies.queue_spawn(GameData.text(event, "enemy"), at.x, at.y, GameData.integer(event, "count", 5), 90.0, flags)
 			spawned_total += GameData.integer(event, "count", 5)
 			_announce_event(event, "PACK INBOUND")
 		"pincer":
@@ -221,7 +240,7 @@ func _fire(event: Dictionary) -> void:
 			var side := _a.rng.randf()
 			for k in total:
 				var at := _edge_point(side + (float(k) - float(total - 1) * 0.5) * 0.035)
-				if enemies.spawn(type_idx, at.x, at.y) >= 0:
+				if enemies.spawn(type_idx, at.x, at.y, false, "", flags) >= 0:
 					spawned_total += 1
 			_announce_event(event, "FIRING LINE")
 		"bombard":
@@ -235,11 +254,11 @@ func _fire(event: Dictionary) -> void:
 			if not str(_mutators.elite_affix).is_empty() and _affix_ids.has(str(_mutators.elite_affix)):
 				affix = str(_mutators.elite_affix)
 			var enemy_id := GameData.text(event, "enemy")
-			if enemies.spawn(enemies.type_of(enemy_id), at.x, at.y, true, affix) >= 0:
+			if enemies.spawn(enemies.type_of(enemy_id), at.x, at.y, true, affix, flags) >= 0:
 				spawned_total += 1
 			var escort := GameData.dict(event, "escort")
 			for escort_id: String in escort:
-				enemies.queue_spawn(escort_id, at.x, at.y, int(escort[escort_id]), 90.0)
+				enemies.queue_spawn(escort_id, at.x, at.y, int(escort[escort_id]), 90.0, flags)
 			var affix_name := GameData.text(GameData.dict(GameData.dict(GameData.dict(_a.data.enemies, "elite"), "affixes"), affix), "name", "ELITE")
 			var enemy_name := GameData.text(GameData.dict(_a.data.enemy_types(), enemy_id), "name", enemy_id).to_upper()
 			_a.announce("ELITE  %s %s" % [affix_name, enemy_name], "elite")

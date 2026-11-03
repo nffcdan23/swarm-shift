@@ -39,6 +39,12 @@ static func defaults() -> Dictionary:
 		"mastery": {},
 		"evolutions": {"unlocked": []},
 		"sectors": {"highest_cleared": 0, "selected": 1, "best_times": {}, "endless_best": 0.0},
+		# Threat: per sector, the highest level cleared; the level picked in the
+		# lobby; the levels whose one-off Crystal milestone has been paid.
+		"threat": {"cleared": {}, "selected": 0, "milestones": []},
+		# Daily and Weekly Challenges (ChallengeService): rewards claimed, best
+		# results, and the latest clock reading seen, for the clock check.
+		"challenges": {"claimed": [], "best": {}, "clock_high": 0, "selected": "daily"},
 		"stats": {},
 		"achievements": {"claimed": []},
 		"missions": {"day": -1, "list": [], "bonus_claimed": false},

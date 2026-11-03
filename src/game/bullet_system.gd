@@ -14,6 +14,8 @@ extends RefCounted
 var count := 0
 ## Enemy shots fired since the run began.
 var spawned_total := 0
+## Every enemy shot flies this much faster (Threat: Quick Shots). Set by the Director.
+var speed_mult := 1.0
 
 var x := PackedFloat32Array()
 var y := PackedFloat32Array()
@@ -71,9 +73,10 @@ func spawn(sx: float, sy: float, svx: float, svy: float, dmg: float) -> void:
 	spawned_total += 1
 	x[i] = sx
 	y[i] = sy
-	vx[i] = svx
-	vy[i] = svy
-	life[i] = _lifetime
+	vx[i] = svx * speed_mult
+	vy[i] = svy * speed_mult
+	# Faster shots expire sooner, so they reach no further than before.
+	life[i] = _lifetime / maxf(speed_mult, 0.1)
 	damage[i] = dmg
 
 

@@ -193,6 +193,10 @@ func setup(p_app: AppRoot, p_config: RunConfig) -> void:
 	ad_rerolls_left = GameData.integer(_run_cfg, "ad_rerolls_per_run", 2)
 	free_revives_left = int(build.mod("run.revives"))
 	ad_revives_left = GameData.integer(_run_cfg, "ad_revives_per_run", 1)
+	# Threat: No Second Chances.
+	if not bool(director.mutators().get("revives", true)):
+		free_revives_left = 0
+		ad_revives_left = 0
 	xp_needed = _xp_for(level)
 	grant_weapon(config.start_weapon, 1 + int(build.mod("run.start_weapon_level")))
 
@@ -205,6 +209,8 @@ func start() -> void:
 	app.analytics.track(Analytics.GAME_STARTED, {"mode": config.mode, "tier": config.tier, "core": config.core})
 	if config.mode == CampaignService.MODE_ENDLESS:
 		announce("OVERDRIVE", "title")
+	elif config.mode == CampaignService.MODE_CHALLENGE:
+		announce(config.challenge_name if not config.challenge_name.is_empty() else "CHALLENGE", "title")
 	else:
 		announce("SECTOR %02d" % config.tier, "title")
 	_queue_mutator_note()
@@ -214,7 +220,13 @@ func start() -> void:
 ## Names the sector's mutators once the opening banner has cleared.
 func _queue_mutator_note() -> void:
 	var names: PackedStringArray = []
+	# A Threat run names its level once rather than every stacked modifier.
+	var threat_ids := app.campaign.threat_mutators(config.threat)
+	if config.threat > 0:
+		names.append("THREAT %d" % config.threat)
 	for id in director.mutator_ids():
+		if threat_ids.has(id):
+			continue
 		names.append(GameData.text(app.campaign.mutator_def(id), "name", id.to_upper()))
 	_mutator_note = "  +  ".join(names)
 	_mutator_note_at = time + 2.6
@@ -825,6 +837,7 @@ func build_result(cleared: bool, died: bool, abandoned: bool) -> Dictionary:
 		"weapons": build.weapons.duplicate(), "passives": build.passives.duplicate(), "augments": build.augments.duplicate(),
 		"damage_by_source": by_source, "dealt_by_source": dealt, "kills_by_source": kills_by,
 		"evolved": build.evolved.duplicate(), "cycle": director.cycle,
+		"threat": config.threat, "challenge_kind": config.challenge_kind, "challenge_id": config.challenge_id,
 	}
 
 

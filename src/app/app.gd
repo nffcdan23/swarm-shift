@@ -30,6 +30,8 @@ var campaign: CampaignService
 var missions: MissionService
 var achievements: AchievementService
 var daily: DailyRewardService
+var challenges: ChallengeService
+var leaderboards: LeaderboardService
 var haptics: HapticsService
 var audio: AudioService
 var ads: AdsService
@@ -91,6 +93,8 @@ func boot(backend: SaveBackend = null) -> void:
 	missions = MissionService.new(self)
 	achievements = AchievementService.new(self)
 	daily = DailyRewardService.new(self)
+	challenges = ChallengeService.new(self)
+	leaderboards = LeaderboardService.new()
 	haptics = HapticsService.new(self)
 
 	if audio != null:

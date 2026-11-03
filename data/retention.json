@@ -68,6 +68,51 @@
     { "id": "rank_master_5", "name": "Grand Master", "text": "Master 5 weapons", "stat": "weapons_mastered", "target": 5, "crystals": 60, "xp": 480 },
     { "id": "evo_first", "name": "Evolved", "text": "Unlock an evolution", "stat": "evolutions_unlocked", "target": 1, "crystals": 15, "xp": 120 },
     { "id": "evo_ten", "name": "Evolutionist", "text": "Unlock 10 evolutions", "stat": "evolutions_unlocked", "target": 10, "crystals": 40, "xp": 320 },
-    { "id": "research_100", "name": "Research Director", "text": "Complete 100 levels of research", "stat": "research_done", "target": 100, "crystals": 40, "xp": 320 }
-  ]
+    { "id": "research_100", "name": "Research Director", "text": "Complete 100 levels of research", "stat": "research_done", "target": 100, "crystals": 40, "xp": 320 },
+    { "id": "threat_1", "name": "Raising the Stakes", "text": "Clear a sector at Threat 1", "stat": "highest_threat_cleared", "target": 1, "crystals": 10, "xp": 80 },
+    { "id": "threat_5", "name": "Hazard Pay", "text": "Clear a sector at Threat 5", "stat": "highest_threat_cleared", "target": 5, "crystals": 30, "xp": 240 },
+    { "id": "threat_10", "name": "Apex", "text": "Clear a sector at Threat 10", "stat": "highest_threat_cleared", "target": 10, "crystals": 80, "xp": 640 },
+    { "id": "threat_wide", "name": "Under Pressure", "text": "Clear 10 different sectors at Threat 3 or higher", "stat": "sectors_at_threat_3", "target": 10, "crystals": 40, "xp": 320 },
+    { "id": "daily_1", "name": "Daily Driver", "text": "Complete a Daily Challenge", "stat": "daily_challenges_done", "target": 1, "crystals": 5, "xp": 40 },
+    { "id": "daily_10", "name": "Creature of Habit", "text": "Complete 10 Daily Challenges", "stat": "daily_challenges_done", "target": 10, "crystals": 25, "xp": 200 },
+    { "id": "daily_30", "name": "Every Single Day", "text": "Complete 30 Daily Challenges", "stat": "daily_challenges_done", "target": 30, "crystals": 60, "xp": 480 },
+    { "id": "weekly_1", "name": "Week One", "text": "Complete a Weekly Challenge", "stat": "weekly_challenges_done", "target": 1, "crystals": 10, "xp": 80 },
+    { "id": "weekly_6", "name": "Gauntlet Runner", "text": "Complete 6 Weekly Challenges", "stat": "weekly_challenges_done", "target": 6, "crystals": 40, "xp": 320 }
+  ],
+
+  "challenges": {
+    "_doc": "Daily and Weekly Challenges (ChallengeService). Each period's challenge is picked on the device from the period number and 'salt', so the same build shows the same challenge on every device for a period, but nothing enforces that: there is no shared schedule or server. Periods are counted in UTC: days from 00:00 UTC, weeks from Monday 00:00 UTC. 'tiers' is the range the sector is drawn from, capped at one above the player's highest cleared sector. Loadouts and rules marked \"weekly\": false are left out of Weekly Challenges, whose two rules and Threat already make them hard: a single weak weapon or Glass Cannon on top made them unwinnable in simulation. A challenge is cleared by defeating the boss; its reward pays once per period. If the device clock goes back more than 'clock_tolerance_hours' behind the latest time seen, challenges wait until it catches up.",
+    "unlock_sector": 3,
+    "salt": "swarmshift-challenges-1",
+    "clock_tolerance_hours": 2,
+    "daily": { "name": "DAILY CHALLENGE", "period_seconds": 86400, "epoch_offset": 0, "tiers": [4, 12], "rules": 1, "threat": 0,
+      "credits": 400, "crystals": 5, "leaderboard": "swarmshift.daily" },
+    "weekly": { "name": "WEEKLY CHALLENGE", "period_seconds": 604800, "epoch_offset": 345600, "tiers": [8, 14], "rules": 2, "threat": 2,
+      "credits": 1500, "crystals": 25, "leaderboard": "swarmshift.weekly" },
+    "loadouts": [
+      { "name": "PULSE ONLY", "weapons": ["pulse"], "weekly": false },
+      { "name": "SCATTER AND BLADES", "weapons": ["scatter", "orbit"] },
+      { "name": "RAILGUN AND LANCE", "weapons": ["railgun", "laser"], "weekly": false },
+      { "name": "RAILGUN AND PULSE", "weapons": ["railgun", "pulse"] },
+      { "name": "NANITES AND NOVA", "weapons": ["nanite", "nova"] },
+      { "name": "MISSILES AND MINES", "weapons": ["missile", "mine"] },
+      { "name": "ARC AND DRONE", "weapons": ["chain", "drone"] },
+      { "name": "SINGULARITY AND PULSE", "weapons": ["singularity", "pulse"] },
+      { "name": "BLADES ONLY", "weapons": ["orbit"], "weekly": false },
+      { "name": "DRONE AND SCATTER", "weapons": ["drone", "scatter"] },
+      { "name": "ARC ONLY", "weapons": ["chain"], "weekly": false }
+    ],
+    "rules": {
+      "glass_cannon": { "name": "GLASS CANNON", "desc": "+60% damage, half health", "weekly": false, "mods": { "damage_pct": 0.6, "max_hp_pct": -0.5 } },
+      "elite_hunt": { "name": "ELITE HUNT", "desc": "Elites arrive twice as often, with patrols on top", "mutators": ["elite_guard", "t_patrols"] },
+      "iron_body": { "name": "IRON BODY", "desc": "+3 armour, but nothing heals you", "mods": { "armor": 3 }, "mutators": ["c_no_repairs"] },
+      "fast_forward": { "name": "FAST FORWARD", "desc": "Everything moves faster, you included", "mods": { "move_speed_pct": 0.15 }, "mutators": ["blitz"] },
+      "bullet_storm": { "name": "BULLET STORM", "desc": "Firing lines of Shooters, and faster shots", "mutators": ["t_crossfire", "t_quick_shots"] },
+      "swarm_season": { "name": "SWARM SEASON", "desc": "A quarter more enemies; your area grows 30%", "mods": { "area_pct": 0.3 }, "mutators": ["horde"] },
+      "the_hunt": { "name": "THE HUNT", "desc": "Dasher packs hunt you down", "mutators": ["hunters"] },
+      "big_game": { "name": "BIG GAME", "desc": "Twice the Brutes and Tanks; +20% damage", "mods": { "damage_pct": 0.2 }, "mutators": ["c_big_game"] },
+      "chain_reaction": { "name": "CHAIN REACTION", "desc": "Bomber wings, and every elite explodes", "mutators": ["volatile"] },
+      "shell_shock": { "name": "SHELL SHOCK", "desc": "Mortars and regular bombardments", "mutators": ["artillery"] }
+    }
+  }
 }

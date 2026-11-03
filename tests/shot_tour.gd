@@ -147,6 +147,49 @@ func _run() -> void:
 			dialog.close()
 			await _wait(0.4)
 
+	if _wants("retention"):
+		# Threat and challenges on a profile part-way through the campaign.
+		App.account.add_xp(60000, "tour")
+		for tier in range(1, 13):
+			App.campaign.record_run(CampaignService.MODE_SECTOR, tier, true, 300.0)
+		for level in range(1, 4):
+			App.campaign.record_run(CampaignService.MODE_SECTOR, 6, true, 300.0, level)
+		App.campaign.select(6)
+		App.campaign.select_threat(4)
+		menu.set_active(true)
+		menu.show_tab("home")
+		var home := menu.screen("home") as HomeScreen
+		home._on_mode_changed(HomeScreen.VIEW_SECTORS)
+		await _wait(3.6)
+		await _shot("06_retention_lobby_threat")
+		home._mode.select(HomeScreen.VIEW_CHALLENGES)
+		App.challenges.select(ChallengeService.DAILY)
+		home._on_mode_changed(HomeScreen.VIEW_CHALLENGES)
+		await _wait(0.5)
+		await _shot("06_retention_daily_challenge")
+		App.challenges.select(ChallengeService.WEEKLY)
+		home.refresh()
+		await _wait(0.5)
+		await _shot("06_retention_weekly_challenge")
+		home._mode.select(HomeScreen.VIEW_SECTORS)
+		home._on_mode_changed(HomeScreen.VIEW_SECTORS)
+		# A Threat 4 first clear on the results screen.
+		var result := {
+			"run_id": "tour-threat", "mode": CampaignService.MODE_SECTOR, "tier": 6, "effective_tier": 6.0, "core": "vanguard",
+			"time": 334.0, "kills": 2610, "elites": 5, "bosses": 1, "level": 27, "level_ups": 26, "damage": 210000.0,
+			"credits_picked": 720, "credit_gain": 1.0, "cleared": true, "died": false, "abandoned": false,
+			"synergies": [], "revives": 0, "weapons": {"pulse": 5, "laser": 4}, "passives": {}, "augments": [],
+			"damage_by_source": {"pulse": 140000.0, "laser": 70000.0}, "cycle": 0, "threat": 4, "challenge_kind": "", "challenge_id": "",
+		}
+		var screen := ResultsScreen.new(result, RunLedger.settle(App, result))
+		menu.add_child(screen)
+		await _wait(0.4)
+		screen.skip()
+		await _wait(0.5)
+		await _shot("06_retention_results_threat")
+		screen.queue_free()
+		await _wait(0.3)
+
 	if _wants("progress"):
 		await _progression(menu)
 	if _wants("evolved"):

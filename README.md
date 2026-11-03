@@ -17,6 +17,7 @@ Built with **Godot 4.7.2** and GDScript. No backend, no third-party SDKs yet - a
 - [docs/playtest-2](docs/playtest-2/README.md) - pickups that stopped appearing in big fights, and the "maxed upgrade" card report
 - [docs/playtest-3](docs/playtest-3/README.md) - enemy shots lost in the swarm, and the Prism Lance and Plasma Mines rework, with the weapon measurements
 - [docs/playtest-4](docs/playtest-4/README.md) - the Prism Lance rebuilt as spinning beams that carve enemies down for other weapons, and a stronger Scatter Shot
+- [docs/retention](docs/retention/README.md) - Threat levels and Daily and Weekly Challenges: design, rewards, balance results and limits
 
 ## Requirements
 
@@ -74,6 +75,8 @@ godot --headless --path . -- --test
 | `ui` | Every screen builds; real synthetic taps and drags; the lobby, upgrades, pause and results flows |
 | `progression` | Player Level, Credits, banking exactly once, recovery of an interrupted run, permanent upgrades, and a save from before those features |
 | `threats` | What each sector contains, mutators, and that Mortars, Bombers and bombardments can always be avoided |
+| `threat_levels` | The Threat ladder, what each modifier does, rewards that pay once, a Crystal ceiling, the heaviest stacks staying fair and fast, old saves |
+| `challenges` | Daily and Weekly schedule, the run a challenge sets up, one reward per period, runs across midnight, the clock check |
 | `stability` | The playtest-1 freeze, HUD recovery, multi-touch, and overload: 1,000 enemies, hundreds of explosions, a long Overdrive soak |
 
 Run one suite or one test:

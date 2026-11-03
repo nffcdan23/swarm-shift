@@ -26,6 +26,10 @@ var _a: Arena
 var _def: Dictionary
 var _attacks: Dictionary
 var _phases: Array = []
+## Threat modifiers (CampaignService.mutator_effects "boss"): shorter rests and
+## bigger volleys. Read once at spawn.
+var _idle_mult := 1.0
+var _bullets_mult := 1.0
 var _state := S.INACTIVE
 var _timer := 0.0
 var _queue: Array = []
@@ -84,7 +88,18 @@ func setup(arena: Arena) -> void:
 func spawn(boss_id: String, at: Vector2, hp_scale: float, damage_scale: float) -> void:
 	_def = GameData.dict(GameData.dict(_a.data.stages, "bosses"), boss_id)
 	_attacks = GameData.dict(_def, "attacks")
-	_phases = GameData.list(_def, "phases")
+	_phases = GameData.list(_def, "phases").duplicate(true)
+	var mods: Dictionary = GameData.dict(_a.director.mutators(), "boss")
+	_idle_mult = clampf(GameData.num(mods, "idle_mult", 1.0), 0.4, 2.0)
+	_bullets_mult = clampf(GameData.num(mods, "bullets_mult", 1.0), 0.5, 2.0)
+	# Final Protocol: the last phase ends early and a fourth takes over.
+	var final_phase := GameData.dict(mods, "final_phase")
+	if not final_phase.is_empty() and not _phases.is_empty():
+		var below := clampf(GameData.num(final_phase, "below", 0.2), 0.05, 0.3)
+		(_phases[_phases.size() - 1] as Dictionary)["hp_above"] = below
+		_phases.append({"hp_above": 0.0, "attacks": GameData.list(final_phase, "attacks"),
+			"idle": GameData.num(final_phase, "idle", 0.7), "speed_mult": GameData.num(final_phase, "speed_mult", 1.5)})
+	var opening := clampi(GameData.integer(mods, "phase_floor", 0), 0, maxi(_phases.size() - 2, 0))
 	display_name = GameData.text(_def, "name", "BOSS")
 	body_radius = GameData.num(_def, "radius", 60.0)
 	arena_radius = GameData.num(_def, "arena_radius", 540.0)
@@ -95,7 +110,8 @@ func spawn(boss_id: String, at: Vector2, hp_scale: float, damage_scale: float) -
 	x = at.x
 	y = at.y
 	centre = at
-	phase = 0
+	# Overseer's Wrath opens in a later phase's attack set.
+	phase = opening
 	var enemies := _a.enemies
 	# Any type will do as the carrier; make_boss() overrides what matters.
 	_idx = enemies.spawn(0, x, y)
@@ -291,7 +307,7 @@ func _begin_attack(phase_cfg: Dictionary) -> void:
 
 func _to_idle(phase_cfg: Dictionary) -> void:
 	_state = S.IDLE
-	_timer = GameData.num(phase_cfg, "idle", 1.2)
+	_timer = GameData.num(phase_cfg, "idle", 1.2) * _idle_mult
 
 
 func _start_charge(telegraph_scale: float) -> void:
@@ -303,7 +319,7 @@ func _start_charge(telegraph_scale: float) -> void:
 
 func _fire_volley() -> void:
 	var cfg := GameData.dict(_attacks, "burst")
-	var amount := GameData.integer(cfg, "bullets", 14) + phase * GameData.integer(cfg, "bullets_per_phase", 3)
+	var amount := int(round(float(GameData.integer(cfg, "bullets", 14) + phase * GameData.integer(cfg, "bullets_per_phase", 3)) * _bullets_mult))
 	var speed := GameData.num(cfg, "bullet_speed", 205.0)
 	var dmg := GameData.num(cfg, "damage", 14.0) * _damage_scale
 	for k in amount:

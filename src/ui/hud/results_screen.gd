@@ -72,15 +72,23 @@ func _ready() -> void:
 
 	var cleared := bool(_result.get("cleared", false))
 	var abandoned := bool(_result.get("abandoned", false))
-	var endless := str(_result.get("mode", "")) == CampaignService.MODE_ENDLESS
+	var mode := str(_result.get("mode", ""))
+	var endless := mode == CampaignService.MODE_ENDLESS
+	var challenge := mode == CampaignService.MODE_CHALLENGE
+	var threat := int(_result.get("threat", 0))
 	var accent := Palette.GREEN if cleared else (Palette.MUTED if abandoned else Palette.RED)
-	var headline := "SECTOR CLEARED" if cleared else ("RUN ENDED" if abandoned or endless else "CORE DESTROYED")
+	var won := "CHALLENGE COMPLETE" if challenge else ("THREAT %d CLEARED" % threat if threat > 0 else "SECTOR CLEARED")
+	var headline := won if cleared else ("RUN ENDED" if abandoned or endless else "CORE DESTROYED")
 
 	var title := UiKit.title(headline, 52, accent)
 	title.add_theme_constant_override("outline_size", 8)
 	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
 	column.add_child(title)
 	var where := "OVERDRIVE  -  CYCLE %d" % (int(_result.get("cycle", 0)) + 1) if endless else "SECTOR %02d" % int(_result.get("tier", 1))
+	if challenge:
+		where = "%s  -  SECTOR %02d" % [str((_summary.get("challenge", {}) as Dictionary).get("name", "CHALLENGE")), int(_result.get("tier", 1))]
+	elif threat > 0:
+		where = "SECTOR %02d  -  THREAT %d" % [int(_result.get("tier", 1)), threat]
 	column.add_child(UiKit.caption(where, UiTheme.SMALL, Palette.MUTED, HORIZONTAL_ALIGNMENT_CENTER))
 	if bool(_summary.get("new_best", false)):
 		var best := UiKit.tag("NEW BEST", Palette.GOLD, UiTheme.SMALL)
@@ -182,6 +190,8 @@ func _rewards_card() -> PanelContainer:
 	_add_part(body, _credit_rows, _credit_steps, "Picked up in the run", int(_summary.get("credits_collected", _summary.get("credits", 0))), Palette.CREDITS)
 	_add_part(body, _credit_rows, _credit_steps, "Survival bonus", int(_summary.get("credits_survival", 0)), Palette.CREDITS)
 	_add_part(body, _credit_rows, _credit_steps, "Sector cleared", int(_summary.get("credits_clear", 0)), Palette.CREDITS)
+	if int(_summary.get("credits_threat", 0)) > 0:
+		_add_part(body, _credit_rows, _credit_steps, "Threat %d bonus" % int(_summary.get("threat", 0)), int(_summary.get("credits_threat", 0)), Palette.CREDITS)
 	if bool(_summary.get("first_clear", false)):
 		body.add_child(UiKit.caption("FIRST CLEAR BONUS", UiTheme.TINY, Palette.CRYSTALS, HORIZONTAL_ALIGNMENT_RIGHT))
 	body.add_child(UiKit.divider())
@@ -244,6 +254,15 @@ func _add_part(into: VBoxContainer, rows: Array[Control], steps: Array[int], tex
 func _extras_card() -> PanelContainer:
 	# Each entry is [icon, text, colour]; only the ones shown become controls.
 	var lines: Array[Array] = []
+	# One-off rewards paid on top of the run's own, first: they are the news.
+	var challenge: Dictionary = _summary.get("challenge", {})
+	if bool(challenge.get("claimed_now", false)):
+		var reward: Dictionary = challenge.reward
+		lines.append(["trophy", "%s complete: +%s Credits, +%d Crystals" % [str(challenge.name).capitalize(), Fmt.commas(int(reward.credits)), int(reward.crystals)], Palette.GOLD])
+	if bool(_summary.get("threat_first_clear", false)):
+		var crystals := int(_summary.get("threat_crystals", 0))
+		lines.append(["skull", "First clear at Threat %d: +%s Credits%s" % [int(_summary.threat), Fmt.commas(int(_summary.get("threat_first_credits", 0))),
+			", +%d Crystals" % crystals if crystals > 0 else ""], Color("ff4d6d")])
 	for synergy_id: String in _summary.get("new_synergies", []):
 		var def := GameData.dict(App.data.synergies(), synergy_id)
 		lines.append(["star", "Synergy discovered: %s" % GameData.text(def, "name", synergy_id), Palette.GOLD])

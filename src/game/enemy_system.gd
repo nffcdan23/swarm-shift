@@ -80,6 +80,13 @@ var hits := PackedInt32Array()
 var hp_mult := 1.0
 var damage_mult := 1.0
 var speed_mult := 1.0
+## Threat modifiers, set by the Director: elites' health, a second affix every
+## elite carries, and how many shots a Shooter fires at once.
+var elite_hp_mult := 1.0
+var elite_extra_affix := ""
+var shooter_spread := 1
+## Radians between the shots of a Shooter's spread.
+const SPREAD_STEP := 0.3
 
 ## Per-step outputs.
 var touch_damage := 0.0
@@ -245,20 +252,24 @@ func spawn(type_idx: int, sx: float, sy: float, elite: bool = false, affix: Stri
 		f |= F_ELITE
 		r *= GameData.num(_elite_cfg, "size_mult", 1.35)
 		sprite_size *= GameData.num(_elite_cfg, "size_mult", 1.35)
-		health *= GameData.num(_elite_cfg, "hp_mult", 7.0)
+		health *= GameData.num(_elite_cfg, "hp_mult", 7.0) * elite_hp_mult
 		dmg *= GameData.num(_elite_cfg, "damage_mult", 1.4)
 		spd *= GameData.num(_elite_cfg, "speed_mult", 1.05)
 		xp_value *= GameData.num(_elite_cfg, "xp_mult", 10.0)
 		mass *= 4.0
-		match affix:
-			"swift":
-				spd *= GameData.num(GameData.dict(_affixes, "swift"), "speed_mult", 1.5)
-			"armored":
-				f |= F_ARMORED
-			"volatile":
-				f |= F_VOLATILE
-			"spawner":
-				f |= F_SPAWNER
+		var carried: Array[String] = [affix]
+		if not elite_extra_affix.is_empty() and elite_extra_affix != affix:
+			carried.append(elite_extra_affix)
+		for one in carried:
+			match one:
+				"swift":
+					spd *= GameData.num(GameData.dict(_affixes, "swift"), "speed_mult", 1.5)
+				"armored":
+					f |= F_ARMORED
+				"volatile":
+					f |= F_VOLATILE
+				"spawner":
+					f |= F_SPAWNER
 	if r > SMALL_RADIUS:
 		f |= F_BIG
 	if mass >= 20.0:
@@ -308,8 +319,8 @@ func make_boss(i: int, health: float, contact_damage: float, body_radius: float)
 	inv_mass[i] = 0.0
 
 
-func queue_spawn(type_id: String, sx: float, sy: float, amount: int, scatter: float) -> void:
-	_pending_spawns.append({"type": type_of(type_id), "x": sx, "y": sy, "n": amount, "scatter": scatter})
+func queue_spawn(type_id: String, sx: float, sy: float, amount: int, scatter: float, extra_flags: int = 0) -> void:
+	_pending_spawns.append({"type": type_of(type_id), "x": sx, "y": sy, "n": amount, "scatter": scatter, "flags": extra_flags})
 
 
 func _flush_spawns() -> void:
@@ -319,7 +330,7 @@ func _flush_spawns() -> void:
 		for k in int(entry.n):
 			var angle := _a.rng.randf() * TAU
 			var dist := _a.rng.randf() * float(entry.scatter)
-			spawn(int(entry.type), float(entry.x) + cos(angle) * dist, float(entry.y) + sin(angle) * dist)
+			spawn(int(entry.type), float(entry.x) + cos(angle) * dist, float(entry.y) + sin(angle) * dist, false, "", int(entry.get("flags", 0)))
 	_pending_spawns.clear()
 
 
@@ -458,7 +469,13 @@ func update(dt: float) -> void:
 				a.gfx.hostile.add_sprite(ex + nx * aradius[i], ey + ny * aradius[i], 0.0, a.bullets.draw_size() * (0.35 + 0.5 * charge),
 					Color(1.0, 1.0, 1.0, 0.45 + 0.4 * charge), _hostile_cell)
 				if tm <= 0.0:
-					a.bullets.spawn(ex + nx * aradius[i], ey + ny * aradius[i], nx * _tp_e[t_idx], ny * _tp_e[t_idx], _tp_f[t_idx] * damage_mult)
+					# A spread (Threat: Scatter Fire) fans out around the aimed
+					# shot, with gaps wider than the player to slip through.
+					for k in shooter_spread:
+						var turn := (float(k) - float(shooter_spread - 1) * 0.5) * SPREAD_STEP
+						var sx := nx * cos(turn) - ny * sin(turn)
+						var sy := nx * sin(turn) + ny * cos(turn)
+						a.bullets.spawn(ex + nx * aradius[i], ey + ny * aradius[i], sx * _tp_e[t_idx], sy * _tp_e[t_idx], _tp_f[t_idx] * damage_mult)
 					a.sfx("enemy_shoot")
 					st = 0
 					tm = _tp_c[t_idx] * a.rng.randf_range(0.85, 1.15)

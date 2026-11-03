@@ -104,7 +104,7 @@ Three phases at 66% and 33% health; each adds attacks, speed and bullet count. A
 - **Player Level 1-100.** Permanent, and always visible in the lobby with its XP numbers, its bar and the next thing it unlocks. Player XP comes from every run - time survived, enemies defeated, Run Level reached, bosses, sectors cleared - and from daily missions and achievements. Every level pays Credits; every fifth pays Crystals; and levels open content: weapons at 2, 3, 4, 5, 7 and 10, cores at 3, 6, 9 and 12, permanent upgrades at 2, 3, 4, 5, 6 and 8.
 - **Research.** Everything permanent is bought with Credits in the Research tab, in six branches. **Offence, Defence, Energy, Economy** hold the original sixteen stat tracks (their levels and caps have not changed) plus focused additions such as Siege Protocols (damage to bosses and elites), Last Stand, Kinetic Buffer and Priority Signal (a fourth upgrade card). **Weapon Systems** holds the unlocks that change how runs play: Evolution Lab, Flex Rack (choose your starting weapon), Ballistics Suite, Railgun and Nanite prototypes, Synergy Codex I and II (six extra synergies), Twin Evolution, Auxiliary Bay (sixth passive slot) and Fifth Hardpoint (fifth weapon slot). **Specialisation** holds the doctrines and awakenings.
 - **Doctrines.** Trade-offs, one active at a time, changed freely: Glass (+30% damage, -30% health), Bulwark (+40% health and +2 armour, -20% damage), Scavenger (+25% energy and +20% Credits, -15% damage), Specialist (+60% damage, only two weapon slots), Generalist (+1 weapon slot, -2 passive slots). They are depth without inflation: owning them all adds no power, only options.
-- **Awakenings.** Each core can research its own ability: an augment it starts every run with (Vanguard: Reactive Shell; Striker: Phase Shift; Bastion: Siphon; Frostbite: Shatter; Tempest: Storm Strike; Phantom: Phase Shift).
+- **Awakenings.** Each core can research its own ability: an augment it starts every run with (Vanguard: Reactive Shell; Striker: Explosive Rounds; Bastion: Siphon; Frostbite: Shatter; Tempest: Storm Strike; Phantom: Phase Shift).
 - **Weapon mastery.** Five ranks per weapon, shown in the Arsenal. A run earns one budget of Mastery XP: 30 per active minute, counting six minutes at most, scaled up slowly by sector, plus bonuses for bosses and a clear. It is shared between the run's weapons by the square root of the damage each landed, so the main weapon earns most and a support weapon or a first try still earns a real share. A longer run earns no more, time spent not moving does not count, and a run with no real fighting earns nothing. Rank 1 makes a weapon a Flex Rack option; 2 and 4 give small weapon-specific perks; 3 and 4 open evolutions; 5 gives a gold finish and counts towards the PARAGON skin.
 - **Skins.** Layered, animated cores (see *Skins*). Most are bought with Credits.
 - **Cores.** Six playable cores, each with its own starting weapon and stat trade-offs (for example Bastion: +40% health, +2 armour, -8% speed, starts with Orbit Blades).
@@ -139,6 +139,31 @@ At its final level a weapon can evolve, if the path has been unlocked (Evolution
 
 A test holds this to account: on the weapon bench, neither path of any weapon may beat the other at everything.
 
+### Threat levels
+
+For sectors already cleared: ten cumulative tiers, each adding one rule on top of everything below it. Ordinary sectors are untouched; Threat appears in the sector card only once Sector 4 is cleared.
+
+| Level | Adds | Opens at |
+| --- | --- | --- |
+| 1 | **Elite Patrols**: an extra elite with an escort every 50 s | Sector 4 |
+| 2 | **Quick Shots**: enemy shots 20% faster (they expire sooner, so reach is unchanged) | Sector 6 |
+| 3 | **Scarce Repairs**: all healing halved | Sector 8 |
+| 4 | **Crossfire**: a firing line of five Shooters every 45 s | Sector 10 |
+| 5 | **Brood Elites**: every elite also spawns Swarmers | Sector 12 |
+| 6 | **Overseer's Wrath**: the boss opens with its second-phase attacks and rests 20% less | Sector 14 |
+| 7 | **Hunter Packs**: a pack of six Dashers every 40 s | Sector 16 |
+| 8 | **Scatter Fire**: Shooters fire three-shot spreads; boss volleys carry 30% more shots | Sector 18 |
+| 9 | **No Second Chances**: no revives, and healing halved again | Sector 20 |
+| 10 | **Final Protocol**: the boss gains a fourth phase below 20%; elites 50% tougher | Sector 20 |
+
+Each sector has its own ladder: Threat N needs that sector cleared at N - 1. Every modifier is a rule built from telegraphed set pieces the game already uses, never a flat health multiplier on the whole field. Rewards: +12% Credits and +8% Player XP per level; the first clear of a sector at a level pays 50 x level x the sector's reward scale in Credits; the first clear of a level on any sector pays 5 x level Crystals, once per level (275 in all). Threat 5 earns the HAZARD skin and Threat 10 the APEX skin. Threat runs never count as ordinary clears and never change best times.
+
+### Daily and Weekly Challenges
+
+Open with Sector 3 cleared, beside Overdrive. Each is a fixed-seed run with its own sector, weapons (one or two, never chosen by the player) and rules: one rule for the Daily, two plus Threat 2 for the Weekly. Rules include Glass Cannon, Elite Hunt, Iron Body, Fast Forward, Bullet Storm, Swarm Season, The Hunt, Big Game, Chain Reaction and Shell Shock. Clearing the boss pays once per period: Daily 400 Credits (scaled by sector) and 5 Crystals; Weekly 1,500 Credits (scaled) and 25 Crystals. Days start at 00:00 UTC, weeks on Monday at 00:00 UTC. The lobby shows the countdown, the reward and whether it has been collected. Six Weekly clears earn the GAUNTLET skin.
+
+The schedule is computed on the device, so the same build offers the same challenge everywhere for a period, but there is no server: no global ranking is promised. If the device clock goes back more than two hours behind the latest time the game has seen, challenges pause until it catches up.
+
 ### Skins
 
 Each skin is a stack of animated layers: a body with its own silhouette, orbiting armour plates, a ring, an aura, a pulsing reactor and motes, plus its own movement trail, kill-burst colour and a tint over every weapon. Same footprint as the factory core.
@@ -151,6 +176,8 @@ Each skin is a stack of animated layers: a body with its own silhouette, orbitin
 | Epic | Glacier, Inferno, Solar, Quantum, Void | Player Level and 12,000 to 50,000 Credits |
 | Legendary | Aurum | Starter Pack (unchanged) |
 | Legendary | Paragon, Overseer | Earned: master 3 weapons; clear Sector 20 |
+| Epic | Hazard, Gauntlet | Earned: clear a sector at Threat 5; complete 6 Weekly Challenges |
+| Legendary | Apex | Earned: clear a sector at Threat 10 |
 
 Skins are looks only. Tests prove it: the same seed plays out identically in every skin. No skin's tints may come near the red of enemy fire, because a red ring with a white centre is what an enemy shot looks like.
 
@@ -159,7 +186,7 @@ Skins are looks only. Tests prove it: the same seed plays out identically in eve
 | Currency | Earned from | Spent on |
 | --- | --- | --- |
 | **Credits** (soft) | Gold pickups in a run, a survival bonus (10 per minute), clearing a sector (300, raised from 120 in November 2026 so a clear pays clearly more than dying at the boss; both scale 30% per sector), Player Levels, missions, login calendar, optional ads | Research, weapon and core unlocks, evolutions, skins |
-| **Crystals** (premium) | Achievements, first clears, every fifth Player Level, the daily mission bonus, day 3/6/7 of the login calendar, purchase | Core skins, one core, exchange for Credits |
+| **Crystals** (premium) | Achievements, first clears, Threat milestones (once per level), Daily and Weekly Challenges (once per period), every fifth Player Level, the daily mission bonus, day 3/6/7 of the login calendar, purchase | Core skins, one core, exchange for Credits |
 
 Nothing in the game requires Crystals to progress.
 
@@ -175,7 +202,9 @@ Rough income for a player with no upgrades: about 200 Credits for a three-minute
 
 - **Daily missions.** Three per day from a pool of twelve, with a bonus for claiming all three.
 - **Login calendar.** Seven days, looping. Missing a day never resets it.
-- **Achievements.** Thirty, paying Crystals and Player XP.
+- **Daily and Weekly Challenges.** A new fixed-seed challenge every day and every week (see above).
+- **Threat levels.** A ten-step ladder per sector for players who have outgrown the campaign (see above).
+- **Achievements.** Forty-five, paying Crystals and Player XP, including Threat and challenge milestones.
 - **Statistics.** Lifetime totals on the profile screen.
 
 ## Monetisation

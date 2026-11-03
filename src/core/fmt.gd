@@ -34,6 +34,22 @@ static func time_mmss(seconds: float) -> String:
 	return "%d:%02d" % [m, total % 60]
 
 
+## Time left, at the two largest units: "3D 4H", "5H 12M", "12M 05S".
+static func countdown(seconds: int) -> String:
+	var total := maxi(seconds, 0)
+	@warning_ignore("integer_division")
+	var days := total / 86400
+	@warning_ignore("integer_division")
+	var hours := (total % 86400) / 3600
+	@warning_ignore("integer_division")
+	var minutes := (total % 3600) / 60
+	if days > 0:
+		return "%dD %dH" % [days, hours]
+	if hours > 0:
+		return "%dH %02dM" % [hours, minutes]
+	return "%dM %02dS" % [minutes, total % 60]
+
+
 static func percent(v: float) -> String:
 	return "%d%%" % int(round(v * 100.0))
 

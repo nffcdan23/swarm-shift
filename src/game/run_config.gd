@@ -31,6 +31,15 @@ var autopilot_skill := 0.7
 var show_tutorial := false
 ## 0 uses the balance table. Stress tests raise it far past the shipped cap.
 var max_enemies := 0
+## Threat level (sector mode only); its mutators are in `extra_mutators`.
+var threat := 0
+## Mutators on top of the sector's own: Threat levels, a challenge's rules.
+var extra_mutators: Array[String] = []
+## A Daily or Weekly Challenge: "daily" or "weekly", and the period it belongs
+## to (see ChallengeService). Empty for any other run.
+var challenge_kind := ""
+var challenge_id := ""
+var challenge_name := ""
 
 
 static func from_profile(app: AppRoot, p_mode: String = CampaignService.MODE_SECTOR) -> RunConfig:
@@ -56,6 +65,11 @@ static func from_profile(app: AppRoot, p_mode: String = CampaignService.MODE_SEC
 	for key: String in core_mods:
 		cfg.base_mods[key] = float(cfg.base_mods.get(key, 0.0)) + float(core_mods[key])
 	cfg.show_tutorial = not bool(app.save.section("tutorial").get("moved", false))
+	if p_mode == CampaignService.MODE_SECTOR:
+		cfg.threat = app.campaign.selected_threat()
+		cfg.extra_mutators = app.campaign.threat_mutators(cfg.threat)
+	elif p_mode == CampaignService.MODE_CHALLENGE:
+		app.challenges.apply_to(cfg)
 	return cfg
 
 

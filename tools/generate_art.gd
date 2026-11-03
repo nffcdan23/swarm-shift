@@ -141,7 +141,8 @@ func _jobs() -> Array:
 	j.append({"name": "boss_ring", "size": 512, "dir": SPRITE_DIR, "fn": _spr_boss_ring})
 	j.append({"name": "boss_shell", "size": 512, "dir": SPRITE_DIR, "fn": _spr_boss_shell})
 	# --- Core skins: full-colour bodies, tintable plates, energy rings and auras ---
-	for body: String in ["void", "solar", "glacier", "quantum", "inferno", "ember", "venom", "amethyst", "rose", "ghost", "aurum", "paragon", "overseer"]:
+	for body: String in ["void", "solar", "glacier", "quantum", "inferno", "ember", "venom", "amethyst", "rose", "ghost", "aurum", "paragon", "overseer",
+			"hazard", "apex", "gauntlet"]:
 		j.append({"name": "core_" + body, "size": 256, "dir": SKIN_DIR, "fn": Callable(self, "_core_" + body)})
 	for plate: String in ["shard", "arc", "crystal", "block", "petal"]:
 		j.append({"name": "plate_" + plate, "size": 128, "dir": SKIN_DIR, "fn": Callable(self, "_plate_" + plate)})
@@ -907,6 +908,65 @@ func _core_overseer(p: Vector2, px: float) -> Color:
 	px_over(Color("1a0408"), mask(sd_circle(p, 0.27), px))
 	px_over(red, mask(eye, px))
 	px_add(WHITE, mask(sd_box(p, Vector2(0.03, 0.17)), px) * 0.95)
+	return px_out()
+
+
+## Threat 5: a warning octagon, striped amber and black, with a beacon at its heart.
+func _core_hazard(p: Vector2, px: float) -> Color:
+	var amber := Color("ffb020")
+	var soot := Color("17120a")
+	px_reset(amber)
+	var outer := sd_ngon(p, 0.74, 8, PI / 8.0)
+	px_add(amber, exp(-maxf(outer, 0.0) / 0.07) * 0.55)
+	px_over(soot, mask(outer, px))
+	# Diagonal stripes on a band inside the rim.
+	var band := maxf(outer, -sd_ngon(p, 0.5, 8, PI / 8.0))
+	var stripe := sin((p.x + p.y) * 22.0)
+	px_over(amber.lerp(WHITE, 0.15 * _lit(p)), mask(band, px) * smoothstep(-0.1, 0.1, stripe))
+	px_add(amber.lerp(WHITE, 0.4), exp(-(outer * outer) / 0.0006) * 0.9)
+	var plate := sd_ngon(p, 0.44, 8, PI / 8.0)
+	px_over(soot.lerp(amber, 0.12), mask(plate, px))
+	px_add(amber, exp(-(plate * plate) / 0.0005) * 0.7)
+	_reactor(p, px, 0.17, Color("ffe08a"))
+	return px_out()
+
+
+## Threat 10: a crimson crown star, white-hot at the centre.
+func _core_apex(p: Vector2, px: float) -> Color:
+	var crimson := Color("ff2f6a")
+	var pink := Color("ffc2dc")
+	px_reset(crimson)
+	var star := sd_star(p, 0.8, 0.34, 5, -PI * 0.5)
+	px_add(crimson, exp(-maxf(star, 0.0) / 0.09) * 0.7)
+	px_over(Color("5a0820").lerp(crimson, _lit(p)), mask(star, px))
+	var inner := sd_star(p, 0.52, 0.24, 5, PI * 0.5)
+	px_over(pink.lerp(crimson, 0.35), mask(inner, px) * 0.85)
+	px_add(WHITE, exp(-(star * star) / 0.0006) * 0.95)
+	# A thin halo between the points.
+	var halo := absf(p.length() - 0.6) - 0.01
+	px_add(pink, mask(halo, px) * (1.0 - mask(star, px)) * 0.6)
+	_reactor(p, px, 0.15, Color("fff0f6"))
+	return px_out()
+
+
+## Six Weekly Challenges: a dark shield ringed by seven lit segments.
+func _core_gauntlet(p: Vector2, px: float) -> Color:
+	var mint := Color("4dffc3")
+	var deep := Color("06302a")
+	px_reset(mint)
+	var disc := sd_circle(p, 0.7)
+	px_add(mint, exp(-maxf(disc, 0.0) / 0.07) * 0.45)
+	px_over(deep, mask(disc, px))
+	var th := fposmod(atan2(p.y, p.x) + PI * 0.5, TAU)
+	var seg := fposmod(th, TAU / 7.0) / (TAU / 7.0)
+	var gap := minf(seg, 1.0 - seg) - 0.08
+	var ring := absf(p.length() - 0.58) - 0.07
+	px_over(mint.lerp(WHITE, 0.2 * _lit(p)), mask(maxf(ring, -gap * 0.5), px))
+	px_add(mint, exp(-maxf(ring, 0.0) / 0.03) * 0.35)
+	var shield := sd_ngon(p, 0.36, 6, PI * 0.5)
+	px_over(deep.lerp(mint, 0.25), mask(shield, px))
+	px_add(mint.lerp(WHITE, 0.5), exp(-(shield * shield) / 0.0005) * 0.9)
+	_reactor(p, px, 0.13, Color("dcfff2"))
 	return px_out()
 
 

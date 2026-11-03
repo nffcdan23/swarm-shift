@@ -13,7 +13,12 @@ extends RefCounted
 ## `result` is the dictionary produced by Arena.build_result():
 ##   run_id, mode, tier, core, time, active_time, kills, elites, bosses, level,
 ##   level_ups, damage, credits_picked, credit_gain, cleared, died, abandoned,
-##   synergies, revives, weapons, dealt_by_source, kills_by_source, evolved
+##   synergies, revives, weapons, dealt_by_source, kills_by_source, evolved,
+##   threat, challenge_kind, challenge_id
+##
+## Threat (CampaignService) raises a sector run's Credits and Player XP, and its
+## first clear at each level pays once. A challenge (ChallengeService) pays its
+## own reward once per period. Neither repeats a Crystal reward.
 
 ## Settled run ids remembered, newest last.
 const SETTLED_KEPT := 24
@@ -38,8 +43,13 @@ static func compute(app: AppRoot, result: Dictionary) -> Dictionary:
 	var survival := maxi(int(round(seconds / 60.0 * GameData.num(rewards, "credits_per_minute", 10.0) * bonus_scale)), 0)
 	var clear_bonus := maxi(int(round(GameData.num(rewards, "sector_clear_credits", 120.0) * bonus_scale * (1.0 + app.meta.mod_total("clear_credits_pct")))), 0) if cleared else 0
 
+	var mode := str(result.get("mode", ""))
+	var threat := int(result.get("threat", 0)) if mode == CampaignService.MODE_SECTOR else 0
+	var threat_credits := int(round(float(collected + survival + clear_bonus) * (app.campaign.threat_reward_mult(threat) - 1.0)))
+	var threat_first := cleared and threat > 0 and threat > app.campaign.threat_cleared(tier)
+
 	var xp_bonus := app.meta.mod_total("account_xp_pct")
-	var xp_scale := float(scale.account_xp) * (1.0 + xp_bonus)
+	var xp_scale := float(scale.account_xp) * (1.0 + xp_bonus) * app.campaign.threat_xp_mult(threat)
 	var xp_parts := {
 		"time": int(round(seconds * GameData.num(rewards, "xp_per_second", 0.6) * xp_scale)),
 		"kills": int(round(float(result.get("kills", 0)) * GameData.num(rewards, "xp_per_kill", 0.08) * xp_scale)),
@@ -51,13 +61,18 @@ static func compute(app: AppRoot, result: Dictionary) -> Dictionary:
 	for part: String in xp_parts:
 		xp += int(xp_parts[part])
 
-	var first_clear := cleared and str(result.get("mode", "")) == CampaignService.MODE_SECTOR and tier > app.campaign.highest_cleared()
+	var first_clear := cleared and mode == CampaignService.MODE_SECTOR and threat == 0 and tier > app.campaign.highest_cleared()
 	return {
 		"mastery_xp": app.mastery.preview(result),
-		"credits": collected + survival + clear_bonus,
+		"credits": collected + survival + clear_bonus + threat_credits,
 		"credits_collected": collected,
 		"credits_survival": survival,
 		"credits_clear": clear_bonus,
+		"credits_threat": threat_credits,
+		"threat": threat,
+		"threat_first_clear": threat_first,
+		"threat_first_credits": app.campaign.threat_first_clear_credits(tier, threat) if threat_first else 0,
+		"threat_crystals": app.campaign.threat_milestone_crystals(threat) if threat_first else 0,
 		"account_xp": xp,
 		"xp_parts": xp_parts,
 		"xp_bonus_pct": xp_bonus,
@@ -120,11 +135,14 @@ static func settle(app: AppRoot, result: Dictionary) -> Dictionary:
 	app.save.state["synergies"] = found
 	summary["new_synergies"] = new_synergies
 
-	var record := app.campaign.record_run(mode, tier, bool(result.get("cleared", false)), seconds)
+	var record := app.campaign.record_run(mode, tier, bool(result.get("cleared", false)), seconds, int(summary.threat))
 	summary["new_best"] = bool(record.new_best)
 
 	app.economy.grant(Economy.CREDITS, int(summary.credits), "run")
 	app.economy.grant(Economy.CRYSTALS, int(summary.crystals), "first_clear")
+	app.economy.grant(Economy.CREDITS, int(summary.threat_first_credits), "threat_first_clear")
+	app.economy.grant(Economy.CRYSTALS, int(summary.threat_crystals), "threat_milestone")
+	summary["challenge"] = app.challenges.record(result)
 	summary["mastery"] = app.mastery.award(result)
 	app.stats.add("evolutions_used", float((result.get("evolved", {}) as Dictionary).size()))
 
@@ -143,7 +161,7 @@ static func settle(app: AppRoot, result: Dictionary) -> Dictionary:
 	summary["credits_after"] = app.economy.balance(Economy.CREDITS)
 
 	app.analytics.track(Analytics.GAME_ENDED, {
-		"mode": mode, "tier": tier, "core": result.get("core", ""),
+		"mode": mode, "tier": tier, "core": result.get("core", ""), "threat": summary.threat, "challenge": result.get("challenge_id", ""),
 		"run_duration": seconds, "kills": result.get("kills", 0), "level": result.get("level", 1),
 		"cleared": result.get("cleared", false), "died": result.get("died", false),
 		"abandoned": result.get("abandoned", false), "interrupted": result.get("interrupted", false),

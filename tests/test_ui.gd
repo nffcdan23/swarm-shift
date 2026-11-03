@@ -421,6 +421,94 @@ func test_lobby_shows_player_level_xp_and_next_goals() -> void:
 	await _frames(1)
 
 
+func test_lobby_threat_row_appears_only_once_threat_opens() -> void:
+	fresh_profile()
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(3)
+	var home := shell.screen("home") as HomeScreen
+	check(not home._threat_row.visible, "a new player sees no Threat controls")
+	shell.queue_free()
+	await _frames(1)
+
+	fresh_profile()
+	app.save.section("sectors")["highest_cleared"] = 6
+	app.campaign.select(2)
+	shell = MenuShell.new()
+	host.add_child(shell)
+	await _frames(3)
+	home = shell.screen("home") as HomeScreen
+	check(home._threat_row.visible, "with Sector 4 cleared, the sector card has a Threat row")
+	check(_has_text(home, "THREAT OFF"), "starting at the ordinary sector")
+	await _tap(home._threat_up.get_global_rect().get_center())
+	await _frames(2)
+	check_eq(app.campaign.selected_threat(), 1, "tapping up selects Threat 1")
+	check(_has_text(home, "THREAT 1"), "the card shows it")
+	check(_has_text(home, "ELITE PATROLS"), "and names what it adds")
+	check(_has_text(home, "FIRST CLEAR"), "and what a first clear pays")
+	check(home._threat_up.disabled, "and cannot go past this sector's ladder (it has no Threat clears yet)")
+	var requested: Array = []
+	shell.play_pressed.connect(func(mode: String) -> void: requested.append(mode))
+	await _tap(home._play.get_global_rect().get_center())
+	check_eq(requested, [CampaignService.MODE_SECTOR], "PLAY still starts a sector run")
+	check_eq(RunConfig.from_profile(app).threat, 1, "at Threat 1")
+	check(home._play.get_global_rect().end.y <= shell.nav.get_global_rect().position.y + 1.0, "PLAY stays clear of the bottom bar with the Threat row shown")
+	shell.queue_free()
+	await _frames(1)
+
+
+func test_lobby_challenges_view() -> void:
+	fresh_profile()
+	app.save.section("sectors")["highest_cleared"] = 8
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(3)
+	var home := shell.screen("home") as HomeScreen
+	home._mode.select(HomeScreen.VIEW_CHALLENGES)
+	home._on_mode_changed(HomeScreen.VIEW_CHALLENGES)
+	await _frames(2)
+	check(_has_text(home, "DAILY CHALLENGE"), "the challenges view opens on the Daily")
+	check(_has_text(home, "NEW DAILY IN"), "with a countdown")
+	check(_has_text(home, "CLEAR IT: +"), "and its reward")
+	var daily := app.challenges.challenge(ChallengeService.DAILY)
+	check(_has_text(home, str(daily.loadout)), "and its weapons")
+	check(_has_text(home, str((daily.rule_names as PackedStringArray)[0])), "and its rule")
+	await _tap(home._next.get_global_rect().get_center())
+	await _frames(2)
+	check(_has_text(home, "WEEKLY CHALLENGE"), "the arrow switches to the Weekly")
+	check(_has_text(home, "THREAT 2"), "which carries Threat")
+	# Ten weeks of rules and loadouts: none may widen the lobby.
+	var width := host.get_viewport().get_visible_rect().size.x
+	var widest := 0.0
+	for week in 10:
+		app.clock.offset_seconds = week * 7 * 86400
+		home.refresh()
+		await _frames(2)
+		for child in home.get_children():
+			widest = maxf(widest, (child as Control).size.x)
+	app.clock.offset_seconds = 0
+	app.save.section("challenges")["clock_high"] = 0
+	home.refresh()
+	await _frames(2)
+	check(widest <= width, "no Weekly Challenge widens the lobby (%.0f of %.0f)" % [widest, width])
+	var requested: Array = []
+	shell.play_pressed.connect(func(mode: String) -> void: requested.append(mode))
+	await _tap(home._play.get_global_rect().get_center())
+	check_eq(requested, [CampaignService.MODE_CHALLENGE], "PLAY starts the challenge")
+	check(home._play.get_global_rect().end.y <= shell.nav.get_global_rect().position.y + 1.0, "PLAY stays clear of the bottom bar")
+
+	# A clock wound back: the card says so and PLAY waits.
+	app.clock.offset_seconds += 5 * 86400
+	app.challenges.check_clock()
+	app.clock.offset_seconds -= 5 * 86400
+	home.refresh()
+	await _frames(2)
+	check(_has_text(home, "CHECK YOUR DEVICE CLOCK"), "a clock behind the last time seen is explained")
+	check(home._play.disabled, "and PLAY is held")
+	shell.queue_free()
+	await _frames(1)
+
+
 func test_upgrades_screen_rows_and_bulk_buying() -> void:
 	fresh_profile()
 	app.economy.grant(Economy.CREDITS, 3000, "test")

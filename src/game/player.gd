@@ -26,6 +26,8 @@ var crit_chance := 0.05
 var crit_mult := 1.6
 var armor := 0.0
 var regen := 0.0
+## Scales every heal and regeneration (Threat: Scarce Repairs). Set by the Director.
+var heal_mult := 1.0
 var pickup_radius := 95.0
 var luck := 0.0
 var xp_gain := 1.0
@@ -142,7 +144,7 @@ func update(dt: float, input: Vector2) -> void:
 	_a.confine(self)
 
 	if regen > 0.0 and hp < max_hp:
-		hp = minf(hp + regen * dt, max_hp)
+		hp = minf(hp + regen * heal_mult * dt, max_hp)
 	if invulnerable_for > 0.0:
 		invulnerable_for -= dt
 	if _phase_enabled:
@@ -224,6 +226,7 @@ func take_hit(amount: float, from_x: float, from_y: float) -> bool:
 
 
 func heal(amount: float) -> void:
+	amount *= heal_mult
 	if not alive or amount <= 0.0:
 		return
 	var before := hp

@@ -12,6 +12,9 @@ const DISPLAY: Array[Dictionary] = [
 	{"key": "bosses_defeated", "label": "Bosses defeated"},
 	{"key": "elites_killed", "label": "Elites destroyed"},
 	{"key": "highest_sector_cleared", "label": "Highest sector cleared"},
+	{"key": "highest_threat_cleared", "label": "Highest Threat cleared"},
+	{"key": "daily_challenges_done", "label": "Daily Challenges completed"},
+	{"key": "weekly_challenges_done", "label": "Weekly Challenges completed"},
 	{"key": "highest_run_level", "label": "Highest run level"},
 	{"key": "longest_survival", "label": "Longest survival", "format": "time"},
 	{"key": "total_damage", "label": "Total damage dealt"},
@@ -69,6 +72,10 @@ func value(key: String) -> float:
 			return float(_app.mastery.owned_count())
 		"research_done":
 			return float(_app.meta.total_levels())
+		"highest_threat_cleared":
+			return float(_app.campaign.highest_threat_cleared())
+		"sectors_at_threat_3":
+			return float(_app.campaign.sectors_at_threat(3))
 	return float(_app.save.section("stats").get(key, 0.0))
 
 
