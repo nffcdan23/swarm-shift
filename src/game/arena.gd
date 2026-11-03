@@ -453,6 +453,7 @@ func choose(index: int) -> void:
 		if autopilot != null:
 			choose(autopilot.pick(current_offers))
 		return
+	upgrades.note_hand(current_offers, index)
 	app.analytics.track(Analytics.UPGRADE_SELECTED, {
 		"kind": offer.kind, "id": offer.id, "level": offer.level, "rarity": offer.rarity,
 		"run_level": level, "time": time, "cache": choosing_cache,
@@ -507,6 +508,8 @@ func reroll_from_ad() -> bool:
 
 
 func _reroll_offers(source: String) -> void:
+	# Rerolling is passing on the whole hand: the new one is dealt without it.
+	upgrades.note_hand(current_offers, -1)
 	current_offers = upgrades.roll(current_offers.size(), choosing_cache)
 	choice_serial += 1
 	sfx("reroll")

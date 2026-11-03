@@ -120,3 +120,36 @@ Campaign, free player, sectors only, skill 0.6 (`--campaign=20 --skill=0.6`), ag
 | 25% of research, by Credits | 8.6 | 7.8 |
 
 Progress is roughly 10-25% faster. Sector 17 is still the slowest wall (21 attempts).
+
+## 8. After build 8: level-up cards repeating
+
+Feedback from a tester: the two cards passed on at one level-up came straight back at the next, level after level, and late in a run the same few weak cards filled every hand.
+
+**Cause.** `UpgradeSystem.roll()` had no memory. Each hand was a fresh weighted draw from every card still valid, and owned weapons and passives are weighted up. Late in a run, with every weapon and passive slot full, only a handful of cards remain, so the cards just refused were the likeliest ones again. A reroll did not exclude the hand it replaced either. Measured over six seeded runs, playing like a person who picks at random:
+
+| Run level | Cards still possible | Passed cards back in the next hand | Hands with both passed cards back |
+| --- | --- | --- | --- |
+| 0-9 | 29 | 0.22 | 0% |
+| 20-29 | 16 | 0.43 | 5% |
+| 30-39 | 11 | 0.81 | 13% |
+| 40+ | 5 | 1.49 | 55% |
+
+**Fix** (`src/game/upgrade_system.gd`, `Arena.choose()` and `Arena._reroll_offers()`):
+- A weapon, passive or augment card that was shown and not taken **sits out the next hand**, whether that hand is a level-up, an elite cache or a reroll.
+- Each pass in a row makes the card **rarer** (weight x0.55 per pass, down to x0.15), until it is taken. A card the player keeps refusing stops crowding the hand, but is never removed.
+- A **reroll counts as passing on the whole hand**, so it always deals different cards when any exist.
+- When the only upgrades left are the ones just passed on, the hand is made of the fallback cards (Field Repair, Salvage, Purge), and the passed cards return a hand later.
+- **Evolutions are exempt**: a weapon ready to evolve is still always offered.
+
+After the fix, the same measurement shows no passed or rerolled-away weapon, passive or augment in the very next hand at any level. The only repeats left at level 40+ are the fallback cards.
+
+Still true: late in a run the pool is small (a complete build has only a few cards left to give), so cards return every other hand rather than never. More variety there needs more content (more augments, or a choice that spends levels on something other than the build), not dealing.
+
+Difficulty is unchanged within noise (30 runs, about plus or minus 17 points): Sector 8 at 40% of upgrades, skill 0.6, 40% -> 33%; Sector 20 with every upgrade, 67% -> 73%.
+
+**Tests** (`tests/test_upgrades.gd`):
+- six seeded ten-minute runs, with rerolls, never deal a passed card in the next hand;
+- twenty rerolls in a row never share a card with the hand they replace;
+- with only two upgrades left, passing them gives a fallback hand, and they return a hand later;
+- three passes make a card turn up less than half as often, and taking it resets the count;
+- evolutions are never held back.

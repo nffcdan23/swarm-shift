@@ -15,6 +15,10 @@ extends RefCounted
 ##   - early levels guarantee a new weapon so builds diversify quickly
 ##   - items the player already owns are weighted up, so builds come together
 ##   - luck raises the odds of the rarer cards
+##   - a card the player passed on sits out the next hand, and every further
+##     pass makes it rarer until it is taken: late in a run, with the slots
+##     full, only a handful of cards remain, and without this the same refused
+##     cards came back hand after hand (and a reroll could deal them again)
 
 const KIND_WEAPON := "weapon"
 const KIND_PASSIVE := "passive"
@@ -30,6 +34,48 @@ var _weapon_max := 5
 var _weapon_slots := 4
 var _passive_slots := 5
 
+## Each pass multiplies a card's weight by this, down to PASS_FLOOR.
+const PASS_FADE := 0.55
+const PASS_FLOOR := 0.15
+## Cards passed on in the last hand, by `offer_key`: rolls they still sit out.
+var _resting := {}
+## How many hands in a row each card was shown and not taken.
+var _passes := {}
+
+
+## Identifies a card across hands, whatever level it is offered at.
+static func offer_key(offer: Dictionary) -> String:
+	return "%s:%s" % [offer.get("kind", ""), offer.get("id", "")]
+
+
+## Weapons, passives and augments rest when passed. Evolutions are always
+## offered on purpose, and the fallback cards are the safety net.
+static func _can_rest(offer: Dictionary) -> bool:
+	return str(offer.get("kind", "")) in [KIND_WEAPON, KIND_PASSIVE, KIND_AUGMENT]
+
+
+## The hand on the table was closed: card `taken` picked, or -1 when the whole
+## hand was rerolled away. Everything else on it was passed on.
+func note_hand(hand: Array[Dictionary], taken: int) -> void:
+	for i in hand.size():
+		var offer := hand[i]
+		var key := offer_key(offer)
+		if i == taken:
+			_passes.erase(key)
+			_resting.erase(key)
+		elif _can_rest(offer):
+			_passes[key] = int(_passes.get(key, 0)) + 1
+			_resting[key] = 1
+
+
+## How many times in a row `offer` has been passed on.
+func passes(offer: Dictionary) -> int:
+	return int(_passes.get(offer_key(offer), 0))
+
+
+func is_resting(offer: Dictionary) -> bool:
+	return int(_resting.get(offer_key(offer), 0)) > 0
+
 
 func setup(arena: Arena) -> void:
 	_a = arena
@@ -41,8 +87,31 @@ func setup(arena: Arena) -> void:
 
 ## Rolls `amount` distinct offers. `boosted` (elite caches) skews towards rarer cards.
 func roll(amount: int, boosted: bool = false) -> Array[Dictionary]:
+	var picked := _deal(amount, boosted)
+	# A card rests for one hand only, whether that hand was a level-up, a
+	# cache or a reroll.
+	for key: String in _resting.keys():
+		_resting[key] = int(_resting[key]) - 1
+		if int(_resting[key]) <= 0:
+			_resting.erase(key)
+	return picked
+
+
+func _deal(amount: int, boosted: bool) -> Array[Dictionary]:
 	var pool := _candidates(boosted)
 	var picked: Array[Dictionary] = []
+
+	# Cards passed on fade, and the ones passed on last hand sit this one out.
+	var resting: Array[Dictionary] = []
+	for offer in pool.duplicate():
+		if not _can_rest(offer):
+			continue
+		var passed := passes(offer)
+		if passed > 0:
+			offer["weight"] = float(offer.weight) * maxf(pow(PASS_FADE, passed), PASS_FLOOR)
+		if is_resting(offer):
+			pool.erase(offer)
+			resting.append(offer)
 
 	# Evolutions come first, and at most two: one weapon's two paths side by side
 	# is the choice, and the rest of the hand must still be a real alternative.
@@ -70,9 +139,16 @@ func roll(amount: int, boosted: bool = false) -> Array[Dictionary]:
 	while picked.size() < amount and not pool.is_empty():
 		picked.append(_take(pool, pool))
 
-	# Everything maxed: still give a meaningful choice.
+	# Everything maxed: still give a meaningful choice. The fallback cards come
+	# before the resting ones, so a hand that was just passed on is not dealt
+	# again; resting cards only return when even those run out.
 	var fillers: Array[Dictionary] = [_heal_offer(), _credits_offer(), _purge_offer()]
 	var filler_index := 0
+	while picked.size() < amount and filler_index < fillers.size():
+		picked.append(fillers[filler_index])
+		filler_index += 1
+	while picked.size() < amount and not resting.is_empty():
+		picked.append(_take(resting, resting))
 	while picked.size() < amount:
 		picked.append(fillers[filler_index % fillers.size()])
 		filler_index += 1

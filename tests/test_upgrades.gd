@@ -319,3 +319,189 @@ func test_final_upgrade_card_does_not_say_max_level() -> void:
 		card.free()
 		ordinary.free()
 	_free(arena)
+
+
+
+## Plays a run as a person would, rerolling now and then, and counts cards that
+## were on the hand just closed (picked away or rerolled) turning up again.
+func _play_counting_returns(run_seed: int, seconds: float) -> Array:
+	var arena := _arena(_player_config(run_seed))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = run_seed * 104729
+	var returns := PackedStringArray()
+	var hands := 0
+	var late_hands := 0
+	var passed := {}
+	for step in int(seconds / DT):
+		if arena.state == Arena.State.ENDED:
+			break
+		var guard := 0
+		while arena.state == Arena.State.CHOOSING and guard < 50:
+			guard += 1
+			hands += 1
+			if arena.build.weapon_order.size() >= 4:
+				late_hands += 1
+			for offer in arena.current_offers:
+				if passed.has(UpgradeSystem.offer_key(offer)) and str(offer.kind) in [UpgradeSystem.KIND_WEAPON, UpgradeSystem.KIND_PASSIVE, UpgradeSystem.KIND_AUGMENT]:
+					returns.append("L%d %s" % [arena.level, UpgradeSystem.offer_key(offer)])
+			passed.clear()
+			if rng.randf() < 0.25 and arena.can_reroll():
+				for offer in arena.current_offers:
+					passed[UpgradeSystem.offer_key(offer)] = true
+				arena.reroll()
+				continue
+			var pick := rng.randi_range(0, arena.current_offers.size() - 1)
+			for i in arena.current_offers.size():
+				if i != pick:
+					passed[UpgradeSystem.offer_key(arena.current_offers[i])] = true
+			arena.choose(pick)
+		arena.step(DT)
+	_free(arena)
+	return [returns, hands, late_hands]
+
+
+## Playtest feedback (build 8): late in a run, the two cards passed on at one
+## level-up came straight back at the next, level after level.
+func test_passed_cards_do_not_come_straight_back() -> void:
+	fresh_profile()
+	var returns := PackedStringArray()
+	var hands := 0
+	var late_hands := 0
+	for run_seed in [41, 42, 43, 44, 45, 46]:
+		var result := _play_counting_returns(run_seed, 600.0)
+		returns.append_array(result[0])
+		hands += int(result[1])
+		late_hands += int(result[2])
+	for line in returns.slice(0, 10):
+		print("    [returned] ", line)
+	check(hands > 200, "enough hands to mean something (%d)" % hands)
+	check(late_hands > 80, "many with every weapon slot full, where the pool is small (%d)" % late_hands)
+	check_eq(returns.size(), 0, "no passed or rerolled-away card is dealt in the very next hand (%d hands)" % hands)
+
+
+func test_a_reroll_deals_a_different_hand() -> void:
+	fresh_profile()
+	var arena := _arena(_player_config(47))
+	arena.rerolls_left = 20
+	arena.add_xp(arena.xp_needed + 1.0)
+	arena.step(DT)
+	check_eq(arena.state, Arena.State.CHOOSING, "a hand is on the table")
+	for k in 20:
+		var before := {}
+		for offer in arena.current_offers:
+			before[UpgradeSystem.offer_key(offer)] = true
+		check(arena.reroll(), "reroll %d is allowed" % k)
+		var again := 0
+		for offer in arena.current_offers:
+			if before.has(UpgradeSystem.offer_key(offer)):
+				again += 1
+		check_eq(again, 0, "reroll %d shares no card with the hand it replaced" % k)
+		check(_hand_problems(arena).is_empty(), "and is a valid hand")
+	_free(arena)
+
+
+## Build almost complete: two weapons one level short, everything else maxed.
+func _nearly_done(arena: Arena) -> void:
+	var weapon_max := GameData.integer(app.data.weapons, "max_level", 5)
+	for weapon_id: String in ["pulse", "scatter", "orbit", "nova"]:
+		arena.grant_weapon(weapon_id, weapon_max - (1 if weapon_id in ["pulse", "scatter"] else 0))
+	var passive_ids: Array = app.data.passives().keys()
+	for passive_id: String in passive_ids.slice(0, 5):
+		arena.build.set_passive(passive_id, GameData.integer(GameData.dict(app.data.passives(), passive_id), "max_level", 5))
+	for augment_id: String in app.data.augments():
+		arena.build.add_augment(augment_id)
+	arena.build.evolved["orbit"] = "x"
+	arena.build.evolved["nova"] = "x"
+	arena.refresh_build()
+
+
+func _ids(hand: Array[Dictionary]) -> Array:
+	var ids := []
+	for offer in hand:
+		ids.append(str(offer.id))
+	ids.sort()
+	return ids
+
+
+func test_last_cards_left_rest_one_hand_then_return() -> void:
+	fresh_profile()
+	var arena := _arena(_player_config(48))
+	_nearly_done(arena)
+	var ups := arena.upgrades
+	var hand := ups.roll(3)
+	var real := 0
+	var filler := -1
+	for i in hand.size():
+		if str(hand[i].kind) == UpgradeSystem.KIND_WEAPON:
+			real += 1
+		else:
+			filler = i
+	check_eq(real, 2, "the only two upgrades left are both dealt: %s" % [_ids(hand)])
+	ups.note_hand(hand, filler)
+	var next := ups.roll(3)
+	for offer in next:
+		check(str(offer.kind) in [UpgradeSystem.KIND_HEAL, UpgradeSystem.KIND_CREDITS, UpgradeSystem.KIND_PURGE],
+			"right after passing them, the hand is fallback cards (%s)" % offer.id)
+	ups.note_hand(next, 0)
+	var after := ups.roll(3)
+	var back := 0
+	for offer in after:
+		if str(offer.kind) == UpgradeSystem.KIND_WEAPON:
+			back += 1
+	check_eq(back, 2, "a hand later they are back, rather than gone for good")
+	_free(arena)
+
+
+func test_passing_fades_a_card_and_taking_it_resets() -> void:
+	fresh_profile()
+	var arena := _arena(_player_config(49))
+	var ups := arena.upgrades
+	var card := {"kind": UpgradeSystem.KIND_PASSIVE, "id": "amplifier", "level": 1}
+	var other := {"kind": UpgradeSystem.KIND_PASSIVE, "id": "fortune", "level": 1}
+	var counts_before := 0
+	for offer in _deal_many(arena, 600):
+		if str(offer.id) == "amplifier":
+			counts_before += 1
+	for k in 3:
+		ups.note_hand([card, other], 1)
+	check_eq(ups.passes(card), 3, "three passes are remembered")
+	check_eq(ups.passes(other), 0, "the card taken is not counted as passed")
+	check(ups.is_resting(card), "the card passed last sits out the next hand")
+	ups.roll(3)
+	check(not ups.is_resting(card), "for one hand only")
+	var counts_after := 0
+	for offer in _deal_many(arena, 600):
+		if str(offer.id) == "amplifier":
+			counts_after += 1
+	print("    amplifier in 600 hands: %d fresh, %d after three passes" % [counts_before, counts_after])
+	check(counts_after < counts_before * 0.5, "a card passed three times turns up far less often")
+	check(counts_after > 0, "but still turns up")
+	ups.note_hand([card], 0)
+	check_eq(ups.passes(card), 0, "taking it clears the record")
+
+
+func test_evolutions_are_never_held_back() -> void:
+	fresh_profile()
+	var config := _player_config(50)
+	config.evolutions = {"pulse": ["repeater", "breach"]}
+	config.base_mods["run.evolutions"] = 1.0
+	var arena := _arena(config)
+	var weapon_max := GameData.integer(app.data.weapons, "max_level", 5)
+	arena.grant_weapon("pulse", weapon_max)
+	var ups := arena.upgrades
+	var hand := ups.roll(3)
+	var evolutions := 0
+	var other := -1
+	for i in hand.size():
+		if str(hand[i].kind) == UpgradeSystem.KIND_EVOLUTION:
+			evolutions += 1
+		else:
+			other = i
+	check(evolutions > 0, "a weapon at max offers its evolution")
+	ups.note_hand(hand, other)
+	var again := 0
+	for offer in ups.roll(3):
+		if str(offer.kind) == UpgradeSystem.KIND_EVOLUTION:
+			again += 1
+	check_eq(again, evolutions, "passed on once, the evolution is still offered next hand")
+	_free(arena)
