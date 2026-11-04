@@ -549,3 +549,93 @@ func test_a_bought_weapon_turns_up_in_runs() -> void:
 			offered_runs += 1
 		_free(arena)
 	check(offered_runs >= 9, "Arc Caster is offered in nearly every run once bought (%d of %d)" % [offered_runs, runs])
+
+
+
+## A player who has played a while: the four starters well used.
+func _seasoned_starters() -> void:
+	for id: String in ["pulse", "scatter", "orbit", "nova"]:
+		app.save.section("mastery")[id] = {"xp": 2000}
+
+
+## Playtest (build 8, follow-up): a weapon bought in the Arsenal did not always
+## turn up in the run. The newest one not yet used is now always the first
+## weapon card, and unused weapons come up more than well-worn ones.
+func test_a_newly_bought_weapon_is_the_first_weapon_card() -> void:
+	fresh_profile()
+	_seasoned_starters()
+	for id: String in ["chain", "missile"]:
+		app.arsenal.grant(ArsenalService.WEAPONS, id, "test")
+	check_eq(app.arsenal.featured_weapon(), "missile", "the most recent purchase not yet used is featured")
+	for run_seed in range(10):
+		var config := RunConfig.from_profile(app, CampaignService.MODE_SECTOR)
+		config.rng_seed = 900 + run_seed
+		config.autopilot = false
+		config.base_mods = {"max_hp": 1000000.0}
+		check_eq(config.featured_weapon, "missile", "run %d features it" % run_seed)
+		var arena := _arena(config)
+		# The first hand that offers any new weapon (a hand is shuffled, and
+		# can hold more than one).
+		var first_weapon_hand: Array = []
+		for step in int(120.0 / DT):
+			if not first_weapon_hand.is_empty():
+				break
+			while arena.state == Arena.State.CHOOSING:
+				var weapons: Array = []
+				for offer in arena.current_offers:
+					if str(offer.kind) == UpgradeSystem.KIND_WEAPON and bool(offer.is_new):
+						weapons.append(str(offer.id))
+				if first_weapon_hand.is_empty():
+					first_weapon_hand = weapons
+				arena.choose(0)
+			arena.step(DT)
+		check(first_weapon_hand.has("missile"), "run %d: the first hand with a weapon offers the new purchase (%s)" % [run_seed, first_weapon_hand])
+		_free(arena)
+	# Used once (it earned Mastery XP), the next newest unused one takes over.
+	app.save.section("mastery")["missile"] = {"xp": 40}
+	check_eq(app.arsenal.featured_weapon(), "chain", "once used, the previous purchase is featured")
+	app.save.section("mastery")["chain"] = {"xp": 40}
+	check_eq(app.arsenal.featured_weapon(), "", "and with everything used, none is")
+	check_eq(RunConfig.from_profile(app, CampaignService.MODE_SECTOR).featured_weapon, "", "so runs feature nothing")
+
+
+func test_untried_weapons_come_up_more_and_early_hands_offer_one() -> void:
+	fresh_profile()
+	_seasoned_starters()
+	app.arsenal.grant(ArsenalService.WEAPONS, "chain", "test")
+	var config := RunConfig.from_profile(app, CampaignService.MODE_SECTOR)
+	check(float(config.weapon_interest.get("chain", 1.0)) > float(config.weapon_interest.get("scatter", 1.0)),
+		"an unused weapon is weighted above a well-used starter")
+	config.rng_seed = 77
+	config.autopilot = false
+	config.featured_weapon = ""
+	config.base_mods = {"max_hp": 1000000.0}
+	var arena := _arena(config)
+	arena.level = 5
+	var chain := 0
+	var scatter := 0
+	for k in 600:
+		for offer in arena.upgrades.roll(3):
+			if str(offer.id) == "chain":
+				chain += 1
+			elif str(offer.id) == "scatter":
+				scatter += 1
+	check(chain > scatter * 2, "over 600 hands the unused Arc Caster comes up far more than Scatter Shot (%d vs %d)" % [chain, scatter])
+	var without := 0
+	for k in 200:
+		var has_weapon := false
+		for offer in arena.upgrades.roll(3):
+			has_weapon = has_weapon or (str(offer.kind) == UpgradeSystem.KIND_WEAPON and bool(offer.is_new))
+		if not has_weapon:
+			without += 1
+	check_eq(without, 0, "until the build has a second weapon, every hand offers one")
+	for id: String in ["chain", "scatter", "orbit"]:
+		arena.grant_weapon(id, 1)
+	var full_hands_with_new := 0
+	for k in 200:
+		for offer in arena.upgrades.roll(3):
+			if str(offer.kind) == UpgradeSystem.KIND_WEAPON and bool(offer.is_new):
+				full_hands_with_new += 1
+	check_eq(full_hands_with_new, 0, "with every slot full, no new weapon is offered")
+	_free(arena)
+

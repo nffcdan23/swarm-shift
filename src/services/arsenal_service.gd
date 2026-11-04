@@ -118,6 +118,17 @@ func names_gated_at_level(at_level: int) -> Array:
 	return out
 
 
+## The weapon to feature in the next run: the most recently bought one the
+## player has not used in a run yet (no Mastery XP), or "" if there is none.
+func featured_weapon() -> String:
+	var bought: Array = _app.save.section("unlocks").get(WEAPONS, [])
+	for i in range(bought.size() - 1, -1, -1):
+		var id := str(bought[i])
+		if defs(WEAPONS).has(id) and is_owned(WEAPONS, id) and _app.mastery.xp(id) <= 0:
+			return id
+	return ""
+
+
 ## Weapons the player's level has opened but that are not bought yet, cheapest
 ## first: [{"id", "name", "cost", "affordable"}]. Reaching a level only puts a
 ## weapon on sale; it never reaches a run until it is bought.

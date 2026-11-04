@@ -11,6 +11,12 @@ var color := Color("2de2ff")
 var start_weapon := "pulse"
 ## Weapons that may be offered on level-up.
 var weapon_pool: Array[String] = []
+## How much more often each weapon is offered as a new card, by id: weapons
+## the player has never used, or barely, come up more so a purchase is seen.
+var weapon_interest: Dictionary = {}
+## A weapon bought but not yet used: the first new-weapon card of the run is
+## this one, so a purchase is always seen.
+var featured_weapon := ""
 ## Permanent upgrades plus the core's own modifiers.
 var base_mods: Dictionary = {}
 ## Augments owned from the first second (a core's Awakening).
@@ -56,6 +62,15 @@ static func from_profile(app: AppRoot, p_mode: String = CampaignService.MODE_SEC
 	cfg.weapon_pool = app.arsenal.unlocked_weapons()
 	if not cfg.weapon_pool.has(cfg.start_weapon):
 		cfg.weapon_pool.append(cfg.start_weapon)
+	var featured := app.arsenal.featured_weapon()
+	if cfg.weapon_pool.has(featured) and featured != cfg.start_weapon:
+		cfg.featured_weapon = featured
+	var run_cfg := app.data.run_cfg()
+	for weapon_id in cfg.weapon_pool:
+		if app.mastery.xp(weapon_id) <= 0:
+			cfg.weapon_interest[weapon_id] = GameData.num(run_cfg, "untried_weapon_weight", 3.0)
+		elif app.mastery.rank(weapon_id) < 1:
+			cfg.weapon_interest[weapon_id] = GameData.num(run_cfg, "new_weapon_weight", 1.5)
 	app.meta.collect_mods(cfg.base_mods)
 	app.mastery.collect_mods(cfg.base_mods)
 	cfg.start_augments = app.meta.awakened_augments(cfg.core)
