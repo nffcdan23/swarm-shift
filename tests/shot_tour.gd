@@ -64,6 +64,11 @@ func _progression(menu: MenuShell) -> void:
 	arsenal.refresh()
 	await _wait(0.8)
 	await _shot("06_progress_arsenal_skins")
+	# The earned skins at the bottom carry the longest goal texts.
+	for scroller in arsenal.find_children("*", "ScrollContainer", true, false):
+		(scroller as ScrollContainer).scroll_vertical = 100000
+	await _wait(0.5)
+	await _shot("06_progress_arsenal_skins_goals")
 	# Every skin at lobby size, one after another.
 	for id: String in App.data.skins():
 		App.save.section("loadout")["skin"] = id

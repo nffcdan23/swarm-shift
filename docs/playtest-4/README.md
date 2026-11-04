@@ -173,3 +173,9 @@ Not changed: the weapons still cost Credits. Granting them for free on reaching 
 - With six weapons bought and the starters well used, the newest purchase was offered in 30 of 30 runs, the other purchases in 20-28, the starters in 13-18.
 - Tried and dropped: offering a new weapon in every hand until the slots are full. Builds filled faster and Sector 20 went from 60% to 83% cleared in the sims, undoing the harder bosses. With the guarantee kept to the first weapon, the sims are unchanged (Sector 8 10/30, Sector 20 18/30).
 - Tests: the newest purchase is in the first hand that offers a weapon in 10 of 10 runs; using it moves the feature on, and with everything used nothing is featured; over 600 hands an unused Arc Caster comes up more than twice as often as a well-used Scatter Shot; early hands always carry a weapon, a full build never gets one.
+
+## 10. After build 10: Arsenal SKINS tab off screen
+
+The SKINS tab of the Arsenal laid out wider than the screen (743 on the 720-wide canvas), so the list sat shifted right and cut off; CORES and WEAPONS were fine. The three skins added for build 8 (HAZARD, APEX, GAUNTLET) show their unlock goal in a tag on the right of the card, and a tag never wraps: "COMPLETE 6 WEEKLY CHALLENGES" made its card row 703 wide before the card's own padding. The older goals ("CLEAR SECTOR 20") were short enough to fit. Goal tags now wrap at 150 pixels (`UiKit.wrapped_tag`), about the width of a price button.
+
+Tests: every Arsenal tab, and every main screen (Research, Arsenal, Play, Missions, Shop) on a profile far into the game, is laid out on a 720 x 1560 phone canvas and checked for anything past the right edge; the SKINS check failed at 743 before the fix. The screenshot tour gains the bottom of the SKINS list.

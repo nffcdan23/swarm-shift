@@ -150,6 +150,17 @@ static func tag(text: String, color: Color, size: int = UiTheme.TINY) -> PanelCo
 	return p
 
 
+## A tag whose text wraps within `width`, for text that can be long (an
+## unlock goal such as "COMPLETE 6 WEEKLY CHALLENGES"): a plain tag never
+## wraps, and a long one widens whatever row holds it past the screen.
+static func wrapped_tag(text: String, color: Color, width: float, size: int = UiTheme.TINY) -> PanelContainer:
+	var p := tag(text, color, size)
+	var l := p.get_child(0) as Label
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size.x = width
+	return p
+
+
 ## Red notification dot with a count; hidden at zero.
 static func badge() -> PanelContainer:
 	var p := PanelContainer.new()

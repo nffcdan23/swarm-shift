@@ -6,6 +6,8 @@ extends MenuScreen
 
 const SECTIONS: PackedStringArray = ["CORES", "WEAPONS", "SKINS"]
 const CATEGORIES: PackedStringArray = [ArsenalService.CORES, ArsenalService.WEAPONS, ArsenalService.SKINS]
+## Width an unlock goal's tag wraps at (about the width of a price button).
+const FEAT_WIDTH := 150.0
 
 var _tabs: SegmentedControl
 var _list: VBoxContainer
@@ -157,7 +159,9 @@ func _action(category: String, id: String, info: Dictionary, selected: bool) -> 
 		"research":
 			return UiKit.tag("RESEARCH", Palette.VIOLET, UiTheme.TINY)
 		"feat":
-			return UiKit.tag(str(info.feat), Palette.GOLD, UiTheme.TINY - 1)
+			# Goals such as "COMPLETE 6 WEEKLY CHALLENGES" wrap rather than
+			# widen the card past the screen.
+			return UiKit.wrapped_tag(str(info.feat), Palette.GOLD, FEAT_WIDTH, UiTheme.TINY - 1)
 		"level", "crystals":
 			if not bool(info.level_met):
 				return UiKit.tag("PLAYER LV %d" % int(info.level), Palette.MUTED, UiTheme.TINY)

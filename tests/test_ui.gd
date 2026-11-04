@@ -1366,3 +1366,62 @@ func test_lobby_and_level_up_point_at_weapons_to_buy() -> void:
 	check(_has_text(screen, "buy it to use it"), "and that it has to be bought")
 	host.remove_child(screen)
 	screen.free()
+
+
+## Playtest (build 10): the Arsenal's SKINS tab came out wider than the
+## screen, shifted right. Every Arsenal tab must fit a phone.
+func test_arsenal_tabs_fit_the_screen() -> void:
+	fresh_profile()
+	var phone := SubViewport.new()
+	phone.size = Vector2i(720, 1560)
+	host.add_child(phone)
+	var shell := MenuShell.new()
+	phone.add_child(shell)
+	await _frames(2)
+	shell.show_tab("arsenal", true)
+	await _frames(2)
+	var arsenal := shell.screen("arsenal") as ArsenalScreen
+	for i in ArsenalScreen.SECTIONS.size():
+		arsenal._tabs.select(i)
+		arsenal.refresh()
+		await _frames(3)
+		var right := 0.0
+		var worst := ""
+		for node in shell.find_children("*", "Control", true, false):
+			var control := node as Control
+			if not control.is_visible_in_tree() or control.size.x <= 0.0:
+				continue
+			if control.get_global_rect().end.x > right:
+				right = control.get_global_rect().end.x
+				worst = "%s '%s' min %.0f" % [control.get_class(), (control as Label).text if control is Label else control.name, control.get_combined_minimum_size().x]
+		check(right <= 720.5, "%s: nothing past the right edge (%.0f of 720, widest: %s)" % [ArsenalScreen.SECTIONS[i], right, worst])
+	host.remove_child(phone)
+	phone.free()
+
+
+## Every main screen, on a profile far into the game (long names, every
+## unlock state), fits a phone.
+func test_every_menu_screen_fits_the_screen() -> void:
+	fresh_profile()
+	_rich_profile()
+	var phone := SubViewport.new()
+	phone.size = Vector2i(720, 1560)
+	host.add_child(phone)
+	var shell := MenuShell.new()
+	phone.add_child(shell)
+	await _frames(2)
+	for id: String in ["home", "upgrades", "arsenal", "missions", "shop"]:
+		shell.show_tab(id, true)
+		await _frames(3)
+		var right := 0.0
+		var worst := ""
+		for node in shell.find_children("*", "Control", true, false):
+			var control := node as Control
+			if not control.is_visible_in_tree() or control.size.x <= 0.0:
+				continue
+			if control.get_global_rect().end.x > right:
+				right = control.get_global_rect().end.x
+				worst = "%s '%s'" % [control.get_class(), (control as Label).text if control is Label else control.name]
+		check(right <= 720.5, "%s: nothing past the right edge (%.0f of 720, widest: %s)" % [id, right, worst])
+	host.remove_child(phone)
+	phone.free()
