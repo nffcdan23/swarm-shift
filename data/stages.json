@@ -108,15 +108,15 @@
       "t_crossfire": { "name": "CROSSFIRE", "desc": "A firing line of Shooters every 45 seconds", "color": "#ff9a5c",
         "every": { "seconds": 45, "from": 70, "event": { "type": "line", "label": "CROSSFIRE", "enemy": "shooter", "count": 5, "drops": false } } },
       "t_brood_elites": { "name": "BROOD ELITES", "desc": "Every elite also spawns Swarmers", "color": "#c98aff", "elite_extra_affix": "spawner" },
-      "t_wrath": { "name": "OVERSEER'S WRATH", "desc": "The boss opens with its second-phase attacks and rests 20% less", "color": "#ff3d6e",
+      "t_wrath": { "name": "BOSS'S WRATH", "desc": "The boss opens with its second-phase attacks and rests 20% less", "color": "#ff3d6e",
         "boss": { "phase_floor": 1, "idle_mult": 0.8 } },
       "t_hunters": { "name": "HUNTER PACKS", "desc": "A pack of Dashers every 40 seconds", "color": "#5cf0ff",
         "every": { "seconds": 40, "from": 95, "event": { "type": "pack", "label": "HUNTER PACK", "enemy": "dasher", "count": 6, "drops": false } } },
       "t_scatter_fire": { "name": "SCATTER FIRE", "desc": "Shooters fire three-shot spreads; boss volleys carry 30% more shots", "color": "#ff5c8a",
         "shooter_spread": 3, "boss": { "bullets_mult": 1.3 } },
       "t_no_second_chances": { "name": "NO SECOND CHANCES", "desc": "No revives, and healing is halved again", "color": "#9fb3c8", "heal": 0.5, "revives": false },
-      "t_final_protocol": { "name": "FINAL PROTOCOL", "desc": "Below 20% health the boss enters a fourth phase; elites are 50% tougher", "color": "#ff2f5a",
-        "elite_hp": 1.5, "boss": { "final_phase": { "below": 0.2, "attacks": ["zones", "burst", "laser", "charge", "summon"], "idle": 0.7, "speed_mult": 1.55 } } },
+      "t_final_protocol": { "name": "FINAL PROTOCOL", "desc": "Below 20% health the boss enters a final phase with every attack it has; elites are 50% tougher", "color": "#ff2f5a",
+        "elite_hp": 1.5, "boss": { "final_phase": { "below": 0.2, "idle": 0.7, "speed_mult": 1.55 } } },
 
       "c_no_repairs": { "name": "NO REPAIRS", "desc": "Nothing heals you", "color": "#9fb3c8", "heal": 0.0 },
       "c_big_game": { "name": "BIG GAME", "desc": "Twice as many Brutes and Tanks", "color": "#ffb04d", "tracks": { "brute": 2.0, "tank": 2.0 } }
@@ -143,29 +143,356 @@
     ]
   },
 
+  "_bosses_doc": "One boss per sector: 'sector_bosses' lists them in sector order (Overdrive meets them in the same order, one per cycle). A boss's 'hp' is its health at Sector 1 scaling; 'look' picks its shell, core and ring from assets/sprites/bosses, tinted in its 'color'. 'phases' run from full health down; each names the attacks it may use. An attack's 'type' is one of the patterns in Boss.ATTACK_TYPES (its key, if absent). 'credits' drop as pickups when it dies; 'bounty' is paid on the results screen for a sector clear, scaled like the clear bonus; 'first_clear_crystals' is paid once, the first time the sector is cleared.",
+  "sector_bosses": ["sentinel", "furnace", "phase_wraith", "broodmother", "enforcer", "lattice", "magma_ram", "rift_weaver", "plague_engine", "executor", "prism_warden", "cinder_king", "void_herald", "hive_queen", "tyrant", "architect", "sunbreaker", "singularity", "blight_titan", "overseer"],
+
   "bosses": {
-    "overseer": {
-      "name": "THE OVERSEER",
-      "radius": 60,
-      "size": 230,
-      "hp": 16000,
-      "speed": 48,
-      "contact_damage": 30,
-      "arena_radius": 540,
-      "xp": 150,
-      "credits": 150,
-      "color": "#ff3d6e",
+    "sentinel": {
+      "name": "THE SENTINEL", "title": "Keeper of the first grid", "color": "#2de2ff",
+      "look": {"shell": "spikes", "core": "eye", "ring": "segmented"},
+      "radius": 53, "size": 205, "hp": 12000, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
       "phases": [
-        { "hp_above": 0.66, "attacks": ["burst", "summon", "charge"], "idle": 1.5, "speed_mult": 1.0 },
-        { "hp_above": 0.33, "attacks": ["burst", "laser", "charge", "summon"], "idle": 1.15, "speed_mult": 1.2 },
-        { "hp_above": 0.0, "attacks": ["zones", "burst", "laser", "charge", "summon"], "idle": 0.85, "speed_mult": 1.4 }
+        {"hp_above": 0.5, "attacks": ["burst", "summon"], "idle": 1.6, "speed_mult": 1.0},
+        {"hp_above": 0.0, "attacks": ["burst", "charge", "summon"], "idle": 1.25, "speed_mult": 1.2}
       ],
       "attacks": {
-        "burst": { "volleys": 3, "bullets": 14, "interval": 0.6, "bullet_speed": 205, "damage": 14, "spin": 0.22, "bullets_per_phase": 3 },
-        "charge": { "telegraph": 0.95, "speed": 760, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1 },
-        "summon": { "spawns": { "swarmer": 10, "brute": 1 }, "cast_time": 0.8, "extra_per_phase": 4 },
-        "laser": { "beams": 3, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.5, "length": 640, "width": 22, "damage": 18, "tick": 0.3 },
-        "zones": { "count": 6, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9 }
+        "burst": {"volleys": 2, "bullets": 12, "interval": 0.6, "bullet_speed": 205, "damage": 14, "spin": 0.22, "bullets_per_phase": 3},
+        "charge": {"telegraph": 0.95, "speed": 760, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1},
+        "summon": {"spawns": {"swarmer": 8}, "cast_time": 0.8, "extra_per_phase": 4}
+      }
+    },
+    "furnace": {
+      "name": "THE FURNACE", "title": "It burns the ground you stand on", "color": "#ff7a3d",
+      "look": {"shell": "fortress", "core": "reactor", "ring": "segmented"},
+      "radius": 55, "size": 210, "hp": 12500, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.5, "attacks": ["charge", "zones"], "idle": 1.6, "speed_mult": 1.0},
+        {"hp_above": 0.0, "attacks": ["charge", "zones", "summon"], "idle": 1.25, "speed_mult": 1.2}
+      ],
+      "attacks": {
+        "charge": {"telegraph": 0.95, "speed": 760, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1},
+        "zones": {"count": 5, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "summon": {"spawns": {"swarmer": 8, "bomber": 1}, "cast_time": 0.8, "extra_per_phase": 4}
+      }
+    },
+    "phase_wraith": {
+      "name": "THE PHASE WRAITH", "title": "Never where you are looking", "color": "#b58cff",
+      "look": {"shell": "petals", "core": "rift", "ring": "double"},
+      "radius": 55, "size": 210, "hp": 13000, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.5, "attacks": ["blink", "burst"], "idle": 1.6, "speed_mult": 1.0},
+        {"hp_above": 0.0, "attacks": ["blink", "burst", "summon"], "idle": 1.25, "speed_mult": 1.2}
+      ],
+      "attacks": {
+        "blink": {"telegraph": 0.85, "blinks": 1, "blinks_per_phase": 1, "distance": 230, "radius": 110, "damage": 30, "bullets": 8, "bullet_speed": 190, "bullet_damage": 12},
+        "burst": {"volleys": 2, "bullets": 14, "interval": 0.6, "bullet_speed": 205, "damage": 14, "spin": 0.22, "bullets_per_phase": 3},
+        "summon": {"spawns": {"weaver": 4}, "cast_time": 0.8, "extra_per_phase": 2, "grows": "weaver"}
+      }
+    },
+    "broodmother": {
+      "name": "THE BROODMOTHER", "title": "Mother of the swarm", "color": "#5cffb1",
+      "look": {"shell": "petals", "core": "hive", "ring": "orbs"},
+      "radius": 56, "size": 215, "hp": 13500, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.5, "attacks": ["summon", "fan"], "idle": 1.6, "speed_mult": 1.0},
+        {"hp_above": 0.0, "attacks": ["summon", "zones", "fan"], "idle": 1.25, "speed_mult": 1.2}
+      ],
+      "attacks": {
+        "summon": {"spawns": {"swarmer": 12, "splitter": 2}, "cast_time": 0.8, "extra_per_phase": 4},
+        "zones": {"count": 5, "radius": 80, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "fan": {"telegraph": 0.55, "volleys": 3, "interval": 0.5, "bullets": 5, "bullets_per_phase": 1, "arc": 50, "bullet_speed": 240, "damage": 14}
+      }
+    },
+    "enforcer": {
+      "name": "THE ENFORCER", "title": "First of the Overseer's line", "color": "#ff4d6d",
+      "look": {"shell": "claw", "core": "reactor", "ring": "double"},
+      "radius": 58, "size": 225, "hp": 15000, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 400, "first_clear_crystals": 25,
+      "phases": [
+        {"hp_above": 0.66, "attacks": ["burst", "charge"], "idle": 1.5, "speed_mult": 1.0},
+        {"hp_above": 0.33, "attacks": ["burst", "charge", "fan"], "idle": 1.15, "speed_mult": 1.2},
+        {"hp_above": 0.0, "attacks": ["burst", "charge", "fan", "summon"], "idle": 0.9, "speed_mult": 1.4}
+      ],
+      "attacks": {
+        "burst": {"volleys": 3, "bullets": 14, "interval": 0.6, "bullet_speed": 205, "damage": 14, "spin": 0.22, "bullets_per_phase": 3},
+        "charge": {"telegraph": 0.95, "speed": 760, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1},
+        "fan": {"telegraph": 0.55, "volleys": 3, "interval": 0.5, "bullets": 5, "bullets_per_phase": 1, "arc": 50, "bullet_speed": 240, "damage": 14},
+        "summon": {"spawns": {"swarmer": 10, "brute": 1}, "cast_time": 0.8, "extra_per_phase": 4}
+      }
+    },
+    "lattice": {
+      "name": "THE LATTICE", "title": "Every line is a wall", "color": "#4dfff0",
+      "look": {"shell": "fortress", "core": "prism", "ring": "double"},
+      "radius": 58, "size": 225, "hp": 15000, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.66, "attacks": ["spiral", "burst"], "idle": 1.5, "speed_mult": 1.0},
+        {"hp_above": 0.33, "attacks": ["spiral", "cross", "summon"], "idle": 1.15, "speed_mult": 1.2},
+        {"hp_above": 0.0, "attacks": ["spiral", "cross", "burst", "summon"], "idle": 0.9, "speed_mult": 1.4}
+      ],
+      "attacks": {
+        "spiral": {"telegraph": 0.6, "duration": 3.0, "interval": 0.13, "arms": 3, "arms_per_phase": 1, "turn": 0.26, "bullet_speed": 175, "damage": 12},
+        "cross": {"type": "laser", "beams": 4, "telegraph": 1.2, "duration": 2.4, "rot_speed": 0.0, "length": 640, "width": 22, "damage": 18, "tick": 0.3},
+        "burst": {"volleys": 3, "bullets": 14, "interval": 0.6, "bullet_speed": 205, "damage": 14, "spin": 0.22, "bullets_per_phase": 3},
+        "summon": {"spawns": {"shooter": 3, "swarmer": 6}, "cast_time": 0.8, "extra_per_phase": 4}
+      }
+    },
+    "magma_ram": {
+      "name": "THE MAGMA RAM", "title": "It does not stop", "color": "#ff5c2b",
+      "look": {"shell": "horns", "core": "reactor", "ring": "gear"},
+      "radius": 60, "size": 230, "hp": 15500, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.66, "attacks": ["charge", "zones"], "idle": 1.5, "speed_mult": 1.0},
+        {"hp_above": 0.33, "attacks": ["charge", "zones", "fan"], "idle": 1.15, "speed_mult": 1.2},
+        {"hp_above": 0.0, "attacks": ["charge", "zones", "fan", "summon"], "idle": 0.9, "speed_mult": 1.4}
+      ],
+      "attacks": {
+        "charge": {"telegraph": 0.95, "speed": 820, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1},
+        "zones": {"count": 6, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "fan": {"telegraph": 0.55, "volleys": 3, "interval": 0.5, "bullets": 5, "bullets_per_phase": 1, "arc": 50, "bullet_speed": 240, "damage": 14},
+        "summon": {"spawns": {"brute": 2, "swarmer": 6}, "cast_time": 0.8, "extra_per_phase": 4}
+      }
+    },
+    "rift_weaver": {
+      "name": "THE RIFT WEAVER", "title": "It folds the arena around you", "color": "#c77dff",
+      "look": {"shell": "blades", "core": "rift", "ring": "orbs"},
+      "radius": 60, "size": 230, "hp": 15500, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.66, "attacks": ["blink", "fan"], "idle": 1.5, "speed_mult": 1.0},
+        {"hp_above": 0.33, "attacks": ["blink", "laser", "fan"], "idle": 1.15, "speed_mult": 1.2},
+        {"hp_above": 0.0, "attacks": ["blink", "laser", "fan", "summon"], "idle": 0.9, "speed_mult": 1.4}
+      ],
+      "attacks": {
+        "blink": {"telegraph": 0.85, "blinks": 1, "blinks_per_phase": 1, "distance": 230, "radius": 110, "damage": 30, "bullets": 10, "bullet_speed": 190, "bullet_damage": 12},
+        "laser": {"beams": 2, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.6, "length": 640, "width": 22, "damage": 18, "tick": 0.3},
+        "fan": {"telegraph": 0.55, "volleys": 3, "interval": 0.5, "bullets": 5, "bullets_per_phase": 1, "arc": 50, "bullet_speed": 240, "damage": 14},
+        "summon": {"spawns": {"weaver": 6}, "cast_time": 0.8, "extra_per_phase": 2, "grows": "weaver"}
+      }
+    },
+    "plague_engine": {
+      "name": "THE PLAGUE ENGINE", "title": "The ground is never safe", "color": "#9dff5c",
+      "look": {"shell": "fortress", "core": "hive", "ring": "gear"},
+      "radius": 61, "size": 235, "hp": 16000, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.66, "attacks": ["zones", "summon"], "idle": 1.5, "speed_mult": 1.0},
+        {"hp_above": 0.33, "attacks": ["zones", "burst", "summon"], "idle": 1.15, "speed_mult": 1.2},
+        {"hp_above": 0.0, "attacks": ["zones", "burst", "fan", "summon"], "idle": 0.9, "speed_mult": 1.4}
+      ],
+      "attacks": {
+        "zones": {"count": 7, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 3, "wave_interval": 0.9},
+        "summon": {"spawns": {"bomber": 3, "swarmer": 8}, "cast_time": 0.8, "extra_per_phase": 4},
+        "burst": {"volleys": 3, "bullets": 14, "interval": 0.6, "bullet_speed": 205, "damage": 14, "spin": 0.22, "bullets_per_phase": 3},
+        "fan": {"telegraph": 0.55, "volleys": 3, "interval": 0.5, "bullets": 5, "bullets_per_phase": 1, "arc": 50, "bullet_speed": 240, "damage": 14}
+      }
+    },
+    "executor": {
+      "name": "THE EXECUTOR", "title": "Sentence is carried out", "color": "#ff3d9a",
+      "look": {"shell": "blades", "core": "eye", "ring": "gear"},
+      "radius": 62, "size": 240, "hp": 16500, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 400, "first_clear_crystals": 25,
+      "phases": [
+        {"hp_above": 0.66, "attacks": ["charge", "fan"], "idle": 1.5, "speed_mult": 1.0},
+        {"hp_above": 0.33, "attacks": ["charge", "laser", "fan"], "idle": 1.15, "speed_mult": 1.2},
+        {"hp_above": 0.0, "attacks": ["charge", "laser", "zones", "fan"], "idle": 0.9, "speed_mult": 1.4}
+      ],
+      "attacks": {
+        "charge": {"telegraph": 0.95, "speed": 760, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1},
+        "laser": {"beams": 3, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.5, "length": 640, "width": 22, "damage": 18, "tick": 0.3},
+        "zones": {"count": 6, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "fan": {"telegraph": 0.55, "volleys": 3, "interval": 0.5, "bullets": 6, "bullets_per_phase": 1, "arc": 50, "bullet_speed": 240, "damage": 14}
+      }
+    },
+    "prism_warden": {
+      "name": "THE PRISM WARDEN", "title": "Light, bent into a cage", "color": "#8ad8ff",
+      "look": {"shell": "spikes", "core": "prism", "ring": "orbs"},
+      "radius": 62, "size": 240, "hp": 16500, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.66, "attacks": ["spiral", "fan"], "idle": 1.5, "speed_mult": 1.0},
+        {"hp_above": 0.33, "attacks": ["spiral", "laser", "fan"], "idle": 1.15, "speed_mult": 1.2},
+        {"hp_above": 0.0, "attacks": ["spiral", "laser", "fan", "summon"], "idle": 0.9, "speed_mult": 1.4}
+      ],
+      "attacks": {
+        "spiral": {"telegraph": 0.6, "duration": 3.0, "interval": 0.13, "arms": 4, "arms_per_phase": 1, "turn": 0.26, "bullet_speed": 175, "damage": 12},
+        "laser": {"beams": 4, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.45, "length": 640, "width": 22, "damage": 18, "tick": 0.3},
+        "fan": {"telegraph": 0.55, "volleys": 3, "interval": 0.5, "bullets": 5, "bullets_per_phase": 1, "arc": 50, "bullet_speed": 240, "damage": 14},
+        "summon": {"spawns": {"shooter": 4, "swarmer": 6}, "cast_time": 0.8, "extra_per_phase": 4}
+      }
+    },
+    "cinder_king": {
+      "name": "THE CINDER KING", "title": "Where it lands, it burns", "color": "#ffb03d",
+      "look": {"shell": "spikes", "core": "eye", "ring": "gear"},
+      "radius": 64, "size": 245, "hp": 17000, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.66, "attacks": ["blink", "charge", "burst"], "idle": 1.5, "speed_mult": 1.0},
+        {"hp_above": 0.33, "attacks": ["blink", "charge", "zones", "burst"], "idle": 1.15, "speed_mult": 1.2},
+        {"hp_above": 0.0, "attacks": ["blink", "charge", "zones", "burst"], "idle": 0.9, "speed_mult": 1.4}
+      ],
+      "attacks": {
+        "blink": {"telegraph": 0.85, "blinks": 1, "blinks_per_phase": 1, "distance": 230, "radius": 130, "damage": 34, "bullets": 0, "bullet_speed": 190, "bullet_damage": 12},
+        "charge": {"telegraph": 0.95, "speed": 760, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1},
+        "zones": {"count": 6, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "burst": {"volleys": 3, "bullets": 14, "interval": 0.6, "bullet_speed": 205, "damage": 14, "spin": 0.22, "bullets_per_phase": 3}
+      }
+    },
+    "void_herald": {
+      "name": "THE VOID HERALD", "title": "It speaks in silence", "color": "#8a6bff",
+      "look": {"shell": "horns", "core": "rift", "ring": "double"},
+      "radius": 64, "size": 245, "hp": 17000, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.66, "attacks": ["blink", "spiral"], "idle": 1.5, "speed_mult": 1.0},
+        {"hp_above": 0.33, "attacks": ["blink", "laser", "spiral"], "idle": 1.15, "speed_mult": 1.2},
+        {"hp_above": 0.0, "attacks": ["blink", "laser", "spiral", "zones"], "idle": 0.9, "speed_mult": 1.4}
+      ],
+      "attacks": {
+        "blink": {"telegraph": 0.85, "blinks": 2, "blinks_per_phase": 0, "distance": 230, "radius": 110, "damage": 30, "bullets": 8, "bullet_speed": 190, "bullet_damage": 12},
+        "laser": {"beams": 4, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.5, "length": 640, "width": 22, "damage": 18, "tick": 0.3},
+        "spiral": {"telegraph": 0.6, "duration": 3.0, "interval": 0.13, "arms": 3, "arms_per_phase": 1, "turn": 0.26, "bullet_speed": 175, "damage": 12},
+        "zones": {"count": 6, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9}
+      }
+    },
+    "hive_queen": {
+      "name": "THE HIVE QUEEN", "title": "The swarm answers to her", "color": "#3dffa0",
+      "look": {"shell": "petals", "core": "hive", "ring": "double"},
+      "radius": 65, "size": 250, "hp": 17500, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.66, "attacks": ["summon", "charge", "zones"], "idle": 1.5, "speed_mult": 1.0},
+        {"hp_above": 0.33, "attacks": ["summon", "spiral", "charge", "zones"], "idle": 1.15, "speed_mult": 1.2},
+        {"hp_above": 0.0, "attacks": ["summon", "spiral", "charge", "zones"], "idle": 0.9, "speed_mult": 1.4}
+      ],
+      "attacks": {
+        "summon": {"spawns": {"dasher": 4, "splitter": 3, "swarmer": 10}, "cast_time": 0.8, "extra_per_phase": 4},
+        "zones": {"count": 6, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "spiral": {"telegraph": 0.6, "duration": 3.0, "interval": 0.13, "arms": 3, "arms_per_phase": 1, "turn": 0.26, "bullet_speed": 175, "damage": 12},
+        "charge": {"telegraph": 0.95, "speed": 760, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1}
+      }
+    },
+    "tyrant": {
+      "name": "THE TYRANT", "title": "The Overseer's right hand", "color": "#ff2f4a",
+      "look": {"shell": "horns", "core": "eye", "ring": "orbs"},
+      "radius": 65, "size": 250, "hp": 18000, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 400, "first_clear_crystals": 25,
+      "phases": [
+        {"hp_above": 0.75, "attacks": ["burst", "charge", "fan"], "idle": 1.45, "speed_mult": 1.0},
+        {"hp_above": 0.5, "attacks": ["burst", "charge", "laser", "fan"], "idle": 1.15, "speed_mult": 1.15},
+        {"hp_above": 0.25, "attacks": ["burst", "charge", "laser", "zones", "fan"], "idle": 0.95, "speed_mult": 1.3},
+        {"hp_above": 0.0, "attacks": ["burst", "charge", "laser", "zones", "fan", "summon"], "idle": 0.8, "speed_mult": 1.45}
+      ],
+      "attacks": {
+        "burst": {"volleys": 3, "bullets": 14, "interval": 0.6, "bullet_speed": 205, "damage": 14, "spin": 0.22, "bullets_per_phase": 3},
+        "charge": {"telegraph": 0.95, "speed": 760, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1},
+        "laser": {"beams": 3, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.5, "length": 640, "width": 22, "damage": 18, "tick": 0.3},
+        "zones": {"count": 6, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "fan": {"telegraph": 0.55, "volleys": 3, "interval": 0.5, "bullets": 5, "bullets_per_phase": 1, "arc": 50, "bullet_speed": 240, "damage": 14},
+        "summon": {"spawns": {"brute": 2, "swarmer": 10}, "cast_time": 0.8, "extra_per_phase": 4}
+      }
+    },
+    "architect": {
+      "name": "THE ARCHITECT", "title": "It built the grid. It can unbuild you", "color": "#5cb8ff",
+      "look": {"shell": "fortress", "core": "reactor", "ring": "gear"},
+      "radius": 66, "size": 255, "hp": 18500, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.75, "attacks": ["spiral", "cross"], "idle": 1.45, "speed_mult": 1.0},
+        {"hp_above": 0.5, "attacks": ["spiral", "cross", "blink"], "idle": 1.15, "speed_mult": 1.15},
+        {"hp_above": 0.25, "attacks": ["spiral", "sweep", "blink", "zones"], "idle": 0.95, "speed_mult": 1.3},
+        {"hp_above": 0.0, "attacks": ["spiral", "sweep", "cross", "blink", "zones"], "idle": 0.8, "speed_mult": 1.45}
+      ],
+      "attacks": {
+        "spiral": {"telegraph": 0.6, "duration": 3.0, "interval": 0.13, "arms": 3, "arms_per_phase": 1, "turn": 0.26, "bullet_speed": 175, "damage": 12},
+        "cross": {"type": "laser", "beams": 4, "telegraph": 1.2, "duration": 2.4, "rot_speed": 0.0, "length": 640, "width": 22, "damage": 18, "tick": 0.3},
+        "sweep": {"type": "laser", "beams": 5, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.45, "length": 640, "width": 22, "damage": 18, "tick": 0.3},
+        "zones": {"count": 6, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "blink": {"telegraph": 0.85, "blinks": 1, "blinks_per_phase": 1, "distance": 230, "radius": 110, "damage": 30, "bullets": 0, "bullet_speed": 190, "bullet_damage": 12}
+      }
+    },
+    "sunbreaker": {
+      "name": "THE SUNBREAKER", "title": "A star with a grudge", "color": "#ffd15c",
+      "look": {"shell": "blades", "core": "reactor", "ring": "orbs"},
+      "radius": 66, "size": 255, "hp": 19000, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.75, "attacks": ["charge", "zones"], "idle": 1.45, "speed_mult": 1.0},
+        {"hp_above": 0.5, "attacks": ["charge", "zones", "spiral"], "idle": 1.15, "speed_mult": 1.15},
+        {"hp_above": 0.25, "attacks": ["charge", "zones", "spiral", "laser"], "idle": 0.95, "speed_mult": 1.3},
+        {"hp_above": 0.0, "attacks": ["charge", "zones", "spiral", "laser", "blink"], "idle": 0.8, "speed_mult": 1.45}
+      ],
+      "attacks": {
+        "charge": {"telegraph": 0.95, "speed": 760, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1},
+        "zones": {"count": 7, "radius": 100, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "spiral": {"telegraph": 0.6, "duration": 3.0, "interval": 0.13, "arms": 3, "arms_per_phase": 1, "turn": 0.26, "bullet_speed": 175, "damage": 12},
+        "laser": {"beams": 3, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.5, "length": 640, "width": 22, "damage": 18, "tick": 0.3},
+        "blink": {"telegraph": 0.85, "blinks": 1, "blinks_per_phase": 1, "distance": 230, "radius": 110, "damage": 30, "bullets": 0, "bullet_speed": 190, "bullet_damage": 12}
+      }
+    },
+    "singularity": {
+      "name": "THE SINGULARITY", "title": "Everything falls towards it", "color": "#e08cff",
+      "look": {"shell": "blades", "core": "rift", "ring": "segmented"},
+      "radius": 68, "size": 260, "hp": 19000, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.75, "attacks": ["blink", "laser"], "idle": 1.45, "speed_mult": 1.0},
+        {"hp_above": 0.5, "attacks": ["blink", "laser", "spiral"], "idle": 1.15, "speed_mult": 1.15},
+        {"hp_above": 0.25, "attacks": ["blink", "laser", "spiral", "zones"], "idle": 0.95, "speed_mult": 1.3},
+        {"hp_above": 0.0, "attacks": ["blink", "laser", "spiral", "zones", "summon"], "idle": 0.8, "speed_mult": 1.45}
+      ],
+      "attacks": {
+        "blink": {"telegraph": 0.85, "blinks": 2, "blinks_per_phase": 0, "distance": 230, "radius": 110, "damage": 30, "bullets": 12, "bullet_speed": 190, "bullet_damage": 12},
+        "laser": {"beams": 6, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.35, "length": 640, "width": 22, "damage": 18, "tick": 0.3},
+        "spiral": {"telegraph": 0.6, "duration": 3.0, "interval": 0.13, "arms": 3, "arms_per_phase": 1, "turn": 0.26, "bullet_speed": 175, "damage": 12},
+        "zones": {"count": 6, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "summon": {"spawns": {"weaver": 6, "tank": 1}, "cast_time": 0.8, "extra_per_phase": 2, "grows": "weaver"}
+      }
+    },
+    "blight_titan": {
+      "name": "THE BLIGHT TITAN", "title": "The last of the hive", "color": "#c8ff3d",
+      "look": {"shell": "horns", "core": "hive", "ring": "segmented"},
+      "radius": 69, "size": 265, "hp": 19500, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 250, "first_clear_crystals": 15,
+      "phases": [
+        {"hp_above": 0.75, "attacks": ["summon", "zones", "fan"], "idle": 1.45, "speed_mult": 1.0},
+        {"hp_above": 0.5, "attacks": ["summon", "zones", "fan", "spiral"], "idle": 1.15, "speed_mult": 1.15},
+        {"hp_above": 0.25, "attacks": ["summon", "zones", "fan", "spiral", "laser"], "idle": 0.95, "speed_mult": 1.3},
+        {"hp_above": 0.0, "attacks": ["summon", "zones", "fan", "spiral", "laser"], "idle": 0.8, "speed_mult": 1.45}
+      ],
+      "attacks": {
+        "summon": {"spawns": {"tank": 1, "bomber": 2, "swarmer": 10}, "cast_time": 0.8, "extra_per_phase": 4},
+        "zones": {"count": 9, "radius": 70, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "spiral": {"telegraph": 0.6, "duration": 3.0, "interval": 0.13, "arms": 3, "arms_per_phase": 1, "turn": 0.26, "bullet_speed": 175, "damage": 12},
+        "fan": {"telegraph": 0.55, "volleys": 3, "interval": 0.5, "bullets": 5, "bullets_per_phase": 1, "arc": 50, "bullet_speed": 240, "damage": 14},
+        "laser": {"beams": 3, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.5, "length": 640, "width": 22, "damage": 18, "tick": 0.3}
+      }
+    },
+    "overseer": {
+      "name": "THE OVERSEER", "title": "The mind behind the swarm", "color": "#ff3d6e",
+      "look": {"shell": "claw", "core": "eye", "ring": "segmented"},
+      "radius": 68, "size": 260, "hp": 20000, "speed": 48, "contact_damage": 30, "arena_radius": 540,
+      "xp": 150, "credits": 200, "bounty": 600, "first_clear_crystals": 40,
+      "phases": [
+        {"hp_above": 0.75, "attacks": ["burst", "summon", "charge"], "idle": 1.45, "speed_mult": 1.0},
+        {"hp_above": 0.5, "attacks": ["burst", "laser", "charge", "summon", "fan"], "idle": 1.15, "speed_mult": 1.15},
+        {"hp_above": 0.25, "attacks": ["zones", "burst", "laser", "charge", "summon", "spiral"], "idle": 0.95, "speed_mult": 1.3},
+        {"hp_above": 0.0, "attacks": ["zones", "burst", "laser", "charge", "summon", "spiral", "fan", "blink"], "idle": 0.8, "speed_mult": 1.45}
+      ],
+      "attacks": {
+        "burst": {"volleys": 3, "bullets": 14, "interval": 0.6, "bullet_speed": 205, "damage": 14, "spin": 0.22, "bullets_per_phase": 3},
+        "charge": {"telegraph": 0.95, "speed": 760, "duration": 0.7, "damage": 34, "recover": 0.6, "charges_per_phase": 1},
+        "summon": {"spawns": {"swarmer": 10, "brute": 1}, "cast_time": 0.8, "extra_per_phase": 4},
+        "laser": {"beams": 3, "telegraph": 1.1, "duration": 4.0, "rot_speed": 0.5, "length": 640, "width": 22, "damage": 18, "tick": 0.3},
+        "zones": {"count": 6, "radius": 88, "telegraph": 1.15, "damage": 28, "spread": 260, "waves": 2, "wave_interval": 0.9},
+        "spiral": {"telegraph": 0.6, "duration": 3.0, "interval": 0.13, "arms": 3, "arms_per_phase": 1, "turn": 0.26, "bullet_speed": 175, "damage": 12},
+        "fan": {"telegraph": 0.55, "volleys": 3, "interval": 0.5, "bullets": 5, "bullets_per_phase": 1, "arc": 50, "bullet_speed": 240, "damage": 14},
+        "blink": {"telegraph": 0.85, "blinks": 1, "blinks_per_phase": 1, "distance": 230, "radius": 110, "damage": 30, "bullets": 10, "bullet_speed": 190, "bullet_damage": 12}
       }
     }
   }

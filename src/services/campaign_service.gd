@@ -65,6 +65,26 @@ func endless_best() -> float:
 	return float(_app.save.section("sectors").get("endless_best", 0.0))
 
 
+## The boss that ends sector `tier`: stages.json "sector_bosses", in order
+## (wrapping past the end), or the timeline's default boss.
+func boss_for(tier: int) -> String:
+	var order := GameData.list(_app.data.stages, "sector_bosses")
+	var fallback := GameData.text(GameData.dict(_app.data.stages, "timeline"), "boss", "overseer")
+	if order.is_empty():
+		return fallback
+	var id := str(order[posmod(maxi(tier, 1) - 1, order.size())])
+	return id if GameData.dict(_app.data.stages, "bosses").has(id) else fallback
+
+
+func boss_def(id: String) -> Dictionary:
+	return GameData.dict(GameData.dict(_app.data.stages, "bosses"), id)
+
+
+## Credits a boss is worth on top of the clear bonus, before sector scaling.
+func boss_bounty(id: String) -> int:
+	return GameData.integer(boss_def(id), "bounty", 0)
+
+
 func theme(tier: int) -> Dictionary:
 	var themes := GameData.list(_app.data.stages, "themes")
 	if themes.is_empty():

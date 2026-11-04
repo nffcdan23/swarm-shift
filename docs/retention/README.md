@@ -28,7 +28,7 @@ For sectors already cleared. Each level adds one rule on top of everything below
 | 3 | **Scarce Repairs**: all healing and regeneration halved | Healing | Sector 8 |
 | 4 | **Crossfire**: a firing line of five Shooters every 45 s | Attack pattern | Sector 10 |
 | 5 | **Brood Elites**: every elite also spawns Swarmers, whatever its affix | Elites | Sector 12 |
-| 6 | **Overseer's Wrath**: the boss opens with its second-phase attacks and rests 20% less | Boss | Sector 14 |
+| 6 | **Boss's Wrath** (was Overseer's Wrath): the boss opens with its second-phase attacks and rests 20% less | Boss | Sector 14 |
 | 7 | **Hunter Packs**: six Dashers every 40 s | Attack pattern | Sector 16 |
 | 8 | **Scatter Fire**: Shooters fire three-shot spreads with gaps; boss volleys carry 30% more shots | Projectiles | Sector 18 |
 | 9 | **No Second Chances**: no free or ad revives; healing halved again (a quarter in all) | Healing | Sector 20 |

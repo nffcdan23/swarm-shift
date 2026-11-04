@@ -190,6 +190,9 @@ func _rewards_card() -> PanelContainer:
 	_add_part(body, _credit_rows, _credit_steps, "Picked up in the run", int(_summary.get("credits_collected", _summary.get("credits", 0))), Palette.CREDITS)
 	_add_part(body, _credit_rows, _credit_steps, "Survival bonus", int(_summary.get("credits_survival", 0)), Palette.CREDITS)
 	_add_part(body, _credit_rows, _credit_steps, "Sector cleared", int(_summary.get("credits_clear", 0)), Palette.CREDITS)
+	if int(_summary.get("credits_boss", 0)) > 0:
+		_add_part(body, _credit_rows, _credit_steps, "%s bounty" % str(_summary.get("boss_name", "Boss")).capitalize(),
+			int(_summary.get("credits_boss", 0)), Palette.CREDITS)
 	if int(_summary.get("credits_threat", 0)) > 0:
 		_add_part(body, _credit_rows, _credit_steps, "Threat %d bonus" % int(_summary.get("threat", 0)), int(_summary.get("credits_threat", 0)), Palette.CREDITS)
 	if bool(_summary.get("first_clear", false)):

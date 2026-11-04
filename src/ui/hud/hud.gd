@@ -436,6 +436,13 @@ func _on_player_downed(_can_use_ad: bool) -> void:
 
 func _on_boss_appeared(display_name: String) -> void:
 	_boss_name.text = display_name
+	# Each boss has its own colour and its own phase breaks.
+	if arena != null and arena.boss.active:
+		_boss_name.add_theme_color_override("font_color", arena.boss.color.lerp(Color.WHITE, 0.15))
+		_boss_bar.marks = arena.boss.phase_marks()
+	else:
+		_boss_name.add_theme_color_override("font_color", Palette.RED)
+		_boss_bar.marks = PackedFloat32Array()
 	_boss_bar.set_value(1.0, true)
 	_boss_box.visible = true
 	_boss_box.modulate.a = 0.0

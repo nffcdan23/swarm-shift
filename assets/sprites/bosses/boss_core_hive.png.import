@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1j0vdkfkv8cu"
-path="res://.godot/imported/boss_shell.png-c41fe3b8937f58c986a1eb96c43b9b22.ctex"
+uid="uid://cnasnwchn318f"
+path="res://.godot/imported/boss_core_hive.png-91651f0b5cce38eca52c7e3caf36a8cb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/boss_shell.png"
-dest_files=["res://.godot/imported/boss_shell.png-c41fe3b8937f58c986a1eb96c43b9b22.ctex"]
+source_file="res://assets/sprites/bosses/boss_core_hive.png"
+dest_files=["res://.godot/imported/boss_core_hive.png-91651f0b5cce38eca52c7e3caf36a8cb.ctex"]
 
 [params]
 

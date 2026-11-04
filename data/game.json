@@ -108,7 +108,7 @@
     "xp_per_second": 0.6,
     "xp_per_kill": 0.08,
     "xp_per_run_level": 4,
-    "xp_per_boss": 120,
+    "xp_per_boss": 200,
     "xp_sector_clear": 60,
     "abandon_reward_fraction": 1.0
   },

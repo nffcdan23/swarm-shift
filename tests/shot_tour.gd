@@ -196,6 +196,8 @@ func _run() -> void:
 		await _evolutions()
 	if _wants("sector"):
 		await _sector_three()
+	if _wants("bosses"):
+		await _boss_gallery()
 	if _wants("combat"):
 		await _combat_readability()
 	if not (_wants("run") or _wants("boss") or _wants("levelup") or _wants("results") or _wants("pause")):
@@ -298,6 +300,34 @@ func _sector_three() -> void:
 	_main._teardown_run()
 	_main.menu.set_active(true)
 	await _wait(0.5)
+	App.campaign.select(1)
+
+
+## Every sector's boss mid-fight, plus the lobby card that names it.
+func _boss_gallery() -> void:
+	App.cli["autoplay"] = "1"
+	for tier in range(1, App.campaign.sector_count() + 1):
+		App.campaign.record_run(CampaignService.MODE_SECTOR, tier, true, 300.0)
+	App.campaign.select(8)
+	_main.menu.set_active(true)
+	await _wait(0.8)
+	await _shot("40_bosses_lobby_sector_8")
+	for tier in range(1, App.campaign.sector_count() + 1):
+		App.cli["seed"] = str(tier)
+		App.campaign.select(tier)
+		_main.start_run(CampaignService.MODE_SECTOR)
+		await _wait(0.6)
+		var arena: Arena = _main.arena
+		for weapon_id: String in ["pulse", "orbit"]:
+			arena.grant_weapon(weapon_id, 3)
+		arena.player.invulnerable_for = 1000.0
+		arena.director.timeline_time = arena.director.boss_time() - 0.3
+		await _advance(arena, arena.time + 7.5)
+		arena.player.invulnerable_for = 1000.0
+		await _shot("41_bosses_%02d_%s" % [tier, arena.boss.boss_id])
+		_main._teardown_run()
+		_main.menu.set_active(true)
+		await _wait(0.2)
 	App.campaign.select(1)
 
 

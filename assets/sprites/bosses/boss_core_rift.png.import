@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ri4vofk6h5e2"
-path="res://.godot/imported/boss_core.png-8678d3f471a7da413faeb25c8784b313.ctex"
+uid="uid://dpgrvta8h75pu"
+path="res://.godot/imported/boss_core_rift.png-9d26eeefddc7cc316b987133dad1f315.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/boss_core.png"
-dest_files=["res://.godot/imported/boss_core.png-8678d3f471a7da413faeb25c8784b313.ctex"]
+source_file="res://assets/sprites/bosses/boss_core_rift.png"
+dest_files=["res://.godot/imported/boss_core_rift.png-9d26eeefddc7cc316b987133dad1f315.ctex"]
 
 [params]
 

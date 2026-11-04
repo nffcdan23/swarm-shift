@@ -152,7 +152,7 @@ func update(dt: float) -> void:
 		_a.on_boss_warning()
 	if t >= _boss_time:
 		boss_active = true
-		_a.spawn_boss(GameData.text(_timeline, "boss"), float(_scale.boss_hp), float(_scale.damage))
+		_a.spawn_boss(boss_id(), float(_scale.boss_hp), float(_scale.damage))
 		return
 
 	var fired := 0
@@ -356,6 +356,14 @@ func begin_next_cycle() -> void:
 	for track in _tracks:
 		track.acc = 0.0
 	_rescale()
+
+
+## The boss this sector (or this Overdrive cycle) ends with.
+func boss_id() -> String:
+	if _a.config.mode == CampaignService.MODE_ENDLESS:
+		# Overdrive meets them in sector order, one per cycle, harder each time.
+		return _a.app.campaign.boss_for(cycle + 1)
+	return _a.app.campaign.boss_for(_a.config.tier)
 
 
 func reward_scale() -> Dictionary:

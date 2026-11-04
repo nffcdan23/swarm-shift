@@ -220,21 +220,33 @@ func test_boss_modifiers() -> void:
 	var arena := _arena(_config(["t_wrath"]))
 	arena.director.paused = true
 	arena.spawn_boss("overseer", 1.0, 1.0)
-	check_eq(arena.boss.phase, 1, "Overseer's Wrath: the boss opens in its second phase")
+	check_eq(arena.boss.phase, 1, "Boss's Wrath: the boss opens in its second phase")
 	_free(arena)
 	arena = _arena(_config(["t_wrath", "t_final_protocol"]))
 	arena.director.paused = true
 	arena.spawn_boss("overseer", 1.0, 1.0)
-	check_eq(arena.boss._phases.size(), 4, "Final Protocol: a fourth phase")
+	var data_phases := GameData.list(GameData.dict(GameData.dict(app.data.stages, "bosses"), "overseer"), "phases").size()
+	check_eq(arena.boss._phases.size(), data_phases + 1, "Final Protocol: one more phase than the boss's own")
+	var every: Array = arena.boss._phases[data_phases].attacks
+	every.sort()
+	var own: Array = GameData.dict(GameData.dict(GameData.dict(app.data.stages, "bosses"), "overseer"), "attacks").keys()
+	own.sort()
+	check_eq(every, own, "using every attack the boss has")
 	var i := arena.enemies.find_id(arena.boss.enemy_id)
 	arena.enemies.hp[i] = arena.enemies.max_hp[i] * 0.1
 	arena.player.invulnerable_for = 1000.0
 	for s in 10:
 		arena.step(DT)
-	check_eq(arena.boss.phase, 3, "reached below 20%% health")
+	check_eq(arena.boss.phase, data_phases, "reached below 20%% health")
 	_free(arena)
 	# The phase list in the data is never changed by a run.
-	check_eq(GameData.list(GameData.dict(GameData.dict(app.data.stages, "bosses"), "overseer"), "phases").size(), 3, "the boss data keeps its three phases")
+	check_eq(GameData.list(GameData.dict(GameData.dict(app.data.stages, "bosses"), "overseer"), "phases").size(), data_phases, "the boss data keeps its own phases")
+	# A two-phase boss gets its final phase too.
+	arena = _arena(_config(["t_final_protocol"]))
+	arena.director.paused = true
+	arena.spawn_boss("sentinel", 1.0, 1.0)
+	check_eq(arena.boss._phases.size(), 3, "the Sentinel's two phases become three")
+	_free(arena)
 
 
 # ------------------------------------------------------------------ rewards

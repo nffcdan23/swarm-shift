@@ -13,6 +13,11 @@ var back_color := Color(0.06, 0.09, 0.15, 0.85)
 var show_ghost := false
 var radius := 6.0
 var segments := 0
+## Divider positions (0..1), drawn instead of even `segments` when set.
+var marks := PackedFloat32Array():
+	set(value):
+		marks = value
+		queue_redraw()
 
 var _value := 0.0
 var _shown := 0.0
@@ -79,7 +84,10 @@ func _draw() -> void:
 		_rounded(Rect2(2, 1.5, maxf(fw - 4.0, 0.0), h * 0.32), Color(1, 1, 1, 0.22), r * 0.5)
 		if fw < w - 2.0:
 			draw_rect(Rect2(fw - 2.5, 1.0, 2.5, h - 2.0), Color(1, 1, 1, 0.75))
-	if segments > 1:
+	if not marks.is_empty():
+		for mark in marks:
+			draw_rect(Rect2(w * mark - 1.0, 0, 2.0, h), Color(0.02, 0.03, 0.06, 0.7))
+	elif segments > 1:
 		for i in range(1, segments):
 			var x := w * float(i) / float(segments)
 			draw_rect(Rect2(x - 1.0, 0, 2.0, h), Color(0.02, 0.03, 0.06, 0.7))

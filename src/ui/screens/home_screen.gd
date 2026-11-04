@@ -297,6 +297,10 @@ func refresh() -> void:
 		_sector_info.text = "%s  -  %s" % [sector_name, status]
 		var bonus := float(App.campaign.scaling(float(tier)).reward) - 1.0
 		_sector_reward.text = "+%d%% REWARDS" % int(round(bonus * 100.0)) if bonus > 0.001 else "DEFEAT THE BOSS TO CLEAR"
+		# Each sector ends with its own boss: name it, in its colour.
+		var boss := App.campaign.boss_def(App.campaign.boss_for(tier))
+		if not boss.is_empty():
+			_sector_tags.add_child(UiKit.tag("BOSS: " + GameData.text(boss, "name", "BOSS"), GameData.color(boss, "color", Palette.MAGENTA)))
 		for mutator: Dictionary in brief.mutators:
 			_sector_tags.add_child(UiKit.tag(str(mutator.name), mutator.color))
 		var fresh: Array = brief.new

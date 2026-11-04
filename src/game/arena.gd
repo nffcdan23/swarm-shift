@@ -77,6 +77,8 @@ var director: Director
 var autopilot: Autopilot
 var weapons: Array[Weapon] = []
 var current_offers: Array[Dictionary] = []
+## Bosses destroyed this run, by id, in order (several in Overdrive).
+var defeated_bosses: Array[String] = []
 var choosing_cache := false
 ## Counts every hand of cards dealt (level-ups, caches and rerolls). The HUD
 ## compares it with the hand it is showing to prove the two agree.
@@ -655,7 +657,7 @@ func decline_revive() -> void:
 # ---------------------------------------------------------------------- boss
 
 func on_boss_warning() -> void:
-	var boss_def := GameData.dict(GameData.dict(data.stages, "bosses"), GameData.text(GameData.dict(data.stages, "timeline"), "boss"))
+	var boss_def := GameData.dict(GameData.dict(data.stages, "bosses"), director.boss_id())
 	announce("WARNING  %s" % GameData.text(boss_def, "name", "BOSS"), "boss")
 	sfx("boss_warning")
 	haptic("warning")
@@ -672,7 +674,7 @@ func spawn_boss(boss_id: String, hp_scale: float, damage_scale: float) -> void:
 	# before the fight, and nothing is stranded outside the arena wall.
 	_vacuum_at = time + 1.4
 	_zoom_target = GameData.num(_run_cfg, "boss_camera_zoom", 0.74)
-	fx.shockwave(at.x, at.y, 700.0, Boss.C_BODY)
+	fx.shockwave(at.x, at.y, 700.0, boss.color)
 	fx.shake(FxSystem.Shake.HEAVY)
 	sfx("boss_spawn")
 	haptic("heavy")
@@ -682,7 +684,7 @@ func spawn_boss(boss_id: String, hp_scale: float, damage_scale: float) -> void:
 
 func on_boss_phase(phase_index: int) -> void:
 	announce("PHASE %d" % (phase_index + 1), "boss")
-	fx.shockwave(boss.x, boss.y, 380.0, Boss.C_BODY)
+	fx.shockwave(boss.x, boss.y, 380.0, boss.color)
 	fx.shake(FxSystem.Shake.HEAVY)
 	bullets.clear()
 	_hitstop = GameData.num(_feel, "hitstop_boss_phase", 0.12)
@@ -714,7 +716,9 @@ func on_boss_killed(x: float, y: float) -> void:
 	haptic("heavy")
 	app.audio.set_music_pitch(1.0)
 
-	var boss_def := GameData.dict(GameData.dict(data.stages, "bosses"), GameData.text(GameData.dict(data.stages, "timeline"), "boss"))
+	var boss_def := GameData.dict(GameData.dict(data.stages, "bosses"), boss.boss_id)
+	if not defeated_bosses.has(boss.boss_id):
+		defeated_bosses.append(boss.boss_id)
 	var gems := 24
 	var xp_each := GameData.num(boss_def, "xp", 150.0) / float(gems)
 	for k in gems:
@@ -727,7 +731,7 @@ func on_boss_killed(x: float, y: float) -> void:
 		var angle := rng.randf() * TAU
 		pickups.drop(PickupSystem.KIND_CREDIT, x + cos(angle) * 80.0, y + sin(angle) * 80.0, credit_each)
 	_vacuum_at = time + 0.9
-	app.analytics.track(Analytics.BOSS_DEFEATED, {"time": time, "level": level, "cycle": director.cycle})
+	app.analytics.track(Analytics.BOSS_DEFEATED, {"boss": boss.boss_id, "time": time, "level": level, "cycle": director.cycle})
 	boss_gone.emit()
 
 	if config.mode == CampaignService.MODE_ENDLESS:
@@ -841,6 +845,7 @@ func build_result(cleared: bool, died: bool, abandoned: bool) -> Dictionary:
 		"damage_by_source": by_source, "dealt_by_source": dealt, "kills_by_source": kills_by,
 		"evolved": build.evolved.duplicate(), "cycle": director.cycle,
 		"threat": config.threat, "challenge_kind": config.challenge_kind, "challenge_id": config.challenge_id,
+		"boss_ids": defeated_bosses.duplicate(),
 	}
 
 

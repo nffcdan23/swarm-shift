@@ -87,17 +87,20 @@ Pickups are colour-coded and the two colours are never mixed: **green crystals a
 
 The floor holds a limited number of pickups. When it fills up, crystals and coins far from the player are merged into larger ones nearby (crystals with crystals, coins with coins, never helpers), so a kill always leaves its reward where it happened and a merged crystal pays exactly what its parts would have.
 
-### Boss - The Overseer
+### Bosses - one per sector
 
-Three phases at 66% and 33% health; each adds attacks, speed and bullet count. A phase change staggers it and clears its bullets.
+Every sector ends with its own boss (`stages.json` "bosses" and "sector_bosses"; full roster in [docs/bosses](docs/bosses/README.md)). There are twenty, in five families that match the five arena colours, and the Overseer is the last. Each has its own name, colour and look (a shell, core and ring from a library of grey parts, tinted in the game), its own attacks and its own phases. Sectors 1-4 have two phases, 5-14 three, 15-20 four. A phase change staggers the boss and clears its bullets; the health bar shows where its phases break. Overdrive meets them in sector order, one per cycle.
 
 | Attack | Telegraph |
 | --- | --- |
 | Radial bursts | Slow, bright, round shots |
 | Charge | A lane that tracks, then locks for the last half |
 | Summon | A visible wind-up |
-| Rotating lasers (phase 2+) | Thin lanes for a second before the beams fire |
-| Ground blasts (phase 3) | Circles that fill in; one is always under the player |
+| Lasers, rotating or a fixed cross | Thin lanes for a second before the beams fire |
+| Ground blasts | Circles that fill in; one is always under the player |
+| Spiral | A pulsing wind-up, then a turning stream of slow shots |
+| Aimed fan | A lane towards the player, then volleys of a spread aimed at them |
+| Blink | The landing spot fills in on the ground while the boss fades; it lands there with a blast |
 
 ## Between runs
 
@@ -150,11 +153,11 @@ For sectors already cleared: ten cumulative tiers, each adding one rule on top o
 | 3 | **Scarce Repairs**: all healing halved | Sector 8 |
 | 4 | **Crossfire**: a firing line of five Shooters every 45 s | Sector 10 |
 | 5 | **Brood Elites**: every elite also spawns Swarmers | Sector 12 |
-| 6 | **Overseer's Wrath**: the boss opens with its second-phase attacks and rests 20% less | Sector 14 |
+| 6 | **Boss's Wrath**: the boss opens with its second-phase attacks and rests 20% less | Sector 14 |
 | 7 | **Hunter Packs**: a pack of six Dashers every 40 s | Sector 16 |
 | 8 | **Scatter Fire**: Shooters fire three-shot spreads; boss volleys carry 30% more shots | Sector 18 |
 | 9 | **No Second Chances**: no revives, and healing halved again | Sector 20 |
-| 10 | **Final Protocol**: the boss gains a fourth phase below 20%; elites 50% tougher | Sector 20 |
+| 10 | **Final Protocol**: below 20% the boss gains a final phase with every attack it has; elites 50% tougher | Sector 20 |
 
 Each sector has its own ladder: Threat N needs that sector cleared at N - 1. Every modifier is a rule built from telegraphed set pieces the game already uses, never a flat health multiplier on the whole field. Rewards: +12% Credits and +8% Player XP per level; the first clear of a sector at a level pays 50 x level x the sector's reward scale in Credits; the first clear of a level on any sector pays 5 x level Crystals, once per level (275 in all). Threat 5 earns the HAZARD skin and Threat 10 the APEX skin. Threat runs never count as ordinary clears and never change best times.
 
@@ -185,7 +188,7 @@ Skins are looks only. Tests prove it: the same seed plays out identically in eve
 
 | Currency | Earned from | Spent on |
 | --- | --- | --- |
-| **Credits** (soft) | Gold pickups in a run, a survival bonus (10 per minute), clearing a sector (300, raised from 120 in November 2026 so a clear pays clearly more than dying at the boss; both scale 30% per sector), Player Levels, missions, login calendar, optional ads | Research, weapon and core unlocks, evolutions, skins |
+| **Credits** (soft) | Gold pickups in a run, a survival bonus (10 per minute), clearing a sector (300, raised from 120 in November 2026 so a clear pays clearly more than dying at the boss) plus the boss's bounty (250, 400 for every fifth sector's boss, 600 for the Overseer; all scale 30% per sector, as does the 200 the boss drops), Player Levels, missions, login calendar, optional ads | Research, weapon and core unlocks, evolutions, skins |
 | **Crystals** (premium) | Achievements, first clears, Threat milestones (once per level), Daily and Weekly Challenges (once per period), every fifth Player Level, the daily mission bonus, day 3/6/7 of the login calendar, purchase | Core skins, one core, exchange for Credits |
 
 Nothing in the game requires Crystals to progress.
@@ -194,7 +197,7 @@ Nothing in the game requires Crystals to progress.
 
 **Nothing earned in a run is ever lost.** Credits and Player XP are banked when the run ends, however it ends: death, victory, or leaving from the pause menu (which first shows exactly what will be banked and asks). Leaving early pays the same as dying at that moment. Each run can be paid out once only. And a run that never reaches its end - the app is closed or killed mid-fight - is checkpointed every few seconds and paid out at the next launch.
 
-The results screen shows time survived, enemies defeated, Run Level reached and bosses defeated, then collects the rewards in sequence: Credits line by line (picked up, survival bonus, sector clear), then Player XP line by line into the Player Level bar, with any level-ups and what they unlock. A tap skips the sequence; it never changes what was earned.
+The results screen shows time survived, enemies defeated, Run Level reached and bosses defeated, then collects the rewards in sequence: Credits line by line (picked up, survival bonus, sector clear, the boss's bounty), then Player XP line by line into the Player Level bar, with any level-ups and what they unlock. A tap skips the sequence; it never changes what was earned.
 
 Rough income for a player with no upgrades: about 200 Credits for a three-minute run, 800-1,000 for a cleared Sector 1. The first upgrade levels cost 100-250, so the first runs each buy one or two.
 

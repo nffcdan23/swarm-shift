@@ -248,6 +248,7 @@ func validate() -> PackedStringArray:
 		_check_event(event, "stage event @%s" % str(event.get("t")), out)
 	if not dict(stages, "bosses").has(text(timeline, "boss")):
 		out.append("timeline: unknown boss '%s'" % text(timeline, "boss"))
+	_check_bosses(enemy_ids, out)
 
 	# Sector briefs and mutators.
 	var sectors := dict(stages, "sectors")
@@ -267,10 +268,13 @@ func validate() -> PackedStringArray:
 			var affix := text(mutator, affix_key)
 			if not affix.is_empty() and not dict(dict(enemies, "elite"), "affixes").has(affix):
 				out.append("mutator '%s': unknown elite affix '%s'" % [mutator_id, affix])
+		# A final phase without "attacks" uses everything the boss has; one that
+		# lists them must name attacks every boss carries.
 		var final_phase := dict(dict(mutator, "boss"), "final_phase")
 		for attack: String in list(final_phase, "attacks"):
-			if not dict(dict(dict(stages, "bosses"), "overseer"), "attacks").has(attack):
-				out.append("mutator '%s': unknown boss attack '%s'" % [mutator_id, attack])
+			for boss_id: String in dict(stages, "bosses"):
+				if not dict(dict(dict(stages, "bosses"), boss_id), "attacks").has(attack):
+					out.append("mutator '%s': boss '%s' has no attack '%s'" % [mutator_id, boss_id, attack])
 
 	# Threat levels and challenges name mutators, rules and weapons.
 	var threat_levels := list(dict(stages, "threat"), "levels")
@@ -385,6 +389,52 @@ func validate() -> PackedStringArray:
 
 
 ## One scripted set piece: its type must be known and its enemies must exist.
+## Every sector has a boss, and every boss is complete: phases from full
+## health down to zero that only name its own attacks, attack patterns the
+## game knows, summons of real enemies, and sprites that exist.
+func _check_bosses(enemy_ids: Dictionary, out: PackedStringArray) -> void:
+	var bosses := dict(stages, "bosses")
+	var order := list(stages, "sector_bosses")
+	if order.size() != integer(stages, "sector_count", 20):
+		out.append("sector_bosses: %d bosses for %d sectors" % [order.size(), integer(stages, "sector_count", 20)])
+	for boss_id: Variant in order:
+		if not bosses.has(str(boss_id)):
+			out.append("sector_bosses: unknown boss '%s'" % boss_id)
+	for boss_id: String in bosses:
+		var boss: Dictionary = bosses[boss_id]
+		var owner := "boss '%s'" % boss_id
+		var attacks := dict(boss, "attacks")
+		for key: String in attacks:
+			var kind := text(dict(attacks, key), "type", key)
+			if not Boss.ATTACK_TYPES.has(kind):
+				out.append("%s: attack '%s' has unknown type '%s'" % [owner, key, kind])
+			for enemy_id: String in dict(dict(attacks, key), "spawns"):
+				if not enemy_ids.has(enemy_id):
+					out.append("%s: attack '%s' summons unknown enemy '%s'" % [owner, key, enemy_id])
+		var phases := list(boss, "phases")
+		if phases.is_empty():
+			out.append("%s: no phases" % owner)
+		var above := 2.0
+		for i in phases.size():
+			var phase: Dictionary = phases[i]
+			if num(phase, "hp_above") >= above:
+				out.append("%s: phase %d does not start below the one before" % [owner, i + 1])
+			above = num(phase, "hp_above")
+			if list(phase, "attacks").is_empty():
+				out.append("%s: phase %d has no attacks" % [owner, i + 1])
+			for attack: String in list(phase, "attacks"):
+				if not attacks.has(attack):
+					out.append("%s: phase %d uses unknown attack '%s'" % [owner, i + 1, attack])
+		if not phases.is_empty() and num(phases[phases.size() - 1], "hp_above") != 0.0:
+			out.append("%s: last phase must run to zero health" % owner)
+		for kind: String in ["shell", "core", "ring"]:
+			var part := text(dict(boss, "look"), kind, str(Boss.DEFAULT_LOOK[kind]))
+			if not ResourceLoader.exists(Boss.part_path(kind, part)):
+				out.append("%s: no %s sprite '%s'" % [owner, kind, part])
+		if num(boss, "hp") <= 0.0:
+			out.append("%s: no health" % owner)
+
+
 func _check_event(event: Dictionary, owner: String, out: PackedStringArray) -> void:
 	var enemy_ids := enemy_types()
 	var etype := text(event, "type")

@@ -218,7 +218,9 @@ func test_boss_fight_and_victory() -> void:
 		arena.step(DT)
 		guard += 1
 	check_eq(arena.combat.bosses_killed, 1, "boss was killed")
-	check_eq(arena.boss.phase, 2, "boss reached its final phase before dying")
+	var phases := GameData.list(app.campaign.boss_def(arena.boss.boss_id), "phases").size()
+	check(phases >= 2, "the boss has phases to pass through (%d)" % phases)
+	check_eq(arena.boss.phase, phases - 1, "boss reached its final phase before dying")
 	_run(arena, 6.0)
 	check_eq(ended.size(), 1, "run ended after the boss died")
 	if ended.size() == 1:

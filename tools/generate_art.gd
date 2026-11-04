@@ -16,6 +16,7 @@ extends SceneTree
 const ATLAS_DIR := "res://assets/sprites/atlas/"
 const SPRITE_DIR := "res://assets/sprites/"
 const SKIN_DIR := "res://assets/sprites/skins/"
+const BOSS_DIR := "res://assets/sprites/bosses/"
 const BRAND_DIR := "res://assets/branding/"
 
 const C_BG := Color("05070d")
@@ -27,6 +28,11 @@ const C_SPLITTER := Color("7dff8a")
 const C_TANK := Color("6fb7ff")
 const C_ELITE := Color("ffd15c")
 const C_BOSS := Color("ff3d6e")
+## Bosses are drawn in this grey and tinted in the game (boss_tint.gdshader).
+const G_BOSS := Color(0.6, 0.6, 0.6)
+const BOSS_SHELLS := ["claw", "spikes", "petals", "blades", "horns", "fortress"]
+const BOSS_CORES := ["eye", "reactor", "rift", "hive", "prism"]
+const BOSS_RINGS := ["segmented", "gear", "double", "orbs"]
 const C_WEAVER := Color("5cf0ff")
 const C_MORTAR := Color("ff8a5c")
 const C_BOMBER := Color("ff6a3d")
@@ -51,6 +57,9 @@ var POLY_GEM_S := PackedVector2Array([Vector2(0.0, -0.52), Vector2(0.36, 0.0), V
 var POLY_MISSILE := PackedVector2Array([Vector2(0.58, 0.0), Vector2(0.26, -0.13), Vector2(-0.26, -0.13), Vector2(-0.5, -0.3), Vector2(-0.42, 0.0), Vector2(-0.5, 0.3), Vector2(-0.26, 0.13), Vector2(0.26, 0.13)])
 var POLY_DRONE := PackedVector2Array([Vector2(0.56, 0.0), Vector2(-0.1, -0.2), Vector2(-0.4, -0.5), Vector2(-0.24, 0.0), Vector2(-0.4, 0.5), Vector2(-0.1, 0.2)])
 var POLY_SHARD := PackedVector2Array([Vector2(0.62, 0.0), Vector2(0.0, -0.13), Vector2(-0.62, 0.0), Vector2(0.0, 0.13)])
+var POLY_HORN := PackedVector2Array([Vector2(0.06, -0.54), Vector2(0.3, -0.72), Vector2(0.56, -0.86), Vector2(0.88, -0.98), Vector2(0.76, -0.72), Vector2(0.6, -0.48), Vector2(0.38, -0.28)])
+var POLY_TUSK := PackedVector2Array([Vector2(0.16, 0.46), Vector2(0.42, 0.58), Vector2(0.66, 0.88), Vector2(0.56, 0.52), Vector2(0.4, 0.3)])
+var POLY_BLADE := PackedVector2Array([Vector2(0.4, -0.2), Vector2(0.66, -0.34), Vector2(0.98, -0.3), Vector2(0.76, -0.12), Vector2(0.62, 0.1), Vector2(0.46, 0.2)])
 var POLY_CLAW := PackedVector2Array([Vector2(0.0, -0.96), Vector2(0.2, -0.72), Vector2(0.42, -0.74), Vector2(0.26, -0.6), Vector2(-0.3, -0.62), Vector2(-0.16, -0.76)])
 
 # Premultiplied accumulator for the pixel currently being shaded.
@@ -69,7 +78,7 @@ func _init() -> void:
 			only = arg.substr(7).split(",")
 		elif arg.begins_with("--sheet="):
 			sheet = arg.substr(8)
-	for dir in [ATLAS_DIR, SPRITE_DIR, SKIN_DIR, BRAND_DIR]:
+	for dir in [ATLAS_DIR, SPRITE_DIR, SKIN_DIR, BOSS_DIR, BRAND_DIR]:
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
 
 	var jobs := _jobs()
@@ -137,9 +146,14 @@ func _jobs() -> Array:
 	# --- Standalone sprites ---
 	j.append({"name": "player_core", "size": 256, "dir": SPRITE_DIR, "fn": _spr_player_core})
 	j.append({"name": "player_ring", "size": 256, "dir": SPRITE_DIR, "fn": _spr_player_ring, "energy": true})
-	j.append({"name": "boss_core", "size": 512, "dir": SPRITE_DIR, "fn": _spr_boss_core})
-	j.append({"name": "boss_ring", "size": 512, "dir": SPRITE_DIR, "fn": _spr_boss_ring})
-	j.append({"name": "boss_shell", "size": 512, "dir": SPRITE_DIR, "fn": _spr_boss_shell})
+	# Boss parts, drawn in grey and tinted per boss by boss_tint.gdshader, so
+	# each sector's boss is its own mix of shell, core, ring and colour.
+	for part: String in BOSS_SHELLS:
+		j.append({"name": "boss_shell_" + part, "size": 512, "dir": BOSS_DIR, "fn": Callable(self, "_boss_shell_" + part)})
+	for part: String in BOSS_CORES:
+		j.append({"name": "boss_core_" + part, "size": 512, "dir": BOSS_DIR, "fn": Callable(self, "_boss_core_" + part)})
+	for part: String in BOSS_RINGS:
+		j.append({"name": "boss_ring_" + part, "size": 512, "dir": BOSS_DIR, "fn": Callable(self, "_boss_ring_" + part)})
 	# --- Core skins: full-colour bodies, tintable plates, energy rings and auras ---
 	for body: String in ["void", "solar", "glacier", "quantum", "inferno", "ember", "venom", "amethyst", "rose", "ghost", "aurum", "paragon", "overseer",
 			"hazard", "apex", "gauntlet"]:
@@ -1092,55 +1106,227 @@ func _aura_grid(p: Vector2, px: float) -> Color:
 	return energy(maxf(i, exp(-maxf(d, 0.0) / 0.05) * 0.25))
 
 
-func _spr_boss_core(p: Vector2, px: float) -> Color:
-	px_reset(C_BOSS)
+# ------------------------------------------------------------------ bosses
+# Grey (G_BOSS) with white highlights: boss_tint.gdshader maps grey to the
+# boss's colour and keeps the highlights white.
+
+func _boss_shell_claw(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	# Three claws, 120 degrees apart.
+	var th := atan2(p.y, p.x)
+	var s := TAU / 3.0
+	var k := floorf((th + PI * 0.5 + s * 0.5) / s)
+	var q := rot(p, k * s)
+	neon(sd_poly(q, POLY_CLAW) - 0.015, px, G_BOSS, 0.022, 0.07, 0.22, 0.85)
+	return px_out()
+
+
+func _boss_shell_spikes(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	# A six-pointed crown, hollow so the core sits inside it.
+	var d := maxf(sd_star(p, 0.95, 0.62, 6, -PI * 0.5), -sd_circle(p, 0.5))
+	neon(d, px, G_BOSS, 0.022, 0.07, 0.2, 0.85)
+	return px_out()
+
+
+func _boss_shell_petals(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	# Five long petals, like a closed flower.
+	var s := TAU / 5.0
+	var th := atan2(p.y, p.x) + PI * 0.5
+	var k := floorf((th + s * 0.5) / s)
+	var q := rot(p, k * s)
+	var e := Vector2(q.x / 0.17, (q.y + 0.7) / 0.27)
+	var d := (e.length() - 1.0) * 0.17
+	neon(d, px, G_BOSS, 0.022, 0.07, 0.22, 0.85)
+	px_add(G_BOSS.lerp(WHITE, 0.5), mask(sd_segment(q, Vector2(0.0, -0.5), Vector2(0.0, -0.9)) - 0.008, px) * 0.6)
+	return px_out()
+
+
+func _boss_shell_blades(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	# Four crescent blades sweeping one way round: it reads as spinning.
+	var s := TAU / 4.0
+	var th := atan2(p.y, p.x)
+	var k := floorf((th + s * 0.5) / s)
+	var q := rot(p, k * s)
+	neon(sd_poly(q, POLY_BLADE) - 0.012, px, G_BOSS, 0.022, 0.07, 0.22, 0.85)
+	return px_out()
+
+
+func _boss_shell_horns(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	# Two great horns above, two short tusks below, mirrored.
+	var q := Vector2(absf(p.x), p.y)
+	var horn := sd_poly(q, POLY_HORN) - 0.035
+	var tusk := sd_poly(q, POLY_TUSK) - 0.03
+	neon(minf(horn, tusk), px, G_BOSS, 0.022, 0.07, 0.22, 0.85)
+	return px_out()
+
+
+func _boss_shell_fortress(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	# An armoured octagon of eight plates with gaps between them.
+	var s := TAU / 8.0
+	var th := atan2(p.y, p.x)
+	var seg := fposmod(th, s)
+	var gap := smoothstep(0.03, 0.07, seg) * smoothstep(s - 0.03, s - 0.07, seg)
+	var band := absf(sd_ngon(p, 0.84, 8, 0.0)) - 0.09
+	var d := band + (1.0 - gap) * 0.2
+	neon(d, px, G_BOSS, 0.022, 0.07, 0.24, 0.85)
+	# Rivets.
+	var na := fposmod(th + s * 0.5, s) - s * 0.5
+	var l := p.length()
+	px_add(WHITE, mask(sd_circle(Vector2(l * cos(na), l * sin(na)) - Vector2(0.8, 0.0), 0.022), px) * 0.8)
+	return px_out()
+
+
+func _boss_core_eye(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
 	var d := sd_ngon(p, 0.56, 6, 0.0)
-	neon(d, px, C_BOSS, 0.03, 0.12, 0.16, 0.9)
+	neon(d, px, G_BOSS, 0.03, 0.12, 0.16, 0.9)
 	var plate := sd_ngon(p, 0.44, 6, 0.0)
-	px_add(C_BOSS.lerp(WHITE, 0.45), exp(-(plate * plate) / (0.012 * 0.012)) * 0.75)
+	px_add(G_BOSS.lerp(WHITE, 0.45), exp(-(plate * plate) / (0.012 * 0.012)) * 0.75)
 	# Radial vents.
 	var a := fposmod(atan2(p.y, p.x), PI / 3.0) - PI / 6.0
 	var l := p.length()
 	if l > 0.27 and l < 0.42:
-		px_add(C_BOSS.lerp(WHITE, 0.3), mask(absf(l * sin(a)) - 0.014, px) * 0.7)
+		px_add(G_BOSS.lerp(WHITE, 0.3), mask(absf(l * sin(a)) - 0.014, px) * 0.7)
 	# The eye: dark socket, bright iris, white-hot pupil.
-	px_over(Color(0.06, 0.0, 0.02), mask(sd_circle(p, 0.25), px))
-	var iris := absf(sd_circle(p, 0.2)) - 0.022
-	px_add(C_BOSS.lerp(WHITE, 0.55), mask(iris, px))
-	px_add(C_BOSS, exp(-maxf(sd_circle(p, 0.09), 0.0) / 0.06) * 0.8)
+	px_over(Color(0.03, 0.03, 0.03), mask(sd_circle(p, 0.25), px))
+	px_add(G_BOSS.lerp(WHITE, 0.55), mask(absf(sd_circle(p, 0.2)) - 0.022, px))
+	px_add(G_BOSS, exp(-maxf(sd_circle(p, 0.09), 0.0) / 0.06) * 0.8)
 	px_add(WHITE, mask(sd_circle(p, 0.095), px))
 	return px_out()
 
 
-func _spr_boss_ring(p: Vector2, px: float) -> Color:
-	px_reset(C_BOSS)
+func _boss_core_reactor(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	neon(sd_circle(p, 0.54), px, G_BOSS, 0.03, 0.12, 0.16, 0.9)
+	var l := p.length()
+	# Three concentric coils and six struts.
+	for r: float in [0.44, 0.34, 0.24]:
+		px_add(G_BOSS.lerp(WHITE, 0.4), mask(absf(l - r) - 0.012, px) * 0.8)
+	var a := fposmod(atan2(p.y, p.x), PI / 3.0) - PI / 6.0
+	if l > 0.2 and l < 0.5:
+		px_add(G_BOSS.lerp(WHITE, 0.25), mask(absf(l * sin(a)) - 0.018, px) * 0.6)
+	# A white-hot heart.
+	px_add(G_BOSS, exp(-maxf(sd_circle(p, 0.1), 0.0) / 0.08) * 0.9)
+	px_add(WHITE, mask(sd_circle(p, 0.11), px))
+	return px_out()
+
+
+func _boss_core_rift(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	neon(sd_ngon(p, 0.56, 4, PI * 0.5), px, G_BOSS, 0.03, 0.12, 0.16, 0.9)
+	# A tall slit, like a cat's pupil, torn open.
+	px_over(Color(0.03, 0.03, 0.03), mask(sd_circle(Vector2(p.x / 0.5, p.y), 0.32), px))
+	var slit := Vector2(p.x / 0.22, p.y)
+	var sd := (slit.length() - 0.3) * 0.22
+	px_add(G_BOSS.lerp(WHITE, 0.5), mask(absf(sd) - 0.012, px))
+	px_add(WHITE, mask(sd + 0.02, px) * 0.95)
+	# Cracks radiating from the slit.
+	for k in 4:
+		var ang := PI * 0.25 + float(k) * PI * 0.5
+		var tip := Vector2(cos(ang), sin(ang)) * 0.48
+		px_add(G_BOSS.lerp(WHITE, 0.35), mask(sd_segment(p, tip * 0.45, tip) - 0.01, px) * 0.7)
+	return px_out()
+
+
+func _boss_core_hive(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	neon(sd_circle(p, 0.55), px, G_BOSS, 0.03, 0.12, 0.16, 0.9)
+	# Seven honeycomb cells, the middle one lit.
+	var cells: Array[Vector2] = [Vector2.ZERO]
+	for k in 6:
+		var ang := float(k) * PI / 3.0
+		cells.append(Vector2(cos(ang), sin(ang)) * 0.29)
+	for k in cells.size():
+		var c := sd_ngon(p - cells[k], 0.14, 6, PI / 6.0)
+		px_over(Color(0.04, 0.04, 0.04), mask(c, px))
+		px_add(G_BOSS.lerp(WHITE, 0.45), mask(absf(c) - 0.012, px))
+		if k == 0:
+			px_add(WHITE, mask(c + 0.05, px))
+		else:
+			px_add(G_BOSS, exp(-maxf(c + 0.06, 0.0) / 0.05) * 0.6)
+	return px_out()
+
+
+func _boss_core_prism(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	var d := sd_ngon(p, 0.6, 3, -PI * 0.5)
+	neon(d, px, G_BOSS, 0.03, 0.12, 0.18, 0.9)
+	# Facets from the centre to each corner, and a bright inner triangle.
+	for k in 3:
+		var ang := -PI * 0.5 + float(k) * TAU / 3.0
+		px_add(G_BOSS.lerp(WHITE, 0.4), mask(sd_segment(p, Vector2.ZERO, Vector2(cos(ang), sin(ang)) * 0.58) - 0.01, px) * 0.8)
+	var inner := sd_ngon(p, 0.2, 3, PI * 0.5)
+	px_add(G_BOSS, exp(-maxf(inner, 0.0) / 0.07) * 0.8)
+	px_add(WHITE, mask(inner, px))
+	return px_out()
+
+
+func _boss_ring_segmented(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
 	var l := p.length()
 	var th := atan2(p.y, p.x)
 	var s := TAU / 6.0
 	var seg := fposmod(th, s)
 	var gap := smoothstep(0.1, 0.16, seg) * smoothstep(s - 0.1, s - 0.16, seg)
 	var ring := absf(l - 0.72) - 0.035
-	var inside := mask(ring, px) * gap
-	px_over(C_BOSS, exp(-maxf(ring, 0.0) / 0.06) * 0.6 * gap)
-	px_over(C_BOSS * 0.4, inside)
-	px_add(C_BOSS.lerp(WHITE, 0.6), exp(-(ring * ring) / (0.014 * 0.014)) * gap)
+	px_over(G_BOSS, exp(-maxf(ring, 0.0) / 0.06) * 0.6 * gap)
+	px_over(G_BOSS * 0.4, mask(ring, px) * gap)
+	px_add(G_BOSS.lerp(WHITE, 0.6), exp(-(ring * ring) / (0.014 * 0.014)) * gap)
 	# Emitter nodes sitting in the gaps.
 	var na := fposmod(th + s * 0.5, s) - s * 0.5
 	var node := sd_circle(Vector2(l * cos(na), l * sin(na)) - Vector2(0.72, 0.0), 0.045)
 	px_add(WHITE, mask(node, px))
-	px_add(C_BOSS, exp(-maxf(node, 0.0) / 0.04) * 0.7)
+	px_add(G_BOSS, exp(-maxf(node, 0.0) / 0.04) * 0.7)
 	return px_out()
 
 
-func _spr_boss_shell(p: Vector2, px: float) -> Color:
-	px_reset(C_BOSS)
-	# Three claws, 120 degrees apart.
+func _boss_ring_gear(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	var l := p.length()
+	var th := atan2(p.y, p.x)
+	var s := TAU / 16.0
+	var tooth := smoothstep(0.35, 0.25, absf(fposmod(th, s) / s - 0.5))
+	var ring := absf(l - 0.72) - (0.025 + 0.045 * tooth)
+	px_over(G_BOSS, exp(-maxf(ring, 0.0) / 0.05) * 0.7)
+	px_over(G_BOSS * 0.75, mask(ring, px))
+	px_add(G_BOSS.lerp(WHITE, 0.6), mask(absf(ring + 0.012) - 0.01, px) * 0.9)
+	return px_out()
+
+
+func _boss_ring_double(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	var l := p.length()
+	for r: float in [0.66, 0.8]:
+		var ring := absf(l - r) - 0.012
+		px_over(G_BOSS, exp(-maxf(ring, 0.0) / 0.04) * 0.45)
+		px_add(G_BOSS.lerp(WHITE, 0.55), mask(ring, px))
+	# Three bright nodes riding between the rings.
 	var th := atan2(p.y, p.x)
 	var s := TAU / 3.0
-	var k := floorf((th + PI * 0.5 + s * 0.5) / s)
-	var q := rot(p, k * s)
-	var d := sd_poly(q, POLY_CLAW) - 0.015
-	neon(d, px, C_BOSS, 0.022, 0.07, 0.22, 0.85)
+	var na := fposmod(th + s * 0.5, s) - s * 0.5
+	var node := sd_circle(Vector2(l * cos(na), l * sin(na)) - Vector2(0.73, 0.0), 0.06)
+	px_add(G_BOSS, exp(-maxf(node, 0.0) / 0.05) * 0.8)
+	px_add(WHITE, mask(node, px))
+	return px_out()
+
+
+func _boss_ring_orbs(p: Vector2, px: float) -> Color:
+	px_reset(G_BOSS)
+	var l := p.length()
+	px_over(G_BOSS, exp(-(absf(l - 0.74) * absf(l - 0.74)) / (0.01 * 0.01)) * 0.35)
+	# Eight orbs on a faint track.
+	var th := atan2(p.y, p.x)
+	var s := TAU / 8.0
+	var na := fposmod(th + s * 0.5, s) - s * 0.5
+	var orb := sd_circle(Vector2(l * cos(na), l * sin(na)) - Vector2(0.74, 0.0), 0.055)
+	px_over(G_BOSS, exp(-maxf(orb, 0.0) / 0.05) * 0.7)
+	px_over(G_BOSS * 0.5, mask(orb, px))
+	px_add(G_BOSS.lerp(WHITE, 0.7), mask(absf(orb) - 0.012, px))
 	return px_out()
 
 

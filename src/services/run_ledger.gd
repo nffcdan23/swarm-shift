@@ -26,7 +26,8 @@ const SETTLED_KEPT := 24
 
 ## Preview of what a result is worth. Pure - changes nothing.
 ##
-## Credits = what was picked up in the run + a survival bonus + a clear bonus.
+## Credits = what was picked up in the run + a survival bonus + a clear bonus
+## + the boss's bounty (and the Threat bonus on top of all of those).
 ## Player XP = time survived + enemies destroyed + Run Level reached + bosses
 ## + a sector-clear bonus. Both are returned with their parts so the results
 ## screen can show where every point came from.
@@ -43,9 +44,19 @@ static func compute(app: AppRoot, result: Dictionary) -> Dictionary:
 	var survival := maxi(int(round(seconds / 60.0 * GameData.num(rewards, "credits_per_minute", 10.0) * bonus_scale)), 0)
 	var clear_bonus := maxi(int(round(GameData.num(rewards, "sector_clear_credits", 120.0) * bonus_scale * (1.0 + app.meta.mod_total("clear_credits_pct")))), 0) if cleared else 0
 
+	# Each sector's boss carries a bounty, paid when the sector is cleared and
+	# scaled like the clear bonus.
+	var bounty := 0
+	var boss_name := ""
+	if cleared:
+		for boss_id: Variant in result.get("boss_ids", []):
+			bounty += app.campaign.boss_bounty(str(boss_id))
+			boss_name = GameData.text(app.campaign.boss_def(str(boss_id)), "name", boss_name)
+	var boss_credits := maxi(int(round(float(bounty) * bonus_scale)), 0)
+
 	var mode := str(result.get("mode", ""))
 	var threat := int(result.get("threat", 0)) if mode == CampaignService.MODE_SECTOR else 0
-	var threat_credits := int(round(float(collected + survival + clear_bonus) * (app.campaign.threat_reward_mult(threat) - 1.0)))
+	var threat_credits := int(round(float(collected + survival + clear_bonus + boss_credits) * (app.campaign.threat_reward_mult(threat) - 1.0)))
 	var threat_first := cleared and threat > 0 and threat > app.campaign.threat_cleared(tier)
 
 	var xp_bonus := app.meta.mod_total("account_xp_pct")
@@ -64,10 +75,12 @@ static func compute(app: AppRoot, result: Dictionary) -> Dictionary:
 	var first_clear := cleared and mode == CampaignService.MODE_SECTOR and threat == 0 and tier > app.campaign.highest_cleared()
 	return {
 		"mastery_xp": app.mastery.preview(result),
-		"credits": collected + survival + clear_bonus + threat_credits,
+		"credits": collected + survival + clear_bonus + boss_credits + threat_credits,
 		"credits_collected": collected,
 		"credits_survival": survival,
 		"credits_clear": clear_bonus,
+		"credits_boss": boss_credits,
+		"boss_name": boss_name,
 		"credits_threat": threat_credits,
 		"threat": threat,
 		"threat_first_clear": threat_first,
@@ -76,7 +89,8 @@ static func compute(app: AppRoot, result: Dictionary) -> Dictionary:
 		"account_xp": xp,
 		"xp_parts": xp_parts,
 		"xp_bonus_pct": xp_bonus,
-		"crystals": GameData.integer(rewards, "first_clear_crystals", 10) if first_clear else 0,
+		"crystals": GameData.integer(app.campaign.boss_def(app.campaign.boss_for(tier)), "first_clear_crystals",
+			GameData.integer(rewards, "first_clear_crystals", 10)) if first_clear else 0,
 		"first_clear": first_clear,
 	}
 

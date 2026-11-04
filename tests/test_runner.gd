@@ -26,6 +26,7 @@ const SUITES := {
 	"skins": "res://tests/test_skins.gd",
 	"threats": "res://tests/test_threats.gd",
 	"threat_levels": "res://tests/test_threat_levels.gd",
+	"bosses": "res://tests/test_bosses.gd",
 	"challenges": "res://tests/test_challenges.gd",
 	"stability": "res://tests/test_stability.gd",
 }
