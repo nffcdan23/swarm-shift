@@ -153,3 +153,16 @@ Difficulty is unchanged within noise (30 runs, about plus or minus 17 points): S
 - with only two upgrades left, passing them gives a fallback hand, and they return a hand later;
 - three passes make a card turn up less than half as often, and taking it resets the count;
 - evolutions are never held back.
+
+## 9. Before build 10: challenge results off screen, new weapons not seen
+
+**Challenge results shifted right.** A tester's cleared Daily Challenge showed the whole results screen pushed to the right and partly off screen. The headline "CHALLENGE COMPLETE" at the results screen's 52-point title size is 702 pixels wide; with the side padding that forced the column to 758 on the 720-wide canvas, and the screen centred on the wider column. Every challenge clear, Daily or Weekly, did it; "THREAT 10 CLEARED" (618) and the others fit. The headline now shrinks to fit 640 pixels (`UiKit.fitted_title_size`, the same approach the in-run banners already used), down to 34 points at the least. A new UI test lays out the results screen of a Daily, a Weekly, a Threat 10 and a Sector 19 clear on a 720 x 1560 phone canvas and checks nothing crosses either edge; it failed at 758 before the fix. The old screen tests ran in the 1280-wide headless window, which is why they never caught it.
+
+**New weapons not turning up.** Reaching a Player Level does not give a weapon: Arc Caster (Level 2), Seeker Missiles (3), Plasma Mines (4), Combat Drone (5), Prism Lance (7) and Singularity (10) go on sale in the Arsenal and only reach runs once bought; Railgun and Nanite Swarm come from Research. The game said otherwise: the level-up note read "NOW AVAILABLE: Arc Caster" and the lobby "NEXT UNLOCK - LV 2: Arc Caster". Once bought, a weapon does reach runs: Arc Caster was offered in 30 of 30 seeded runs, usually by Run Level 2-4.
+- The level-up note now says "NEW IN THE ARSENAL: Arc Caster - buy it to use it" (research unlocks still say NOW AVAILABLE).
+- While a weapon the player has reached is unbought, the lobby's progress line says "NEW WEAPON IN THE ARSENAL: ARC CASTER - 400 CREDITS", in gold when it is affordable, instead of the next level's unlock.
+- Tests: a weapon on sale is not in the run's pool; bought, it is offered in at least 9 of 10 runs; the lobby and the level-up note point at the Arsenal.
+
+Not changed: the weapons still cost Credits. Granting them for free on reaching the level is a one-line data change per weapon if wanted, but it removes 9,200 Credits of early spending.
+
+**A test that leaked.** One of the level-up card tests added for build 9 left an arena running; later results-screen tests then failed on taps (10 checks) when the whole suite ran together. It is fixed; the game itself was never affected.

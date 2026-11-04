@@ -410,7 +410,8 @@ func test_lobby_shows_player_level_xp_and_next_goals() -> void:
 	check(_has_text(home, "PLAYER LEVEL 2"), "the lobby names the Player Level")
 	check(_has_text(home, "30 / %s XP" % Fmt.commas(app.account.xp_needed(2))), "with Player XP and the amount needed, in numbers")
 	check_near(home._player_bar.value(), app.account.progress(), 0.001, "and a bar showing progress to the next level")
-	check(_has_text(home, "NEXT UNLOCK  -  LV 3"), "it says what the next level unlocks")
+	# Level 2 put Arc Caster on sale: the lobby points at it before the next level.
+	check(_has_text(home, "NEW WEAPON IN THE ARSENAL: ARC CASTER"), "it points at the weapon Level 2 put on sale")
 	var goal := app.meta.next_goal()
 	check(_has_text(home, str(goal.name)), "and which permanent upgrade to save for (%s)" % str(goal.name))
 	check(_has_text(home, "%d / %d" % [mini(credits, int(goal.cost)), int(goal.cost)]), "with Credits against its price")
@@ -1272,3 +1273,96 @@ func test_the_evolved_banner_is_kept_like_a_synergy() -> void:
 	check_eq(banners._kicker.text, "EVOLVED", "and labelled")
 	banners.queue_free()
 	await _frames(1)
+
+
+## Playtest (build 8): a cleared Daily Challenge's results screen sat shifted
+## right, partly off screen. Every kind of finish must fit the screen.
+func test_results_screen_fits_the_screen_for_every_finish() -> void:
+	fresh_profile()
+	app.save.section("sectors")["highest_cleared"] = 20
+	# A phone's canvas: the project's 720-wide viewport, stretched taller.
+	var phone := SubViewport.new()
+	phone.size = Vector2i(720, 1560)
+	host.add_child(phone)
+	var width := 720.0
+	var daily := app.challenges.challenge(ChallengeService.DAILY)
+	var weekly := app.challenges.challenge(ChallengeService.WEEKLY)
+	var finishes := [
+		["daily", {"mode": CampaignService.MODE_CHALLENGE, "tier": int(daily.tier), "challenge_kind": ChallengeService.DAILY, "challenge_id": str(daily.id), "threat": 0}],
+		["weekly", {"mode": CampaignService.MODE_CHALLENGE, "tier": int(weekly.tier), "challenge_kind": ChallengeService.WEEKLY, "challenge_id": str(weekly.id), "threat": 2}],
+		["threat 10", {"mode": CampaignService.MODE_SECTOR, "tier": 19, "challenge_kind": "", "challenge_id": "", "threat": 10}],
+		["sector 19", {"mode": CampaignService.MODE_SECTOR, "tier": 19, "challenge_kind": "", "challenge_id": "", "threat": 0}],
+	]
+	for finish in finishes:
+		var result := {
+			"run_id": "fit-" + str(finish[0]), "effective_tier": 19.0, "core": "vanguard",
+			"time": 334.0, "kills": 12468, "elites": 14, "bosses": 1, "level": 47, "level_ups": 46, "damage": 21500000.0,
+			"credits_picked": 41000, "credit_gain": 1.0, "cleared": true, "died": false, "abandoned": false,
+			"synergies": [], "revives": 0, "weapons": {"pulse": 5, "laser": 5, "nanite": 5, "railgun": 5}, "passives": {}, "augments": [],
+			"damage_by_source": {"pulse": 9000000.0, "laser": 6000000.0, "nanite": 4000000.0, "railgun": 2500000.0}, "cycle": 0,
+			"boss_ids": [app.campaign.boss_for(int((finish[1] as Dictionary).tier))],
+		}
+		result.merge(finish[1], true)
+		var screen := ResultsScreen.new(result, RunLedger.settle(app, result))
+		phone.add_child(screen)
+		await _frames(3)
+		screen.skip()
+		await _frames(3)
+		var worst := ""
+		var right := 0.0
+		var left := 0.0
+		for node in screen.find_children("*", "Control", true, false):
+			var control := node as Control
+			if not control.is_visible_in_tree() or control.size.x <= 0.0:
+				continue
+			var rect := control.get_global_rect()
+			if rect.end.x > right:
+				right = rect.end.x
+				worst = "%s %s" % [control.get_class(), (control as Label).text if control is Label else ""]
+			left = minf(left, rect.position.x)
+		check(right <= width + 0.5, "%s: nothing past the right edge (%.0f of %.0f, widest: %s)" % [finish[0], right, width, worst])
+		check(left >= -0.5, "%s: nothing past the left edge (%.0f)" % [finish[0], left])
+		phone.remove_child(screen)
+		screen.free()
+	host.remove_child(phone)
+	phone.free()
+
+
+
+func test_lobby_and_level_up_point_at_weapons_to_buy() -> void:
+	fresh_profile()
+	var shell := MenuShell.new()
+	host.add_child(shell)
+	await _frames(2)
+	var home := shell.screen("home") as HomeScreen
+	check(not _has_text(home, "NEW WEAPON IN THE ARSENAL"), "nothing for sale yet")
+	app.account.add_xp(app.account.xp_needed(1) + 1, "test")
+	home.refresh()
+	await _frames(2)
+	check(_has_text(home, "NEW WEAPON IN THE ARSENAL: ARC CASTER - 400 CREDITS"), "at Player Level 2 the lobby points at Arc Caster in the Arsenal")
+	app.economy.grant(Economy.CREDITS, 400, "test")
+	app.arsenal.unlock(ArsenalService.WEAPONS, "chain")
+	home.refresh()
+	await _frames(2)
+	check(not _has_text(home, "NEW WEAPON IN THE ARSENAL"), "bought: the line goes back to the next unlock")
+	check(_has_text(home, "NEXT UNLOCK"), "which it names")
+	host.remove_child(shell)
+	shell.free()
+
+	# The level-up note on the results screen says where the weapon went.
+	fresh_profile()
+	var result := {
+		"run_id": "ui-for-sale", "mode": CampaignService.MODE_SECTOR, "tier": 1, "effective_tier": 1.0, "core": "vanguard",
+		"time": 312.0, "kills": 2468, "elites": 4, "bosses": 1, "level": 27, "level_ups": 26, "damage": 150000.0,
+		"credits_picked": 410, "credit_gain": 1.0, "cleared": true, "died": false, "abandoned": false,
+		"synergies": [], "revives": 0, "weapons": {"pulse": 5}, "passives": {}, "augments": [], "damage_by_source": {"pulse": 150000.0}, "cycle": 0,
+	}
+	var screen := ResultsScreen.new(result, RunLedger.settle(app, result))
+	host.add_child(screen)
+	await _frames(3)
+	screen.skip()
+	await _frames(3)
+	check(_has_text(screen, "NEW IN THE ARSENAL: Arc Caster"), "the level-up note says Arc Caster is in the Arsenal")
+	check(_has_text(screen, "buy it to use it"), "and that it has to be bought")
+	host.remove_child(screen)
+	screen.free()

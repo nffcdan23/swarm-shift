@@ -30,6 +30,16 @@ static func title(text: String, size: int = UiTheme.TITLE, color: Color = Palett
 	return l
 
 
+## The largest title-font size, from `size` down to `min_size`, at which
+## `text` fits in `room` pixels on one line (outline included).
+static func fitted_title_size(text: String, room: float, size: int, min_size: int, outline: int = 0) -> int:
+	var font := UiTheme.font_title()
+	var font_size := size
+	while font_size > min_size and font.get_string_size(text.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x + float(outline) > room:
+		font_size -= 2
+	return font_size
+
+
 ## Wrapping body text.
 static func paragraph(text: String, size: int = UiTheme.SMALL, color: Color = Palette.MUTED,
 		align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> Label:

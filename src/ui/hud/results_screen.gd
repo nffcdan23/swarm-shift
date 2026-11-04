@@ -12,6 +12,8 @@ extends Control
 signal play_again_pressed
 signal home_pressed
 
+## Width a headline may use: the 720-wide canvas less the side padding.
+const HEADLINE_ROOM := 640.0
 const MAX_EXTRA_LINES := 3
 const MAX_MASTERY_LINES := 3
 const XP_PARTS: Array[Array] = [
@@ -81,6 +83,9 @@ func _ready() -> void:
 	var headline := won if cleared else ("RUN ENDED" if abandoned or endless else "CORE DESTROYED")
 
 	var title := UiKit.title(headline, 52, accent)
+	# "CHALLENGE COMPLETE" at full size is wider than a phone, which pushed the
+	# whole screen off to the right: shrink a long headline to fit instead.
+	title.add_theme_font_size_override("font_size", UiKit.fitted_title_size(headline, HEADLINE_ROOM, 52, 34, 16))
 	title.add_theme_constant_override("outline_size", 8)
 	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
 	column.add_child(title)
@@ -455,16 +460,25 @@ func _show_level_note(entries: Array) -> void:
 	var credits := 0
 	var crystals := 0
 	var unlocks: Array = []
+	var for_sale: Array = []
 	var reached := 0
 	for entry: Dictionary in entries:
 		var rewards: Dictionary = entry.get("rewards", {})
 		credits += int(rewards.get("credits", 0))
 		crystals += int(rewards.get("crystals", 0))
-		unlocks.append_array(rewards.get("unlocks", []))
 		reached = int(entry.get("level", reached))
+		# Weapons and cores only go on sale in the Arsenal; say so, or players
+		# wait for them to turn up in a run.
+		for unlock_name: Variant in rewards.get("unlocks", []):
+			if App.arsenal.is_for_sale_at_level(str(unlock_name), reached):
+				for_sale.append(unlock_name)
+			else:
+				unlocks.append(unlock_name)
 	var note := "PLAYER LEVEL %d!   +%s Credits" % [reached, Fmt.compact(float(credits))]
 	if crystals > 0:
 		note += "   +%d Crystals" % crystals
+	if not for_sale.is_empty():
+		note += "\nNEW IN THE ARSENAL: %s - buy it to use it" % ", ".join(PackedStringArray(for_sale))
 	if not unlocks.is_empty():
 		note += "\nNOW AVAILABLE: " + ", ".join(PackedStringArray(unlocks))
 	_xp_note.text = note

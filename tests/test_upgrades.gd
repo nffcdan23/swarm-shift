@@ -478,6 +478,7 @@ func test_passing_fades_a_card_and_taking_it_resets() -> void:
 	check(counts_after > 0, "but still turns up")
 	ups.note_hand([card], 0)
 	check_eq(ups.passes(card), 0, "taking it clears the record")
+	_free(arena)
 
 
 func test_evolutions_are_never_held_back() -> void:
@@ -505,3 +506,46 @@ func test_evolutions_are_never_held_back() -> void:
 			again += 1
 	check_eq(again, evolutions, "passed on once, the evolution is still offered next hand")
 	_free(arena)
+
+
+
+## Playtest (build 8): "there are new weapons, but my mate has not come across
+## them in two runs". Reaching a Player Level only puts a weapon on sale; once
+## bought, it must turn up in runs.
+func test_a_bought_weapon_turns_up_in_runs() -> void:
+	fresh_profile()
+	app.account.add_xp(app.account.xp_needed(1) + 1, "test")
+	check(app.account.level() >= 2, "Player Level 2 reached")
+	check(not RunConfig.from_profile(app, CampaignService.MODE_SECTOR).weapon_pool.has("chain"),
+		"Arc Caster is on sale, not in runs, until it is bought")
+	var for_sale := app.arsenal.weapons_for_sale()
+	check(not for_sale.is_empty() and str(for_sale[0].id) == "chain", "the Arsenal lists it for sale")
+	app.economy.grant(Economy.CREDITS, 400, "test")
+	check(app.arsenal.unlock(ArsenalService.WEAPONS, "chain"), "it can be bought")
+	check(app.arsenal.weapons_for_sale().is_empty(), "and is no longer for sale")
+	var offered_runs := 0
+	var runs := 10
+	for run_seed in range(runs):
+		var config := RunConfig.from_profile(app, CampaignService.MODE_SECTOR)
+		config.rng_seed = 500 + run_seed
+		config.autopilot = false
+		config.base_mods = {"max_hp": 1000000.0}
+		check(config.weapon_pool.has("chain"), "a bought weapon is in the run's pool")
+		var arena := _arena(config)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = run_seed
+		var offered := false
+		for step in int(240.0 / DT):
+			if arena.state == Arena.State.ENDED or offered:
+				break
+			var guard := 0
+			while arena.state == Arena.State.CHOOSING and guard < 50:
+				guard += 1
+				for offer in arena.current_offers:
+					offered = offered or str(offer.id) == "chain"
+				arena.choose(rng.randi_range(0, arena.current_offers.size() - 1))
+			arena.step(DT)
+		if offered:
+			offered_runs += 1
+		_free(arena)
+	check(offered_runs >= 9, "Arc Caster is offered in nearly every run once bought (%d of %d)" % [offered_runs, runs])

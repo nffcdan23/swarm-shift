@@ -189,6 +189,19 @@ func _run() -> void:
 		await _shot("06_retention_results_threat")
 		screen.queue_free()
 		await _wait(0.3)
+		# A cleared Daily Challenge (its headline once pushed the screen sideways).
+		var daily := App.challenges.challenge(ChallengeService.DAILY)
+		var daily_result := result.duplicate(true)
+		daily_result.merge({"run_id": "tour-daily", "mode": CampaignService.MODE_CHALLENGE, "tier": int(daily.tier), "threat": 0,
+			"challenge_kind": ChallengeService.DAILY, "challenge_id": str(daily.id)}, true)
+		screen = ResultsScreen.new(daily_result, RunLedger.settle(App, daily_result))
+		menu.add_child(screen)
+		await _wait(0.4)
+		screen.skip()
+		await _wait(0.5)
+		await _shot("06_retention_results_daily")
+		screen.queue_free()
+		await _wait(0.3)
 
 	if _wants("progress"):
 		await _progression(menu)

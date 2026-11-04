@@ -323,7 +323,15 @@ func _refresh_progress() -> void:
 	else:
 		_player_xp.text = "%s / %s XP" % [Fmt.commas(account.xp()), Fmt.commas(account.xp_needed(account.level()))]
 		var ahead := account.next_unlock()
-		if int(ahead.level) > 0:
+		var for_sale := App.arsenal.weapons_for_sale()
+		if not for_sale.is_empty():
+			# A weapon the player has reached but not bought never shows up in a
+			# run: point at the Arsenal rather than at the next level.
+			var cheapest: Dictionary = for_sale[0]
+			_player_next.text = "NEW WEAPON IN THE ARSENAL: %s - %s CREDITS" % [str(cheapest.name).to_upper(), Fmt.commas(int(cheapest.cost))]
+			_player_next.add_theme_color_override("font_color", Palette.GOLD if bool(cheapest.affordable) else Palette.MUTED)
+		elif int(ahead.level) > 0:
+			_player_next.add_theme_color_override("font_color", Palette.MUTED)
 			_player_next.text = "NEXT UNLOCK  -  LV %d: %s" % [int(ahead.level), ", ".join(PackedStringArray(ahead.names))]
 		else:
 			_player_next.text = "%s XP TO PLAYER LEVEL %d" % [Fmt.commas(account.xp_to_next()), account.level() + 1]

@@ -118,6 +118,26 @@ func names_gated_at_level(at_level: int) -> Array:
 	return out
 
 
+## Weapons the player's level has opened but that are not bought yet, cheapest
+## first: [{"id", "name", "cost", "affordable"}]. Reaching a level only puts a
+## weapon on sale; it never reaches a run until it is bought.
+func weapons_for_sale() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for id: String in defs(WEAPONS):
+		var info := unlock_info(WEAPONS, id)
+		if bool(info.owned) or str(info.kind) != "level" or not bool(info.level_met):
+			continue
+		out.append({"id": id, "name": GameData.text(defs(WEAPONS)[id], "name", id), "cost": int(info.cost), "affordable": bool(info.affordable)})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.cost) < int(b.cost))
+	return out
+
+
+## Of `names_gated_at_level`, the ones sold in the Arsenal (weapons and cores)
+## rather than given (research).
+func is_for_sale_at_level(name: String, at_level: int) -> bool:
+	return names_gated_at_level(at_level).has(name)
+
+
 func any_affordable_unlock() -> bool:
 	for category: String in [WEAPONS, CORES]:
 		for id: String in defs(category):
