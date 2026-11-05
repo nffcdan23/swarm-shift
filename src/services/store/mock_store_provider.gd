@@ -16,6 +16,10 @@ func initialize(app: AppRoot, catalog: Dictionary) -> void:
 	_catalog = catalog
 
 
+func shows_fallback_prices() -> bool:
+	return true
+
+
 func price(product_id: String) -> String:
 	return GameData.text(GameData.dict(_catalog, product_id), "price", "-")
 

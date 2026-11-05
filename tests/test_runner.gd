@@ -27,6 +27,7 @@ const SUITES := {
 	"threats": "res://tests/test_threats.gd",
 	"threat_levels": "res://tests/test_threat_levels.gd",
 	"bosses": "res://tests/test_bosses.gd",
+	"storekit": "res://tests/test_storekit.gd",
 	"challenges": "res://tests/test_challenges.gd",
 	"stability": "res://tests/test_stability.gd",
 }

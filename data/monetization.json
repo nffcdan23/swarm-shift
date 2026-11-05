@@ -31,6 +31,11 @@
 
   "shop_layout": ["starter_pack", "remove_ads", "crystals_s", "crystals_m", "crystals_l"],
 
+  "store": {
+    "_doc": "App Store product ids are ios_prefix + the product's key (com.starscale.swarmshift.crystals_s), unless a product sets its own 'ios_id'. They must match App Store Connect exactly, and an id can never be reused once created there.",
+    "ios_prefix": "com.starscale.swarmshift."
+  },
+
   "exchange": [
     { "id": "ex_small", "crystals": 50, "credits": 2000 },
     { "id": "ex_large", "crystals": 200, "credits": 9000 }

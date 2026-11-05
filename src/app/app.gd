@@ -104,8 +104,8 @@ func boot(backend: SaveBackend = null) -> void:
 	add_child(audio)
 	audio.setup(self)
 
-	# Provider selection point: replace the mocks with real SDK adapters here.
-	store = StoreService.new(self, MockStoreProvider.new())
+	# Real stores on a device that has them; the mocks everywhere else.
+	store = StoreService.new(self, _store_provider())
 	ads = AdsService.new(self, _ad_provider())
 
 	_assign_ab_group()
@@ -173,6 +173,28 @@ func _apply_remote_config() -> void:
 ## AdMob wherever the native bridge is in the build (iPhone builds made after
 ## tools/build_admob.sh); the mock on the desktop, in tests and simulations, and
 ## during `--admob-check`, which drives the bridge itself.
+## The App Store on an iPhone (the StoreKit bridge, tools/build_storekit.sh);
+## the labelled test store in the editor, on desktop and in automated runs.
+func _store_provider() -> StoreProvider:
+	if not automated and Engine.has_singleton("StoreKit"):
+		var bridge := Engine.get_singleton("StoreKit")
+		if bridge.is_supported():
+			return StoreKitStoreProvider.new(bridge)
+	# A release build on a phone without the bridge must never fall back to the
+	# test store, which hands goods out for free: it gets a store that sells
+	# nothing (every product UNAVAILABLE) instead.
+	if is_release_device():
+		push_error("StoreKit bridge missing from a release build - the shop is closed.")
+		return StoreProvider.new()
+	return MockStoreProvider.new()
+
+
+## A release build running on a phone or tablet: where test stores and test
+## purchases must never appear.
+func is_release_device() -> bool:
+	return not automated and not OS.is_debug_build() and OS.has_feature("mobile")
+
+
 func _ad_provider() -> AdProvider:
 	if not automated and not cli.has("admob-check") and Engine.has_singleton("AdMob"):
 		var bridge := Engine.get_singleton("AdMob")

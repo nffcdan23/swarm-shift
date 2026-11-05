@@ -28,6 +28,7 @@ Built with **Godot 4.7.2** and GDScript. No backend, no third-party SDKs yet - a
 | Xcode | For iOS device builds; signed in to the team in `export_presets.cfg` |
 | Android SDK + JDK 17 | Only needed to export Android; not set up yet |
 | AdMob bridge | Built by `tools/build_admob.sh` (downloads pinned, checksum-verified Google SDKs and godot-cpp into `build/deps`); `tools/ios_deploy.sh` runs it the first time. See [native/admob](native/admob/README.md) |
+| StoreKit bridge | Built by `tools/build_storekit.sh` (Swift StoreKit 2 layer plus a GDExtension; reuses godot-cpp from `build/deps`); `tools/ios_release.sh` and `tools/ios_deploy.sh` run it if missing. See [docs/storekit](docs/storekit/README.md) |
 
 ## Run it
 

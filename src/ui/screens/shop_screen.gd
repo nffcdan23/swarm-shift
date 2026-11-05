@@ -15,6 +15,10 @@ func _build() -> void:
 	column.add_child(header("Shop", "Everything here is optional. The whole game can be played for free."))
 	_list = UiKit.vbox(10)
 	column.add_child(UiKit.scroll(_list))
+	# Real prices arrive from the App Store a moment after launch.
+	App.store.catalog_changed.connect(func() -> void:
+		if is_visible_in_tree() and not _busy:
+			refresh())
 
 
 func refresh() -> void:
@@ -89,6 +93,10 @@ func _product_card(product: Dictionary) -> PanelContainer:
 	var action: Control
 	if owned:
 		action = UiKit.tag("OWNED", Palette.GREEN, UiTheme.SMALL)
+	elif not App.store.is_available(id):
+		# The App Store has not answered (still loading, offline, or the
+		# product is not set up): no guessed price, nothing to tap.
+		action = UiKit.tag("UNAVAILABLE", Palette.MUTED, UiTheme.SMALL)
 	else:
 		var buy := NeonButton.make(str(product.price), NeonButton.Kind.PRIMARY, Palette.CYAN, "", 64.0, UiTheme.SMALL)
 		buy.min_width = 150.0
@@ -137,6 +145,10 @@ func _buy(product_id: String) -> void:
 		App.audio.play("ui_purchase")
 		App.haptics.success()
 		shell.toast("Purchase complete - thank you!", Palette.GREEN, "check")
+	else:
+		var message := failure_message(App.store.last_error)
+		if not message.is_empty():
+			shell.toast(message, Palette.AMBER, "warning")
 	refresh()
 	shell.refresh_badges()
 
@@ -158,5 +170,25 @@ func _restore() -> void:
 	_busy = true
 	var restored: int = await App.store.restore()
 	_busy = false
-	shell.toast("%d purchase%s restored" % [restored, "" if restored == 1 else "s"] if restored > 0 else "Nothing to restore", Palette.CYAN, "restore")
+	if restored == 0 and not App.store.last_error.is_empty():
+		shell.toast(failure_message(App.store.last_error, true), Palette.AMBER, "warning")
+	else:
+		shell.toast("%d purchase%s restored" % [restored, "" if restored == 1 else "s"] if restored > 0 else "Nothing to restore", Palette.CYAN, "restore")
 	refresh()
+
+
+## What to tell the player when a purchase or restore did not go through.
+## "" for a cancel: they know, and a message would only nag.
+static func failure_message(reason: String, restoring: bool = false) -> String:
+	match reason:
+		"cancelled", "":
+			return "" if not restoring else "Restore cancelled"
+		"pending":
+			return "Waiting for approval - it will arrive once approved"
+		"network":
+			return "Can't reach the App Store - check your connection"
+		"unavailable", "not_available", "unknown_product":
+			return "This isn't available right now"
+		"not_allowed":
+			return "Purchases are turned off on this device"
+	return "The App Store couldn't complete that - you were not charged" if not restoring else "Couldn't restore purchases - try again later"

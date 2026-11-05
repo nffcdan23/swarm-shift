@@ -47,6 +47,10 @@ addons/admob/bin/
 addons/admob/ios/
 addons/admob/admob.gdextension
 addons/admob/admob.gdextension.uid
+# StoreKit bridge build output (tools/build_storekit.sh); sources are in native/storekit
+addons/storekit/bin/
+addons/storekit/storekit.gdextension
+addons/storekit/storekit.gdextension.uid
 native/**/*.o
 native/**/*.os
 native/**/.sconsign.dblite

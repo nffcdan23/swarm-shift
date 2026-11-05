@@ -32,6 +32,13 @@ if [[ ! -f "$ROOT/addons/admob/admob.gdextension" ]]; then
   godot --headless --path "$ROOT" --import > "$ROOT/build/import.log" 2>&1 || true
 fi
 
+# Real purchases: without the StoreKit bridge a release build can sell nothing.
+if [[ ! -f "$ROOT/addons/storekit/storekit.gdextension" ]]; then
+  echo "Building the StoreKit bridge..."
+  "$ROOT/tools/build_storekit.sh"
+  godot --headless --path "$ROOT" --import > "$ROOT/build/import.log" 2>&1 || true
+fi
+
 echo "1/3  Exporting the Xcode project (Release)..."
 mkdir -p "$OUT"
 touch "$ROOT/build/.gdignore"

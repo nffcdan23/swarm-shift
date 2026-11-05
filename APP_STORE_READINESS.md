@@ -147,6 +147,7 @@ Severity: **BLOCKER** stops submission or would almost certainly be rejected; **
 - **Complexity.** S engineering; L calendar time (D-U-N-S and enrolment can take one to several weeks).
 
 #### B-2 Purchases are a mock that grants paid content for free
+- **Update, 5 November 2026: built, awaiting App Store Connect.** StoreKit 2 bridge (`native/storekit`, `tools/build_storekit.sh`) and `StoreKitStoreProvider` are in; release builds on a phone use the App Store and can never fall back to the test store. Remaining: C2 creates the five products and the Paid Apps Agreement, then the sandbox test plan in [docs/storekit](docs/storekit/README.md) runs on a phone. The original finding follows.
 - **Description.** `App.boot()` always installs `MockStoreProvider`. In a shipped build, tapping a price shows "TEST PURCHASE ... No real payment is made" and BUY grants Crystals, Credits and the AURUM skin. That is a 2.1 (test content) and 3.1.1 (unlocking content outside IAP) rejection, and a revenue leak if it ever slipped through.
 - **Evidence.** `src/app/app.gd:98`, `src/services/store/mock_store_provider.gd`, `src/services/store/mock_purchase_dialog.gd`, shop footer text in `src/ui/screens/shop_screen.gd:39`. No StoreKit code exists anywhere in the repo.
 - **Fix.** Implement a `StoreProvider` on StoreKit 2 behind the existing interface (a small Swift/Objective-C iOS plugin or GDExtension exposing products, purchase, `Transaction.currentEntitlements`, `Transaction.updates`, `AppStore.sync()`). Specifically:

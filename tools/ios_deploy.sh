@@ -40,6 +40,11 @@ if [[ ! -f "$ROOT/addons/admob/admob.gdextension" ]]; then
   "$ROOT/tools/build_admob.sh" || exit 1
   godot --headless --path "$ROOT" --import > "$ROOT/build/import.log" 2>&1 || true
 fi
+if [[ ! -f "$ROOT/addons/storekit/storekit.gdextension" ]]; then
+  echo "0/4  Building the StoreKit bridge..."
+  "$ROOT/tools/build_storekit.sh" || exit 1
+  godot --headless --path "$ROOT" --import > "$ROOT/build/import.log" 2>&1 || true
+fi
 
 echo "1/4  Exporting the Xcode project from Godot..."
 mkdir -p "$OUT"
