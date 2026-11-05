@@ -176,14 +176,15 @@ func _apply_remote_config() -> void:
 ## The App Store on an iPhone (the StoreKit bridge, tools/build_storekit.sh);
 ## the labelled test store in the editor, on desktop and in automated runs.
 func _store_provider() -> StoreProvider:
-	if not automated and Engine.has_singleton("StoreKit"):
+	# --storekit-check drives the bridge itself and must not touch the profile.
+	if not automated and not cli.has("storekit-check") and Engine.has_singleton("StoreKit"):
 		var bridge := Engine.get_singleton("StoreKit")
 		if bridge.is_supported():
 			return StoreKitStoreProvider.new(bridge)
 	# A release build on a phone without the bridge must never fall back to the
 	# test store, which hands goods out for free: it gets a store that sells
 	# nothing (every product UNAVAILABLE) instead.
-	if is_release_device():
+	if is_release_device() and not cli.has("storekit-check"):
 		push_error("StoreKit bridge missing from a release build - the shop is closed.")
 		return StoreProvider.new()
 	return MockStoreProvider.new()

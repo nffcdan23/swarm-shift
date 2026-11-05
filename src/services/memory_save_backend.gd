@@ -5,6 +5,8 @@ extends SaveBackend
 
 var text := ""
 var writes := 0
+## Tests set this to make writes fail, as a full disk would.
+var fail_writes := false
 
 
 func read() -> String:
@@ -12,6 +14,8 @@ func read() -> String:
 
 
 func write(p_text: String) -> bool:
+	if fail_writes:
+		return false
 	text = p_text
 	writes += 1
 	return true

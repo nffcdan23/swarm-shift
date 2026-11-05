@@ -27,6 +27,8 @@ class FakeBridge:
 	## What sync() reports: App Store ids, or a failure.
 	var owned: Array = []
 	var sync_error := ""
+	## False: sync() never answers (a hung App Store sign-in).
+	var answer_sync := true
 	var products_fail := false
 	var _serial := 1000
 
@@ -54,7 +56,7 @@ class FakeBridge:
 		purchases.append(store_id)
 		if next_status == "purchased":
 			_serial += 1
-			_later("purchase", transaction(store_id, str(_serial)))
+			_later("purchase", transaction(store_id, str(_serial), true))
 		else:
 			_later("purchase", {"product": store_id, "status": next_status, "error": next_error})
 
@@ -66,13 +68,17 @@ class FakeBridge:
 
 	func sync() -> void:
 		syncs += 1
+		if not answer_sync:
+			return
 		if sync_error.is_empty():
 			_later("entitlements", {"products": owned, "source": "restore"})
 		else:
 			_later("sync_failed", {"error": sync_error})
 
-	func transaction(store_id: String, transaction_id: String) -> Dictionary:
-		return {"product": store_id, "status": "purchased", "transaction_id": transaction_id, "original_id": transaction_id, "jws": "signed." + transaction_id}
+	## `mine`: started on this install (its appAccountToken is this install's).
+	func transaction(store_id: String, transaction_id: String, mine: bool) -> Dictionary:
+		return {"product": store_id, "status": "purchased", "transaction_id": transaction_id, "original_id": transaction_id,
+			"jws": "signed." + transaction_id, "mine": 1.0 if mine else 0.0}
 
 	## Pushes an event as if StoreKit sent it unprompted.
 	func send(name: String, payload: Dictionary) -> void:
@@ -102,6 +108,19 @@ func _store(bridge: FakeBridge) -> StoreService:
 
 func _crystals() -> int:
 	return app.economy.balance(Economy.CRYSTALS)
+
+
+func _credits() -> int:
+	return app.economy.balance(Economy.CREDITS)
+
+
+func _last_transaction() -> String:
+	var history: Array = app.save.section("purchases").get("history", [])
+	return str((history.back() as Dictionary).get("transaction_id", ""))
+
+
+func _grant(product_id: String, currency: String) -> int:
+	return GameData.integer(GameData.dict(GameData.dict(app.data.products(), product_id), "grants"), currency)
 
 
 # ------------------------------------------------------------------ catalogue
@@ -165,7 +184,7 @@ func test_a_purchase_is_delivered_once_then_finished() -> void:
 
 	# StoreKit hands the same transaction over again (the app closed before
 	# finish() reached it): it is closed, not paid twice.
-	bridge.send("transaction", bridge.transaction(PREFIX + "crystals_s", transaction_id))
+	bridge.send("transaction", bridge.transaction(PREFIX + "crystals_s", transaction_id, true))
 	check_eq(_crystals(), before + grant, "a transaction delivered again is not paid twice")
 	check_eq(bridge.finished.size(), 2, "but is finished again")
 
@@ -178,7 +197,7 @@ func test_a_purchase_paid_but_never_saved_arrives_next_launch() -> void:
 	var before := _crystals()
 	# Paid for in an earlier session that closed before saving: StoreKit
 	# delivers it as an unfinished transaction when the app starts listening.
-	bridge.send("transaction", bridge.transaction(PREFIX + "crystals_m", "777"))
+	bridge.send("transaction", bridge.transaction(PREFIX + "crystals_m", "777", true))
 	var grant := GameData.integer(GameData.dict(GameData.dict(app.data.products(), "crystals_m"), "grants"), "crystals")
 	check_eq(_crystals(), before + grant, "the purchase is delivered")
 	check(bridge.finished.has("777"), "and finished")
@@ -214,7 +233,7 @@ func test_ask_to_buy_arrives_when_approved() -> void:
 	bridge.next_status = "pending"
 	check(not await store.purchase("remove_ads"), "a purchase waiting for a parent's approval does not complete yet")
 	check(not store.has_entitlement("remove_ads"), "nothing granted yet")
-	bridge.send("transaction", bridge.transaction(PREFIX + "remove_ads", "4242"))
+	bridge.send("transaction", bridge.transaction(PREFIX + "remove_ads", "4242", true))
 	check(store.has_entitlement("remove_ads"), "approved later, it arrives and is granted")
 	check(bridge.finished.has("4242"), "and finished")
 
@@ -228,19 +247,19 @@ func test_a_refund_takes_back_what_it_gave() -> void:
 	await _frames(2)
 	check(await store.purchase("remove_ads"), "Remove Ads bought")
 	check(store.has_entitlement("remove_ads"), "and active")
-	bridge.send("revoked", {"product": PREFIX + "remove_ads", "transaction_id": "1001"})
+	bridge.send("revoked", {"product": PREFIX + "remove_ads", "transaction_id": _last_transaction()})
 	check(not store.has_entitlement("remove_ads"), "refunded, it is removed")
 	check(store.is_available("remove_ads") and not store.is_owned("remove_ads"), "and can be bought again")
 
 	var before := _crystals()
 	check(await store.purchase("crystals_s"), "a Crystal pack bought")
 	var grant := _crystals() - before
-	bridge.send("revoked", {"product": PREFIX + "crystals_s", "transaction_id": "1002"})
+	bridge.send("revoked", {"product": PREFIX + "crystals_s", "transaction_id": _last_transaction()})
 	check_eq(_crystals(), before, "refunded, its Crystals are taken back (%d)" % grant)
 	app.economy.spend(Economy.CRYSTALS, _crystals(), "test")
 	check(await store.purchase("crystals_s"), "bought again")
 	app.economy.spend(Economy.CRYSTALS, _crystals() - 10, "test")
-	bridge.send("revoked", {"product": PREFIX + "crystals_s", "transaction_id": "1003"})
+	bridge.send("revoked", {"product": PREFIX + "crystals_s", "transaction_id": _last_transaction()})
 	check_eq(_crystals(), 0, "Crystals already spent are taken back only as far as the balance goes")
 
 
@@ -304,3 +323,135 @@ func test_no_store_sells_nothing() -> void:
 	check(not await store.purchase("crystals_l"), "a purchase fails")
 	check_eq(app.economy.balance(Economy.CRYSTALS), before, "and grants nothing")
 	check(not app.is_release_device(), "tests are never a release device")
+
+
+
+# ---------------------------------------------------------------- audit
+
+## Audit: the Starter Pack's Crystals, Credits and skin are paid once - not by
+## replaying its transaction, not by restoring, not by a launch report, and
+## not by its transaction showing up again from another device.
+func test_starter_pack_rewards_are_paid_once() -> void:
+	fresh_profile()
+	var bridge := _bridge()
+	var store := _store(bridge)
+	await _frames(2)
+	var crystals := _crystals()
+	var credits := _credits()
+	check(await store.purchase("starter_pack"), "the Starter Pack is bought")
+	check_eq(_crystals(), crystals + _grant("starter_pack", "crystals"), "its Crystals are paid")
+	check_eq(_credits(), credits + _grant("starter_pack", "credits"), "and its Credits")
+	check(app.arsenal.is_owned(ArsenalService.SKINS, "aurum"), "and the AURUM skin")
+	crystals = _crystals()
+	credits = _credits()
+	var tid := _last_transaction()
+	check(not await store.purchase("starter_pack"), "it cannot be bought twice")
+	bridge.send("transaction", bridge.transaction(PREFIX + "starter_pack", tid, true))
+	bridge.owned = [PREFIX + "starter_pack"]
+	await store.restore()
+	await store.restore()
+	bridge.request_entitlements()
+	await _frames(2)
+	bridge.send("transaction", bridge.transaction(PREFIX + "starter_pack", "other-device-1", false))
+	check_eq(_crystals(), crystals, "replaying, restoring twice, a launch report and another device's copy pay no more Crystals")
+	check_eq(_credits(), credits, "or Credits")
+
+
+## Audit: a purchase made on another device (the same Apple account) arrives
+## through StoreKit's update stream. Its goods were paid on that device; this
+## one only gets what is account-wide (an entitlement, a skin).
+func test_a_purchase_from_another_device_pays_no_currency_here() -> void:
+	fresh_profile()
+	var bridge := _bridge()
+	var store := _store(bridge)
+	await _frames(2)
+	var crystals := _crystals()
+	var credits := _credits()
+	bridge.send("transaction", bridge.transaction(PREFIX + "starter_pack", "elsewhere-1", false))
+	check(store.has_entitlement("starter_pack"), "another device's Starter Pack is owned here too")
+	check(app.arsenal.is_owned(ArsenalService.SKINS, "aurum"), "with its skin")
+	check_eq(_crystals(), crystals, "but its Crystals are not paid a second time here")
+	check_eq(_credits(), credits, "nor its Credits")
+	bridge.send("transaction", bridge.transaction(PREFIX + "crystals_l", "elsewhere-2", false))
+	check_eq(_crystals(), crystals, "another device's Crystal pack pays nothing here")
+	check(not bridge.finished.has("elsewhere-2"), "and is left for its own device to finish")
+	bridge.send("transaction", bridge.transaction(PREFIX + "crystals_l", "mine-3", true))
+	check_eq(_crystals(), crystals + _grant("crystals_l", "crystals"), "while one started on this install is paid")
+
+
+## Audit: a refund takes back what the purchase gave on this device - all of
+## it for the Starter Pack - once, and never more than was given here.
+func test_refunds_take_back_exactly_what_was_given_once() -> void:
+	fresh_profile()
+	var bridge := _bridge()
+	var store := _store(bridge)
+	await _frames(2)
+	var crystals := _crystals()
+	var credits := _credits()
+	check(await store.purchase("starter_pack"), "the Starter Pack is bought")
+	app.arsenal.select_skin("aurum")
+	var tid := _last_transaction()
+	bridge.send("revoked", {"product": PREFIX + "starter_pack", "transaction_id": tid})
+	check(not store.has_entitlement("starter_pack"), "refunded: the entitlement goes")
+	check_eq(_crystals(), crystals, "its Crystals are taken back")
+	check_eq(_credits(), credits, "and its Credits")
+	check(not app.arsenal.is_owned(ArsenalService.SKINS, "aurum"), "and the AURUM skin")
+	check_eq(app.arsenal.selected_skin(), "default", "which is taken off the core")
+	app.economy.grant(Economy.CRYSTALS, 1000, "test")
+	crystals = _crystals()
+	bridge.send("revoked", {"product": PREFIX + "starter_pack", "transaction_id": tid})
+	check_eq(_crystals(), crystals, "the same refund arriving again takes nothing more")
+	bridge.send("revoked", {"product": PREFIX + "crystals_l", "transaction_id": "never-paid-here"})
+	check_eq(_crystals(), crystals, "a refund of a pack this device never paid takes nothing")
+
+	# Restored here, refunded later: the entitlement goes, but nothing paid
+	# on another device is taken from this one.
+	fresh_profile()
+	bridge = _bridge()
+	bridge.owned = [PREFIX + "remove_ads"]
+	store = _store(bridge)
+	await _frames(2)
+	await store.restore()
+	crystals = _crystals()
+	bridge.send("revoked", {"product": PREFIX + "remove_ads", "transaction_id": "original-elsewhere"})
+	check(not store.has_entitlement("remove_ads"), "a restored Remove Ads goes when refunded")
+	check_eq(_crystals(), crystals, "and nothing else is taken")
+
+
+## Audit: if the goods cannot be saved, the transaction stays open, so StoreKit
+## delivers it again next launch instead of it being lost.
+func test_a_purchase_that_cannot_be_saved_is_not_finished() -> void:
+	var backend := fresh_profile()
+	var bridge := _bridge()
+	var store := _store(bridge)
+	await _frames(2)
+	backend.fail_writes = true
+	await store.purchase("crystals_m")
+	check(bridge.finished.is_empty(), "with the save failing, the transaction is left open")
+	backend.fail_writes = false
+	var tid := _last_transaction()
+	bridge.send("transaction", bridge.transaction(PREFIX + "crystals_m", tid, true))
+	check(bridge.finished.has(tid), "delivered again once saving works, it is finished")
+
+
+## Audit: Restore Purchases never hangs the shop, and never counts consumables.
+func test_restore_never_hangs_or_counts_consumables() -> void:
+	fresh_profile()
+	var bridge := _bridge()
+	bridge.answer_sync = false
+	var provider := StoreKitStoreProvider.new(bridge)
+	provider.restore_timeout_sec = 0.2
+	var store := StoreService.new(app, provider)
+	await _frames(2)
+	check_eq(await store.restore(), 0, "an App Store that never answers restores nothing")
+	check_eq(store.last_error, "timeout", "and times out")
+	check(not store.is_busy(), "leaving the shop usable")
+
+	fresh_profile()
+	bridge = _bridge()
+	bridge.owned = [PREFIX + "crystals_s", PREFIX + "remove_ads"]
+	store = _store(bridge)
+	await _frames(2)
+	var crystals := _crystals()
+	check_eq(await store.restore(), 1, "a restore that lists a consumable restores only the non-consumable")
+	check_eq(_crystals(), crystals, "and pays no Crystals")

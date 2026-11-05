@@ -19,6 +19,10 @@ signal _restore_answered(product_ids: Array, error: String)
 
 const PRODUCTS_TIMEOUT_SEC := 20.0
 
+## How long Restore Purchases waits for the App Store (a sign-in can take a
+## while) before giving up, so the shop is never left busy.
+var restore_timeout_sec := 120.0
+
 var _app: AppRoot
 var _bridge: Object
 var _catalog: Dictionary
@@ -31,6 +35,7 @@ var _prices := {}
 var _loaded := false
 var _load_error := ""
 var _restore_error := ""
+var _restore_serial := 0
 
 
 func _init(bridge: Object) -> void:
@@ -89,8 +94,15 @@ func finish(transaction_id: String) -> void:
 
 func restore() -> Array:
 	_restore_error = ""
+	_restore_serial += 1
+	var serial := _restore_serial
+	# The timeout only ends this restore, never a later one.
+	_app.get_tree().create_timer(restore_timeout_sec).timeout.connect(func() -> void:
+		if serial == _restore_serial:
+			_restore_answered.emit([], "timeout"))
 	_bridge.sync()
 	var answer: Array = await _restore_answered
+	_restore_serial += 1
 	_restore_error = str(answer[1])
 	var owned: Array = []
 	for store_id: Variant in answer[0]:
@@ -154,7 +166,7 @@ static func _result(payload: Dictionary) -> Dictionary:
 	var status := str(payload.get("status", "failed"))
 	if status == "purchased":
 		return {"ok": true, "transaction_id": str(payload.get("transaction_id", "")), "receipt": str(payload.get("jws", "")),
-			"original_id": str(payload.get("original_id", ""))}
+			"original_id": str(payload.get("original_id", "")), "mine": float(payload.get("mine", 0.0)) > 0.0}
 	var error := status if status in ["cancelled", "pending", "unverified"] else str(payload.get("error", "failed"))
 	if error == "product_not_loaded":
 		error = "unavailable"

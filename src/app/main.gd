@@ -65,7 +65,7 @@ func _ready() -> void:
 	App.audio.play_music("menu")
 
 	# A run that was cut short last time (app closed or killed) is paid out now.
-	var recovered := {} if App.cli.has("device-check") or App.cli.has("admob-check") else RunLedger.recover_pending(App)
+	var recovered := {} if App.cli.has("device-check") or App.cli.has("admob-check") or App.cli.has("storekit-check") else RunLedger.recover_pending(App)
 
 	if App.cli.has("shots"):
 		_run_tool("res://tests/shot_tour.gd")
@@ -73,6 +73,8 @@ func _ready() -> void:
 		add_child(DeviceCheck.new(self))
 	elif App.cli.has("admob-check"):
 		add_child(AdMobCheck.new())
+	elif App.cli.has("storekit-check"):
+		add_child(StoreKitCheck.new())
 	elif App.cli.has("play") or App.cli.has("autoplay"):
 		start_run(App.cli_text("mode", CampaignService.MODE_SECTOR))
 	elif not recovered.is_empty():

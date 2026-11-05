@@ -203,6 +203,22 @@ func select_start_weapon(id: String) -> bool:
 	return true
 
 
+## Takes away an item granted by a store product that was refunded. Only items
+## held in the save's unlock list can go (defaults, research and feats stay).
+func revoke(category: String, id: String, source: String) -> void:
+	var unlocks := _app.save.section("unlocks")
+	var owned: Array = unlocks.get(category, [])
+	if not owned.has(id):
+		return
+	owned.erase(id)
+	unlocks[category] = owned
+	if category == SKINS and str(_app.save.section("loadout").get("skin", "default")) == id:
+		_app.save.section("loadout")["skin"] = "default"
+	_app.save.mark_dirty()
+	_app.analytics.track(Analytics.ITEM_UNLOCKED, {"category": category, "id": id, "source": source, "revoked": true})
+	loadout_changed.emit()
+
+
 func selected_skin() -> String:
 	var id := str(_app.save.section("loadout").get("skin", "default"))
 	return id if is_owned(SKINS, id) else "default"

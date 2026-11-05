@@ -1,5 +1,7 @@
 # Real purchases: StoreKit 2
 
+See also [AUDIT.md](AUDIT.md): the pre-launch audit of one-time rewards, restores, replays, refunds and what the client-side save leaves open, and the on-device check against App Store Connect.
+
 The shop now sells through the App Store on an iPhone. The test store (the "TEST PURCHASE" dialog that hands goods out for free) is only used in the editor, on the desktop and in automated tests. A release build on a phone can never fall back to it: if the StoreKit bridge were missing, the shop would show every product as UNAVAILABLE.
 
 ## How it fits together
@@ -18,7 +20,8 @@ The shop now sells through the App Store on an iPhone. The test store (the "TEST
 - **Buy.** The App Store sheet appears. Paid and verified: the goods are granted, saved, then the transaction is finished. Cancelled: nothing happens. Any failure: nothing is granted and the shop says why ("Can't reach the App Store", "Purchases are turned off on this device", "you were not charged").
 - **Closed mid-purchase.** If the app dies after payment but before saving, StoreKit hands the purchase back the next time the app starts, and it is granted then. A transaction id already paid is never paid twice.
 - **Ask to Buy.** A child's purchase waiting for a parent shows "Waiting for approval". If approved, it arrives later on its own and is granted.
-- **Refund.** Apple tells the app: Remove Ads or the Starter Pack entitlement is removed; a Crystal pack's Crystals are taken back, as far as the balance goes.
+- **Refund.** Apple tells the app: Remove Ads or the Starter Pack entitlement (and the AURUM skin) is removed; the Crystals and Credits that purchase paid on this device are taken back, once, as far as the balance goes.
+- **Another device.** A purchase made on the player's other iPhone or iPad (same Apple account) arrives here too. Only purchases started on this device (they carry its app account token) pay Crystals and Credits; another device's Remove Ads or Starter Pack brings just the entitlement and skin.
 - **Restore Purchases.** Syncs with the App Store (may ask the player to sign in) and brings back Remove Ads and the Starter Pack, without paying the Starter Pack's Crystals again.
 - **New phone or reinstall.** At launch the app quietly asks StoreKit what the account owns and restores it, without a sign-in.
 - **Prices.** StoreKit's own, in the player's currency (£ in the UK). Until they arrive, or if the App Store cannot be reached, products show UNAVAILABLE rather than a guessed dollar price.

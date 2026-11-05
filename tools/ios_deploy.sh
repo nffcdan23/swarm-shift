@@ -6,6 +6,10 @@
 #   tools/ios_deploy.sh --check      same, then run the on-device self-test and print its report
 #   tools/ios_deploy.sh --admob-check  same, then walk the AdMob consent and test-ad flow (needs
 #                                      someone at the phone) and print its report
+#   tools/ios_deploy.sh --storekit-check  same, then check every product id, price and type
+#                                      against App Store Connect in the sandbox and print the report;
+#                                      STOREKIT_BUY=crystals_s also makes one sandbox purchase
+#                                      (sandbox account signed in on the phone; someone confirms it)
 #   tools/ios_deploy.sh --no-launch  install only
 #   DEVICE=<udid> tools/ios_deploy.sh  target one phone when several are connected
 #
@@ -87,6 +91,29 @@ case "$MODE" in
     else
       grep -q "Locked" "$ROOT/build/launch.log" && echo "The phone was locked, so the test could not start."
       echo "No report was produced - the test was interrupted or did not finish. Try again with the phone left alone."
+      exit 1
+    fi
+    ;;
+  --storekit-check)
+    echo "4/4  Running the StoreKit check against App Store Connect (sandbox: nobody is charged)."
+    [[ -n "${STOREKIT_BUY:-}" ]] && echo "     It will buy ${STOREKIT_BUY}: confirm the App Store sheet on the phone with the sandbox account."
+    REPORT="$ROOT/build/storekit_check.txt"
+    rm -f "$REPORT"
+    xcrun devicectl device process launch --console --terminate-existing --device "$DEVICE" "$BUNDLE_ID" -- --storekit-check ${STOREKIT_BUY:+--storekit-buy=$STOREKIT_BUY} > "$ROOT/build/launch.log" 2>&1 &
+    LAUNCH=$!
+    for _ in {1..60}; do
+      sleep 5
+      xcrun devicectl device copy from --device "$DEVICE" --domain-type appDataContainer --domain-identifier "$BUNDLE_ID" \
+        --source Documents/storekit_check.txt --destination "$REPORT" > /dev/null 2>&1 && grep -q "^RESULT" "$REPORT" && break
+    done
+    sleep 1
+    kill $LAUNCH 2>/dev/null || true
+    if [[ -f "$REPORT" ]] && grep -q "^RESULT" "$REPORT"; then
+      cat "$REPORT"
+    else
+      [[ -f "$REPORT" ]] && { echo "Unfinished report:"; cat "$REPORT"; }
+      grep -q "Locked" "$ROOT/build/launch.log" && echo "The phone was locked, so the check could not start."
+      echo "The check did not finish within 5 minutes."
       exit 1
     fi
     ;;

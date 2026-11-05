@@ -12,6 +12,11 @@
 //   "transaction"    a purchase that arrived on its own: an unfinished one from
 //                    a previous launch, an "Ask to Buy" approval, a purchase on
 //                    another device. Same keys as "purchase", status "purchased".
+//
+// Every purchased transaction carries "mine": 1 when this install started it
+// (its appAccountToken is this install's token), 0 when it came from another
+// device or install of the same Apple account. The game pays currency only for
+// its own: the other device already paid it.
 //   "revoked"        { "product", "transaction_id" } - refunded or revoked
 //   "entitlements"   { "products": [id], "source": "launch" | "restore" }
 //   "sync_failed"    { "error" }
@@ -23,6 +28,7 @@
 // launch instead of losing it.
 
 import Foundation
+import Security
 import StoreKit
 
 @MainActor
@@ -37,6 +43,39 @@ public final class SKBStore: NSObject {
 	/// Verified transactions waiting for the game to confirm delivery.
 	private var unfinished: [String: Transaction] = [:]
 	private var updatesTask: Task<Void, Never>?
+
+	/// Identifies purchases started on this device. Apple returns it on every
+	/// transaction the purchase creates, including an "Ask to Buy" approved days
+	/// later. Kept in the Keychain as this-device-only, so it survives deleting
+	/// and reinstalling the app (an interrupted purchase is still recognised)
+	/// but never moves to another phone through a backup.
+	private lazy var installToken: UUID = Self.loadToken()
+
+	private static func loadToken() -> UUID {
+		let base: [String: Any] = [
+			kSecClass as String: kSecClassGenericPassword,
+			kSecAttrService as String: "com.starscale.swarmshift.storekit",
+			kSecAttrAccount as String: "install-token",
+		]
+		var query = base
+		query[kSecReturnData as String] = true
+		query[kSecMatchLimit as String] = kSecMatchLimitOne
+		var found: CFTypeRef?
+		if SecItemCopyMatching(query as CFDictionary, &found) == errSecSuccess,
+			let data = found as? Data, let text = String(data: data, encoding: .utf8), let token = UUID(uuidString: text) {
+			return token
+		}
+		let fallbackKey = "SKBInstallToken"
+		let token = UUID(uuidString: UserDefaults.standard.string(forKey: fallbackKey) ?? "") ?? UUID()
+		var add = base
+		add[kSecValueData as String] = Data(token.uuidString.utf8)
+		add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+		if SecItemAdd(add as CFDictionary, nil) != errSecSuccess {
+			// No Keychain (it should not happen): this install's own storage.
+			UserDefaults.standard.set(token.uuidString, forKey: fallbackKey)
+		}
+		return token
+	}
 
 	/// Starts listening for transactions. Call once, at launch, before anything
 	/// else: Apple delivers pending purchases as soon as there is a listener.
@@ -88,7 +127,7 @@ public final class SKBStore: NSObject {
 				return
 			}
 			do {
-				let result = try await product.purchase()
+				let result = try await product.purchase(options: [.appAccountToken(installToken)])
 				switch result {
 				case .success(let verification):
 					switch verification {
@@ -158,6 +197,7 @@ public final class SKBStore: NSObject {
 				"transaction_id": id,
 				"original_id": String(transaction.originalID),
 				"jws": jws,
+				"mine": transaction.appAccountToken == self.installToken ? 1 : 0,
 			])
 		}
 	}
