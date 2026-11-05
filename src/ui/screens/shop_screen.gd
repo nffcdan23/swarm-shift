@@ -4,6 +4,10 @@ extends MenuScreen
 ## what it costs, and that none of it is needed to play. No timers, no
 ## countdowns, no "only 2 left" - and a free option at the top of the list.
 
+## The screenshot tour clears this for the App Store review screenshot, which
+## must show the shop as players see it, without the development-build note.
+static var show_dev_note := true
+
 var _list: VBoxContainer
 var _busy := false
 
@@ -39,7 +43,7 @@ func refresh() -> void:
 	var restore := NeonButton.make("RESTORE PURCHASES", NeonButton.Kind.GHOST, Palette.MUTED, "restore", 64.0, UiTheme.SMALL)
 	restore.pressed.connect(_restore)
 	_list.add_child(restore)
-	if App.store.provider is MockStoreProvider:
+	if App.store.provider is MockStoreProvider and show_dev_note:
 		var note := "Development build: purchases and ads are simulated and no payment is taken."
 		if App.ads.provider is AdMobAdProvider:
 			note = "Development build: purchases are simulated and no payment is taken. Ads are Google test ads."

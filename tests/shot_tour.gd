@@ -130,6 +130,13 @@ func _run() -> void:
 			menu.show_tab(tab)
 			await _wait(0.6)
 			await _shot("03_menu_%s" % tab)
+		# App Store Connect's in-app purchase review screenshot: the shop as a
+		# player sees it (take it at 645x1398 or larger).
+		ShopScreen.show_dev_note = false
+		menu.screen("shop").refresh()
+		await _wait(0.4)
+		await _shot("03_menu_shop_review")
+		ShopScreen.show_dev_note = true
 		menu.show_tab("upgrades")
 		var upgrades := menu.screen("upgrades") as UpgradesScreen
 		upgrades._quantity.select(1)
