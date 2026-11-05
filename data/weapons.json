@@ -286,19 +286,20 @@
 
     "railgun": {
       "name": "Railgun", "icon": "w_railgun", "color": "#7dd3ff", "script": "railgun",
-      "tagline": "Hunts the toughest enemy on screen with one instant, piercing shot.",
+      "tagline": "Rare. Hunts bosses and big enemies with one instant, piercing shot.",
       "unlock": { "type": "research", "id": "r_railgun" },
+      "rarity": "epic",
       "tags": ["beam"],
-      "base": { "damage": 120, "cooldown": 2.0, "charge": 0.3, "width": 20, "length": 1100, "range": 900, "knockback": 240, "shots": 1, "line_damage": 0.6 },
+      "base": { "damage": 120, "cooldown": 1.8, "charge": 0.25, "width": 20, "length": 1100, "range": 900, "knockback": 240, "shots": 1, "line_damage": 0.6, "boss_mult": 1.75 },
       "mastery": [
         { "rank": 2, "desc": "Charges 20% faster", "mods": { "charge_pct": -0.2 } },
         { "rank": 4, "desc": "+25% beam width", "mods": { "width_pct": 0.25 } }
       ],
       "levels": [
-        { "desc": "Fires an instant shot at the toughest enemy on screen." },
+        { "desc": "Fires an instant shot at the biggest threat on screen. Bosses and elites take +75%." },
         { "desc": "+45% damage", "mods": { "damage_pct": 0.45 } },
         { "desc": "+25% fire rate", "mods": { "cooldown_pct": -0.2 } },
-        { "desc": "+1 shot, at another enemy", "mods": { "shots": 1 } },
+        { "desc": "+1 shot, at another big enemy or the same one", "mods": { "shots": 1 } },
         { "desc": "+60% damage, full damage along the whole line", "mods": { "damage_pct": 0.6, "line_damage": 0.4 } }
       ]
     },

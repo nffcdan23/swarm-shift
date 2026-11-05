@@ -42,7 +42,7 @@ Limits: 4 weapons (5 levels each), 5 passives, any number of augments.
 | Weapon | Identity | Unlock |
 | --- | --- | --- |
 | Pulse Cannon | Fast, accurate bolts at the nearest enemy | Start |
-| Scatter Shot | Cone of pellets; huge up close, still useful at mid range, strong knockback | Start |
+| Scatter Shot | Cone of pellets aimed where it catches the most enemies, not at the nearest one; huge up close, still useful at mid range, strong knockback | Start |
 | Orbit Blades | Always-on ring that shreds and repels | Start |
 | Cryo Nova | Frost pulse; slows, and freezes at max level | Start |
 | Arc Caster | Lightning that chains through packed enemies | Level 2 |
@@ -51,7 +51,7 @@ Limits: 4 weapons (5 levels each), 5 passives, any number of augments.
 | Combat Drone | A wingman that picks its own targets | Level 5 |
 | Prism Lance | Support. A short charge, then a burst of beams that spin about one full turn around the player, then a cooldown. Each pass cuts 30-40% of an enemy's maximum health but never below 12%, so it never kills, and then any weapon's next hit does. Elites take the full cut; bosses a small one, never below half. Cuts on big enemies show as a percentage. Cannot be a Flex Rack starting weapon | Level 7 |
 | Singularity | Drags the swarm into a ball, then implodes | Level 10 |
-| Railgun | Marks the toughest enemy on screen, charges, and fires one instant line through it. Nothing else in the game aims this way | Research |
+| Railgun | Rare (epic card). Marks the biggest threat in range (boss, elite, Tank, then other big enemies), charges, and fires one instant line through it; bosses and elites take +75%. If the mark dies mid-charge it swings to the next target, or calls the shot off; with nothing big around it fires down the most crowded lane | Research |
 | Nanite Swarm | Infects enemies: damage over time, part of it a share of their health, spreading when they die. Bosses take a capped share | Research |
 
 Ten of these have two **evolutions** each (see *Evolutions* below).
