@@ -496,3 +496,186 @@ func test_old_saves_with_these_weapons_still_load_and_play() -> void:
 		arena.step(DT)
 	check(arena.combat.kills > 0 and is_finite(arena.player.x), "a run from that profile plays with both (%d kills)" % arena.combat.kills)
 	_free(arena)
+
+
+# ------------------------------------------------- railgun and scatter aim
+
+## Steps until the Railgun has fired once (or `seconds` pass), holding the
+## given enemies in place.
+func _until_fired(arena: Arena, gun: Weapon, pins: Dictionary, seconds: float = 4.0) -> void:
+	var before: int = gun.fired
+	for s in int(seconds / DT):
+		for enemy_id: int in pins:
+			_pin(arena, enemy_id, pins[enemy_id])
+		arena.step(DT)
+		if gun.fired > before:
+			return
+
+
+func test_railgun_goes_for_the_big_enemy_not_the_swarm() -> void:
+	fresh_profile()
+	var arena := _arena("railgun", 1)
+	var gun := arena.weapon_node("railgun")
+	var pins := {}
+	for k in 4:
+		var near := _spawn(arena, "swarmer", -140.0, -60.0 + 40.0 * k)
+		pins[arena.enemies.id[near]] = Vector2(-140.0, -60.0 + 40.0 * k)
+	var tank := arena.enemies.id[_spawn(arena, "tank", 0.0, 520.0)]
+	pins[tank] = Vector2(0.0, 520.0)
+	_pin(arena, tank, Vector2(0.0, 520.0), 5000.0)
+	_until_fired(arena, gun, pins)
+	check_eq(gun.fired, 1, "the Railgun fired")
+	var t := arena.enemies.find_id(tank)
+	check(t >= 0 and arena.enemies.hp[t] < 5000.0, "at the Tank, though four swarmers were closer")
+	var swarmers_left := 0
+	for enemy_id: int in pins:
+		if enemy_id != tank and arena.enemies.find_id(enemy_id) >= 0:
+			swarmers_left += 1
+	check_eq(swarmers_left, 4, "and none of its shot went into the swarmers on the other side")
+	_free(arena)
+
+
+func test_railgun_hits_bosses_hardest() -> void:
+	fresh_profile()
+	var arena := _arena("railgun", 1)
+	var gun := arena.weapon_node("railgun")
+	var tank := arena.enemies.id[_spawn(arena, "tank", 300.0, 0.0)]
+	_pin(arena, tank, Vector2(300.0, 0.0), 1.0e5)
+	var i := arena.enemies.find_id(tank)
+	arena.enemies.flags[i] |= EnemySystem.F_BOSS
+	_until_fired(arena, gun, {tank: Vector2(300.0, 0.0)})
+	i = arena.enemies.find_id(tank)
+	var base := GameData.dict(app.data.weapon("railgun"), "base")
+	var expected := GameData.num(base, "damage") * GameData.num(base, "boss_mult")
+	check(GameData.num(base, "boss_mult") > 1.0, "the Railgun carries a bonus against bosses")
+	# Crits can only add to the hit.
+	check(i >= 0 and 1.0e5 - arena.enemies.hp[i] >= expected - 1.0,
+		"a boss takes the bonus on the Railgun's hit (%.0f, at least %.0f)" % [1.0e5 - arena.enemies.hp[i] if i >= 0 else 0.0, expected])
+	_free(arena)
+
+
+func test_railgun_swings_to_a_new_mark_when_its_target_dies_mid_charge() -> void:
+	fresh_profile()
+	var arena := _arena("railgun", 1)
+	var gun := arena.weapon_node("railgun")
+	var first := arena.enemies.id[_spawn(arena, "tank", 300.0, 0.0)]
+	var second := arena.enemies.id[_spawn(arena, "tank", -300.0, 0.0)]
+	_pin(arena, first, Vector2(300.0, 0.0), 6000.0)
+	_pin(arena, second, Vector2(-300.0, 0.0), 4000.0)
+	var pins := {first: Vector2(300.0, 0.0), second: Vector2(-300.0, 0.0)}
+	for s in 30:
+		_pin(arena, first, pins[first])
+		_pin(arena, second, pins[second])
+		arena.step(DT)
+		if gun.is_charging():
+			break
+	check(gun.is_charging(), "the Railgun started charging")
+	check_eq(gun._marks[0], first, "on the healthier Tank")
+	# Another weapon finishes it while the shot charges.
+	var f := arena.enemies.find_id(first)
+	arena.combat.hit(f, 1.0e6, 0, 0.0, 0.0, false)
+	pins.erase(first)
+	_until_fired(arena, gun, pins)
+	check_eq(gun.fired, 1, "the shot still went off")
+	var s2 := arena.enemies.find_id(second)
+	check(s2 >= 0 and arena.enemies.hp[s2] < 4000.0, "into the other Tank, not where the dead one stood")
+	_free(arena)
+
+
+func test_railgun_calls_off_a_shot_with_nothing_left_to_hit() -> void:
+	fresh_profile()
+	var arena := _arena("railgun", 1)
+	var gun := arena.weapon_node("railgun")
+	var tank := arena.enemies.id[_spawn(arena, "tank", 300.0, 0.0)]
+	_pin(arena, tank, Vector2(300.0, 0.0), 6000.0)
+	for s in 30:
+		_pin(arena, tank, Vector2(300.0, 0.0))
+		arena.step(DT)
+		if gun.is_charging():
+			break
+	check(gun.is_charging(), "the Railgun started charging")
+	arena.combat.hit(arena.enemies.find_id(tank), 1.0e6, 0, 0.0, 0.0, false)
+	arena.step(DT)
+	arena.step(DT)
+	check(not gun.is_charging(), "with its only target dead, the charge stops")
+	check_eq(gun.fired, 0, "no shot is wasted on empty space")
+	check_eq(gun.called_off, 1, "it was called off")
+	# The next target is shot straight away, not after a full cooldown.
+	var next := arena.enemies.id[_spawn(arena, "tank", 0.0, 300.0)]
+	_pin(arena, next, Vector2(0.0, 300.0), 6000.0)
+	var started := false
+	for s in 3:
+		_pin(arena, next, Vector2(0.0, 300.0))
+		arena.step(DT)
+		started = started or gun.is_charging()
+	check(started, "and is ready for the next one at once")
+	_free(arena)
+
+
+func test_railgun_with_no_big_enemies_fires_down_the_crowded_lane() -> void:
+	fresh_profile()
+	var arena := _arena("railgun", 1)
+	var gun := arena.weapon_node("railgun")
+	var pins := {}
+	var lane: Array[int] = []
+	# One swarmer close by on its own, and a line of six further out.
+	var lone := arena.enemies.id[_spawn(arena, "swarmer", -120.0, 0.0)]
+	pins[lone] = Vector2(-120.0, 0.0)
+	for k in 6:
+		var at := Vector2(0.0, 180.0 + 60.0 * k)
+		var enemy_id := arena.enemies.id[_spawn(arena, "swarmer", at.x, at.y)]
+		pins[enemy_id] = at
+		lane.append(enemy_id)
+	_until_fired(arena, gun, pins)
+	check_eq(gun.fired, 1, "the Railgun still fires at small enemies")
+	var hit := 0
+	for enemy_id in lane:
+		var i := arena.enemies.find_id(enemy_id)
+		if i < 0 or arena.enemies.hp[i] < arena.enemies.max_hp[i]:
+			hit += 1
+	check_eq(hit, 6, "down the line of six, not at the nearest one")
+	check(arena.enemies.find_id(lone) >= 0, "and the lone swarmer was left for other weapons")
+	_free(arena)
+
+
+## A lone enemy close to the player on one side, a pack further out on the other.
+func _lone_and_pack(arena: Arena) -> void:
+	var lone := arena.enemies.id[_spawn(arena, "swarmer", 0.0, -110.0)]
+	_pin(arena, lone, Vector2(0.0, -110.0), 1.0e5)
+	for k in 7:
+		var angle := -0.3 + 0.1 * k
+		var at := Vector2(cos(angle), sin(angle)) * (220.0 + 20.0 * (k % 3))
+		var enemy_id := arena.enemies.id[_spawn(arena, "swarmer", at.x, at.y)]
+		_pin(arena, enemy_id, at, 1.0e5)
+
+
+func test_scatter_shot_aims_at_the_pack_and_pulse_at_the_nearest() -> void:
+	fresh_profile()
+	var arena := _arena("scatter", 1)
+	_lone_and_pack(arena)
+	arena.step(DT)
+	var aim := arena.player.aim_angle
+	check(absf(wrapf(aim, -PI, PI)) < 0.3, "Scatter Shot points its cone at the pack of seven (aim %.2f rad)" % aim)
+	_free(arena)
+	arena = _arena("pulse", 1)
+	_lone_and_pack(arena)
+	arena.step(DT)
+	check(absf(wrapf(arena.player.aim_angle + PI * 0.5, -PI, PI)) < 0.1,
+		"the Pulse Cannon still shoots the nearest enemy (aim %.2f rad)" % arena.player.aim_angle)
+	_free(arena)
+
+
+func test_scatter_cone_centres_on_the_pack() -> void:
+	fresh_profile()
+	var arena := _arena("scatter", 1)
+	var gun := arena.weapon_node("scatter")
+	# A pack straddling straight left, where the angles wrap round.
+	for k in 5:
+		var angle := PI - 0.2 + 0.1 * k
+		_spawn(arena, "swarmer", cos(angle) * 200.0, sin(angle) * 200.0)
+	_spawn(arena, "swarmer", 0.0, 150.0)
+	# Positions only reach the lookup grid once a step runs it.
+	arena.enemies._rebuild_grid(arena.player.x, arena.player.y)
+	var aim: float = gun.group_aim(arena.player.x, arena.player.y, 400.0, 0.0)
+	check(absf(wrapf(aim - PI, -PI, PI)) < 0.12, "the cone centres on a pack across the wrap (aim %.2f rad)" % aim)
+	_free(arena)

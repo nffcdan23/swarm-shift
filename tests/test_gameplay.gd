@@ -196,7 +196,9 @@ func test_synergy_activates_and_applies() -> void:
 func test_boss_fight_and_victory() -> void:
 	fresh_profile()
 	var config := RunConfig.for_testing(app.data, 8)
-	config.base_mods = {"max_hp": 100000.0}
+	# No energy, so no level-ups: whether the boss lasts the 25 seconds below
+	# must not hang on which cards the seeded draws happen to deal.
+	config.base_mods = {"max_hp": 100000.0, "xp_gain_pct": -1.0}
 	var arena := _arena(config)
 	var ended: Array = []
 	arena.run_ended.connect(func(result: Dictionary) -> void: ended.append(result))

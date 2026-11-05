@@ -639,3 +639,29 @@ func test_untried_weapons_come_up_more_and_early_hands_offer_one() -> void:
 	check_eq(full_hands_with_new, 0, "with every slot full, no new weapon is offered")
 	_free(arena)
 
+
+
+func test_the_railgun_is_a_rare_find() -> void:
+	fresh_profile()
+	check_eq(GameData.text(app.data.weapon("railgun"), "rarity"), "epic", "the Railgun is marked epic")
+	var config := RunConfig.for_testing(app.data, 5)
+	config.autopilot = false
+	config.weapon_pool = ["pulse", "scatter", "railgun"]
+	config.start_weapon = "pulse"
+	var arena := Arena.new()
+	arena.manual_stepping = true
+	host.add_child(arena)
+	arena.setup(app, config)
+	arena.start()
+	var weights := {}
+	for offer: Dictionary in arena.upgrades._candidates(false):
+		if str(offer.kind) == UpgradeSystem.KIND_WEAPON and bool(offer.is_new):
+			weights[str(offer.id)] = [str(offer.rarity), float(offer.weight)]
+	check(weights.has("railgun") and weights.has("scatter"), "both are on offer as new weapons")
+	if weights.has("railgun") and weights.has("scatter"):
+		check_eq(weights.railgun[0], "epic", "the Railgun's card is epic")
+		check_eq(weights.scatter[0], "rare", "an ordinary new weapon's card is still rare")
+		check(float(weights.railgun[1]) < float(weights.scatter[1]) * 0.6,
+			"and it turns up far less often (%.2f against %.2f)" % [weights.railgun[1], weights.scatter[1]])
+	host.remove_child(arena)
+	arena.free()

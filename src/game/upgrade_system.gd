@@ -223,7 +223,10 @@ func _candidates(boosted: bool) -> Array[Dictionary]:
 				continue
 			var def: Dictionary = weapon_defs[weapon_id]
 			var interest := float(_a.config.weapon_interest.get(weapon_id, 1.0))
-			out.append(_offer(KIND_WEAPON, weapon_id, def, GameData.text(def, "tagline"), "rare", 1, _weapon_max, true, 0.85 * interest, luck, boosted))
+			# A weapon may be rarer than most ("rarity" in weapons.json): the
+			# Railgun, a boss-killer, turns up as an epic card.
+			out.append(_offer(KIND_WEAPON, weapon_id, def, GameData.text(def, "tagline"), GameData.text(def, "rarity", "rare"),
+				1, _weapon_max, true, 0.85 * interest, luck, boosted))
 			out[out.size() - 1]["icon_color"] = GameData.color(def, "color", Palette.CYAN)
 
 	if build.evolved.size() < evolution_slots():
