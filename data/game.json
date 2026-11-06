@@ -86,10 +86,12 @@
     "magnet_accel": 2600,
     "collect_radius": 26,
     "gem_tiers": [
-      { "min_xp": 1, "sprite": "gem_s", "size": 32 },
-      { "min_xp": 5, "sprite": "gem_m", "size": 42 },
-      { "min_xp": 20, "sprite": "gem_l", "size": 54 }
+      { "min_xp": 1, "sprite": "gem_s", "size": 26 },
+      { "min_xp": 5, "sprite": "gem_m", "size": 36 },
+      { "min_xp": 20, "sprite": "gem_l", "size": 48 }
     ],
+    "_resting_doc": "Energy and Credits lying on the floor are drawn dimmer and partly see-through, so enemies read first in a crowded fight. They light up to full once they fly to the player. Special drops are never dimmed.",
+    "resting": { "gem_brightness": 0.5, "gem_alpha": 0.7, "credit_brightness": 0.7, "credit_alpha": 0.85 },
     "repair_heal_fraction": 0.25,
     "_merge_doc": "When the field reaches max_pickups (or max_credit_pickups), pickups farther than merge_keep_radius from the player are merged into a neighbour of the same kind within a grid cell, trying each cell size in turn, until the field is down to merge_target of its cap. New drops then always appear where they were earned. Merging moves value, never changes it.",
     "merge_keep_radius": 900,

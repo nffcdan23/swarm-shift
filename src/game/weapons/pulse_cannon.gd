@@ -66,7 +66,7 @@ func update(dt: float) -> void:
 		_bolts.resize(1)
 		_bolts[0] = 1
 	else:
-		_share_out(player.x, player.y, n)
+		_share_out(player.x, player.y, n, target)
 	for t in _near_idx.size():
 		var i := _near_idx[t]
 		var m := _bolts[t]
@@ -98,8 +98,11 @@ func _fire_at(i: int, side: float) -> void:
 
 
 ## Shares `n` bolts out over the nearest enemies in range, nearest first, each
-## getting enough to kill it. Fills `_near_idx` and `_bolts`.
-func _share_out(px: float, py: float, n: int) -> void:
+## getting enough to kill it. Fills `_near_idx` and `_bolts`. `target` is the
+## nearest as `acquire()` saw it, used if the scan finds nothing (it measures
+## from where the player stood when the enemies moved, so at the very edge of
+## range the two can disagree).
+func _share_out(px: float, py: float, n: int, target: int) -> void:
 	var enemies := _a.enemies
 	_near_idx.resize(0)
 	_near_d2.resize(0)
@@ -124,6 +127,9 @@ func _share_out(px: float, py: float, n: int) -> void:
 		if _near_idx.size() > n:
 			_near_idx.resize(n)
 			_near_d2.resize(n)
+	if _near_idx.is_empty():
+		_near_idx.append(target)
+		_near_d2.append(0.0)
 	# What one bolt takes off, before crits and armour.
 	var per_bolt := maxf(_damage * _a.player.damage, 0.001)
 	_bolts.resize(_near_idx.size())
