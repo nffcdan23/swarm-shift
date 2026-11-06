@@ -679,3 +679,72 @@ func test_scatter_cone_centres_on_the_pack() -> void:
 	var aim: float = gun.group_aim(arena.player.x, arena.player.y, 400.0, 0.0)
 	check(absf(wrapf(aim - PI, -PI, PI)) < 0.12, "the cone centres on a pack across the wrap (aim %.2f rad)" % aim)
 	_free(arena)
+
+
+# ------------------------------------------------------- pulse cannon volleys
+
+## Steps through one Pulse volley and the flight of its bolts.
+func _one_volley(arena: Arena, pins: Dictionary, seconds: float = 0.4) -> void:
+	for s in int(seconds / DT):
+		for enemy_id: int in pins:
+			_pin(arena, enemy_id, pins[enemy_id])
+		arena.step(DT)
+		# Only the first volley: hold the next one back.
+		arena.weapon_node("pulse")._cd = 10.0
+
+
+func test_every_pulse_bolt_hits_a_lone_target() -> void:
+	fresh_profile()
+	for level: int in [2, 5]:
+		var arena := _arena("pulse", level)
+		var gun := arena.weapon_node("pulse")
+		var bolts := gun.shot_count(gun.stat("projectiles"))
+		check(bolts >= 2, "level %d fires %d bolts a volley" % [level, bolts])
+		var tank := arena.enemies.id[_spawn(arena, "tank", 330.0, 120.0)]
+		_pin(arena, tank, Vector2(330.0, 120.0), 1.0e5)
+		_one_volley(arena, {tank: Vector2(330.0, 120.0)}, 0.8)
+		var i := arena.enemies.find_id(tank)
+		var per_bolt := gun.stat("damage") * arena.player.damage
+		var taken := 1.0e5 - arena.enemies.hp[i] if i >= 0 else 0.0
+		# Crits can only add, so every bolt landed if the Tank took at least this.
+		check(taken >= per_bolt * bolts - 0.5,
+			"level %d: all %d bolts hit one Tank (%.0f taken, %.0f a bolt)" % [level, bolts, taken, per_bolt])
+		_free(arena)
+
+
+func test_pulse_bolts_go_one_to_each_enemy_they_can_kill() -> void:
+	fresh_profile()
+	var arena := _arena("pulse", 2)
+	var pins := {}
+	var spots := [Vector2(240.0, 0.0), Vector2(-60.0, 300.0)]
+	var ids: Array[int] = []
+	for at: Vector2 in spots:
+		var enemy_id := arena.enemies.id[_spawn(arena, "swarmer", at.x, at.y)]
+		pins[enemy_id] = at
+		ids.append(enemy_id)
+	var i0 := arena.enemies.find_id(ids[0])
+	check(arena.enemies.hp[i0] <= GameData.num(GameData.dict(app.data.weapon("pulse"), "base"), "damage") * arena.player.damage,
+		"a Swarmer dies to one bolt here")
+	_one_volley(arena, pins, 0.8)
+	for enemy_id in ids:
+		check(arena.enemies.find_id(enemy_id) < 0, "both Swarmers, in different directions, die to one two-bolt volley")
+	_free(arena)
+
+
+func test_pulse_spare_bolts_go_into_the_nearest() -> void:
+	fresh_profile()
+	var arena := _arena("pulse", 5)
+	var gun := arena.weapon_node("pulse")
+	var bolts := gun.shot_count(gun.stat("projectiles"))
+	# One Swarmer that one bolt kills, and a Tank that soaks up the rest.
+	var swarmer := arena.enemies.id[_spawn(arena, "swarmer", 0.0, -200.0)]
+	var tank := arena.enemies.id[_spawn(arena, "tank", 420.0, 0.0)]
+	_pin(arena, tank, Vector2(420.0, 0.0), 1.0e5)
+	_one_volley(arena, {swarmer: Vector2(0.0, -200.0), tank: Vector2(420.0, 0.0)}, 1.0)
+	check(arena.enemies.find_id(swarmer) < 0, "the nearest enemy, a Swarmer, takes one bolt and dies")
+	var i := arena.enemies.find_id(tank)
+	var per_bolt := gun.stat("damage") * arena.player.damage
+	var taken := 1.0e5 - arena.enemies.hp[i] if i >= 0 else 0.0
+	check(taken >= per_bolt * (bolts - 1) - 0.5,
+		"and the other %d bolts all hit the Tank (%.0f taken, %.0f a bolt)" % [bolts - 1, taken, per_bolt])
+	_free(arena)
