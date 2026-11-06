@@ -114,7 +114,7 @@ case "$MODE" in
     rm -f "$REPORT"
     xcrun devicectl device process launch --console --terminate-existing --device "$DEVICE" "$BUNDLE_ID" -- --storekit-check ${STOREKIT_BUY:+--storekit-buy=$STOREKIT_BUY} --run-id=$RUN_ID > "$ROOT/build/launch.log" 2>&1 &
     LAUNCH=$!
-    for _ in {1..60}; do
+    for _ in {1..96}; do
       sleep 5
       xcrun devicectl device copy from --device "$DEVICE" --domain-type appDataContainer --domain-identifier "$BUNDLE_ID" \
         --source Documents/storekit_check.txt --destination "$REPORT" > /dev/null 2>&1 && fresh_report "$REPORT" && break
@@ -126,7 +126,7 @@ case "$MODE" in
     else
       [[ -f "$REPORT" ]] && { echo "Unfinished report:"; cat "$REPORT"; }
       grep -q "Locked" "$ROOT/build/launch.log" && echo "The phone was locked, so the check could not start."
-      echo "The check did not finish within 5 minutes."
+      echo "The check did not finish within 8 minutes."
       exit 1
     fi
     ;;

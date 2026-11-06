@@ -30,6 +30,7 @@
 import Foundation
 import Security
 import StoreKit
+import UIKit
 
 @MainActor
 @objc(SKBStore)
@@ -130,7 +131,15 @@ public final class SKBStore: NSObject {
 				return
 			}
 			do {
-				let result = try await product.purchase(options: [.appAccountToken(installToken)])
+				let options: Set<Product.PurchaseOption> = [.appAccountToken(installToken)]
+				// iOS 17 and later want to be told which window the App Store
+				// sheet belongs to; without it the sheet may never be shown.
+				let result: Product.PurchaseResult
+				if #available(iOS 17.0, *), let scene = Self.activeScene() {
+					result = try await product.purchase(confirmIn: scene, options: options)
+				} else {
+					result = try await product.purchase(options: options)
+				}
 				switch result {
 				case .success(let verification):
 					switch verification {
@@ -213,6 +222,13 @@ public final class SKBStore: NSObject {
 			}
 		}
 		emit("entitlements", ["products": owned, "source": source])
+	}
+
+	/// The app's window scene on screen (the one in front, else any), for the
+	/// App Store purchase sheet.
+	private static func activeScene() -> UIWindowScene? {
+		let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+		return scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
 	}
 
 	private func emit(_ event: String, _ payload: [String: Any]) {

@@ -18,6 +18,8 @@ extends Node
 
 const REPORT_PATH := "user://storekit_check.txt"
 const STEP_TIMEOUT := 120.0
+## The purchase waits longer: the sandbox account may have to sign in first.
+const PURCHASE_TIMEOUT := 300.0
 
 var _lines: PackedStringArray = []
 var _passes := 0
@@ -89,6 +91,12 @@ func _run() -> void:
 		var ids: Array = owned[1].get("products", [])
 		_pass("entitlements reported: %s" % ("none" if ids.is_empty() else ", ".join(PackedStringArray(ids))))
 
+	# --- purchases StoreKit is still holding open (bought but never finished),
+	# for example one confirmed after an earlier check had given up waiting.
+	for event: Array in _events:
+		if event[0] == "transaction":
+			_say("open purchase from earlier: %s, transaction %s (left for the game to deliver)" % [event[1].get("product", "?"), event[1].get("transaction_id", "?")])
+
 	# --- optional sandbox purchase.
 	var buy := App.cli_text("storekit-buy")
 	if buy.is_empty():
@@ -101,9 +109,9 @@ func _run() -> void:
 	var store_id := StoreKitStoreProvider.store_id_for(def, buy, prefix)
 	_say("buying %s - confirm the App Store sheet on the phone (sandbox: no charge)" % store_id)
 	_bridge.purchase(store_id)
-	var result := await _wait(["purchase"])
+	var result := await _wait(["purchase"], PURCHASE_TIMEOUT)
 	if result.is_empty():
-		_fail("no purchase answer within %d s" % int(STEP_TIMEOUT))
+		_fail("no purchase answer within %d s (no App Store sheet: is a sandbox account signed in under Settings > Developer?)" % int(PURCHASE_TIMEOUT))
 		return
 	var payload: Dictionary = result[1]
 	var status := str(payload.get("status", ""))
@@ -117,8 +125,8 @@ func _run() -> void:
 
 
 ## Waits for the next bridge event named in `names`; [] on timeout.
-func _wait(names: Array) -> Array:
-	var deadline := Time.get_ticks_msec() + int(STEP_TIMEOUT * 1000.0)
+func _wait(names: Array, timeout: float = STEP_TIMEOUT) -> Array:
+	var deadline := Time.get_ticks_msec() + int(timeout * 1000.0)
 	while Time.get_ticks_msec() < deadline:
 		for i in _events.size():
 			if names.has(_events[i][0]):
