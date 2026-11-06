@@ -34,7 +34,7 @@
       },
       "levels": [
         { "desc": "Fires energy bolts at the nearest enemy." },
-        { "desc": "+1 bolt per volley", "mods": { "projectiles": 1 } },
+        { "desc": "+1 bolt per volley, every bolt aimed to hit", "mods": { "projectiles": 1 } },
         { "desc": "+40% damage, bolts pierce +1", "mods": { "damage_pct": 0.4, "pierce": 1 } },
         { "desc": "+25% fire rate", "mods": { "cooldown_pct": -0.2 } },
         { "desc": "+1 bolt, +35% damage", "mods": { "projectiles": 1, "damage_pct": 0.35 } }
