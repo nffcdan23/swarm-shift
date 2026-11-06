@@ -32,6 +32,9 @@ func _ready() -> void:
 	if FileAccess.file_exists(REPORT_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(REPORT_PATH))
 	_say("generated: " + Time.get_datetime_string_from_system(false, true))
+	# tools/ios_deploy.sh passes a fresh id per run and accepts only a report
+	# carrying it, so a report left from an earlier run is never mistaken for this one.
+	_say("run: " + App.cli_text("run-id", "-"))
 	await get_tree().create_timer(1.0).timeout
 	await _run()
 	_finish()
@@ -63,6 +66,8 @@ func _run() -> void:
 	if answer[0] == "products_failed":
 		_fail("products failed to load: %s" % answer[1].get("error", "?"))
 		return
+	_say("asked the App Store for: %s" % ", ".join(PackedStringArray(answer[1].get("requested", []))))
+	_say("App Store country: %s, products returned: %d" % [answer[1].get("storefront", "?"), (answer[1].get("products", []) as Array).size()])
 	var found := {}
 	for entry: Variant in answer[1].get("products", []):
 		found[str(entry.id)] = entry

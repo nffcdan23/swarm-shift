@@ -35,6 +35,9 @@ func _ready() -> void:
 	if Engine.has_singleton("AdMob"):
 		_ads = Engine.get_singleton("AdMob")
 	_say("generated: " + Time.get_datetime_string_from_system(false, true))
+	# tools/ios_deploy.sh passes a fresh id per run and accepts only a report
+	# carrying it, so a report left from an earlier run is never mistaken for this one.
+	_say("run: " + App.cli_text("run-id", "-"))
 	await get_tree().create_timer(1.0).timeout
 	await _run()
 	_finish()

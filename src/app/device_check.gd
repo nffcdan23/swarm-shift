@@ -39,6 +39,9 @@ func _ready() -> void:
 	if FileAccess.file_exists(REPORT_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(REPORT_PATH))
 	_say("generated: " + Time.get_datetime_string_from_system(false, true))
+	# tools/ios_deploy.sh passes a fresh id per run and accepts only a report
+	# carrying it, so a report left from an earlier run is never mistaken for this one.
+	_say("run: " + App.cli_text("run-id", "-"))
 	await get_tree().create_timer(1.2).timeout
 	_check_platform()
 	_check_display()

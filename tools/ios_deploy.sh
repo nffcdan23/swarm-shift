@@ -70,6 +70,15 @@ APP="$DERIVED/Build/Products/Debug-iphoneos/SwarmShift.app"
 echo "3/4  Installing (existing save data on the phone is kept)..."
 xcrun devicectl device install app --device "$DEVICE" "$APP" > "$ROOT/build/install.log" 2>&1 || { tail -15 "$ROOT/build/install.log"; exit 1; }
 
+# Every check run gets a fresh id. The app writes it into its report, and only
+# a finished report carrying it counts: the phone keeps the last report until
+# the app replaces it, so without this an earlier run's result could be read
+# back as this one's when the app had not yet started (or never did).
+RUN_ID="$(date +%s)-$RANDOM"
+fresh_report() {
+  [[ -f "$1" ]] && grep -q "^run: $RUN_ID\$" "$1" && grep -q "^RESULT" "$1"
+}
+
 case "$MODE" in
   --no-launch)
     echo "4/4  Installed. Tap the Swarm Shift icon to play."
@@ -78,7 +87,7 @@ case "$MODE" in
     echo "4/4  Running the on-device self-test. Leave the phone unlocked and untouched for 45 seconds..."
     REPORT="$ROOT/build/device_check.txt"
     rm -f "$REPORT"
-    xcrun devicectl device process launch --console --terminate-existing --device "$DEVICE" "$BUNDLE_ID" -- --device-check > "$ROOT/build/launch.log" 2>&1 &
+    xcrun devicectl device process launch --console --terminate-existing --device "$DEVICE" "$BUNDLE_ID" -- --device-check --run-id=$RUN_ID > "$ROOT/build/launch.log" 2>&1 &
     LAUNCH=$!
     sleep 45
     # The engine's own output is not forwarded over the device link, so read
@@ -86,6 +95,10 @@ case "$MODE" in
     xcrun devicectl device copy from --device "$DEVICE" --domain-type appDataContainer --domain-identifier "$BUNDLE_ID" \
       --source Documents/device_check.txt --destination "$REPORT" > /dev/null 2>&1 || true
     kill $LAUNCH 2>/dev/null || true
+    if [[ -f "$REPORT" ]] && ! grep -q "^run: $RUN_ID\$" "$REPORT"; then
+      echo "The report on the phone is from an earlier run (the self-test did not start), so it is not shown."
+      rm -f "$REPORT"
+    fi
     if [[ -f "$REPORT" ]]; then
       cat "$REPORT"
     else
@@ -99,16 +112,16 @@ case "$MODE" in
     [[ -n "${STOREKIT_BUY:-}" ]] && echo "     It will buy ${STOREKIT_BUY}: confirm the App Store sheet on the phone with the sandbox account."
     REPORT="$ROOT/build/storekit_check.txt"
     rm -f "$REPORT"
-    xcrun devicectl device process launch --console --terminate-existing --device "$DEVICE" "$BUNDLE_ID" -- --storekit-check ${STOREKIT_BUY:+--storekit-buy=$STOREKIT_BUY} > "$ROOT/build/launch.log" 2>&1 &
+    xcrun devicectl device process launch --console --terminate-existing --device "$DEVICE" "$BUNDLE_ID" -- --storekit-check ${STOREKIT_BUY:+--storekit-buy=$STOREKIT_BUY} --run-id=$RUN_ID > "$ROOT/build/launch.log" 2>&1 &
     LAUNCH=$!
     for _ in {1..60}; do
       sleep 5
       xcrun devicectl device copy from --device "$DEVICE" --domain-type appDataContainer --domain-identifier "$BUNDLE_ID" \
-        --source Documents/storekit_check.txt --destination "$REPORT" > /dev/null 2>&1 && grep -q "^RESULT" "$REPORT" && break
+        --source Documents/storekit_check.txt --destination "$REPORT" > /dev/null 2>&1 && fresh_report "$REPORT" && break
     done
     sleep 1
     kill $LAUNCH 2>/dev/null || true
-    if [[ -f "$REPORT" ]] && grep -q "^RESULT" "$REPORT"; then
+    if fresh_report "$REPORT"; then
       cat "$REPORT"
     else
       [[ -f "$REPORT" ]] && { echo "Unfinished report:"; cat "$REPORT"; }
@@ -122,19 +135,19 @@ case "$MODE" in
     echo "     test ad to the end and close it, then close the interstitial test ad."
     REPORT="$ROOT/build/admob_check.txt"
     rm -f "$REPORT"
-    xcrun devicectl device process launch --console --terminate-existing --device "$DEVICE" "$BUNDLE_ID" -- --admob-check $ADMOB_ARGS > "$ROOT/build/launch.log" 2>&1 &
+    xcrun devicectl device process launch --console --terminate-existing --device "$DEVICE" "$BUNDLE_ID" -- --admob-check $ADMOB_ARGS --run-id=$RUN_ID > "$ROOT/build/launch.log" 2>&1 &
     LAUNCH=$!
     # Each step waits up to two minutes for a tap, so poll for the report.
     for _ in {1..96}; do
       sleep 5
       xcrun devicectl device copy from --device "$DEVICE" --domain-type appDataContainer --domain-identifier "$BUNDLE_ID" \
-        --source Documents/admob_check.txt --destination "$REPORT" > /dev/null 2>&1 && grep -q "^RESULT" "$REPORT" && break
+        --source Documents/admob_check.txt --destination "$REPORT" > /dev/null 2>&1 && fresh_report "$REPORT" && break
     done
     sleep 1
     kill $LAUNCH 2>/dev/null || true
     # The bridge's own trace (consent, ad events, audio interruptions) from the device log.
     grep "\[admob\]" "$ROOT/build/launch.log" | sed 's/^.*\[admob\] /  device: /' || true
-    if [[ -f "$REPORT" ]] && grep -q "^RESULT" "$REPORT"; then
+    if fresh_report "$REPORT"; then
       cat "$REPORT"
     else
       [[ -f "$REPORT" ]] && { echo "Unfinished report:"; cat "$REPORT"; }

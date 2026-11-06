@@ -113,7 +113,10 @@ public final class SKBStore: NSObject {
 					])
 				}
 				let invalid = ids.filter { id in !found.contains { $0.id == id } }
-				emit("products", ["products": list, "invalid": invalid])
+				// The App Store country the lookup ran in ("none": no App Store
+				// account on the device), for diagnosing products that do not load.
+				let storefront = await Storefront.current?.countryCode ?? "none"
+				emit("products", ["products": list, "invalid": invalid, "requested": ids, "storefront": storefront])
 			} catch {
 				emit("products_failed", ["error": error.localizedDescription])
 			}
