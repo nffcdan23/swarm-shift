@@ -748,3 +748,21 @@ func test_pulse_spare_bolts_go_into_the_nearest() -> void:
 	check(taken >= per_bolt * (bolts - 1) - 0.5,
 		"and the other %d bolts all hit the Tank (%.0f taken, %.0f a bolt)" % [bolts - 1, taken, per_bolt])
 	_free(arena)
+
+
+func test_pulse_volley_survives_a_target_at_the_edge_of_range() -> void:
+	fresh_profile()
+	var arena := _arena("pulse", 5)
+	var gun := arena.weapon_node("pulse")
+	var reach := gun.stat("range")
+	var enemy_id := arena.enemies.id[_spawn(arena, "tank", reach - 5.0, 0.0)]
+	_pin(arena, enemy_id, Vector2(reach - 5.0, 0.0), 1.0e5)
+	arena.step(DT)
+	# The enemy step measured it in range; then the player steps back, so a
+	# fresh scan from where the player now stands finds nothing in range.
+	arena.player.x -= 20.0
+	gun._cd = 0.0
+	var before := arena.projectiles.count
+	gun.update(DT)
+	check(arena.projectiles.count > before, "the volley still fires at the enemy it acquired, without an error")
+	_free(arena)

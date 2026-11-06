@@ -63,6 +63,13 @@ var _merge_cells: Array = [140.0, 280.0, 560.0, 1120.0]
 var _merge_target := 0.8
 var _xp_color := Color("5cffb1")
 var _credit_color := Color("ffd15c")
+## How bright (0..1) and how opaque energy and Credits are while they lie on
+## the floor. Kept low so the swarm reads first in a big fight; a pickup lights
+## up to full once it starts flying to the player. Special drops are never dimmed.
+var _gem_lit := 1.0
+var _gem_alpha := 1.0
+var _credit_lit := 1.0
+var _credit_alpha := 1.0
 
 
 func setup(arena: Arena) -> void:
@@ -76,6 +83,11 @@ func setup(arena: Arena) -> void:
 	_magnet_speed = GameData.num(cfg, "magnet_speed", 620.0)
 	_magnet_accel = GameData.num(cfg, "magnet_accel", 2600.0)
 	_tiers = GameData.list(cfg, "gem_tiers")
+	var rest := GameData.dict(cfg, "resting")
+	_gem_lit = GameData.num(rest, "gem_brightness", 1.0)
+	_gem_alpha = GameData.num(rest, "gem_alpha", 1.0)
+	_credit_lit = GameData.num(rest, "credit_brightness", 1.0)
+	_credit_alpha = GameData.num(rest, "credit_alpha", 1.0)
 	_keep_r = GameData.num(cfg, "merge_keep_radius", 900.0)
 	if not GameData.list(cfg, "merge_cells").is_empty():
 		_merge_cells = GameData.list(cfg, "merge_cells")
@@ -412,10 +424,20 @@ func update(dt: float) -> void:
 			buf[o + 4] = 0.0
 			buf[o + 5] = s
 			buf[o + 7] = gy
-			buf[o + 8] = 1.0
-			buf[o + 9] = 1.0
-			buf[o + 10] = 1.0
-			buf[o + 11] = 1.0
+			# Dim while resting, full brightness once it flies to the player.
+			var lit := 1.0
+			var alpha := 1.0
+			if pulled[i] == 0:
+				if kind[i] == KIND_XP:
+					lit = _gem_lit
+					alpha = _gem_alpha
+				elif kind[i] == KIND_CREDIT:
+					lit = _credit_lit
+					alpha = _credit_alpha
+			buf[o + 8] = lit
+			buf[o + 9] = lit
+			buf[o + 10] = lit
+			buf[o + 11] = alpha
 			buf[o + 12] = cell[i]
 			buf[o + 13] = 0.0
 			buf[o + 14] = 1.0

@@ -290,3 +290,56 @@ func test_long_heavy_run_keeps_rewards_visible_and_accounted() -> void:
 			label, int(arena.time), total_ms / maxf(steps, 1), worst, peak, 100.0 * full_steps / maxf(steps, 1), arena.diag.pickups_merged])
 		_free(arena)
 
+
+
+## Colour of the drawn pickup nearest (px, py): Color(r, g, b, a).
+func _drawn_color(arena: Arena, px: float, py: float) -> Color:
+	var batch := arena.gfx.pickups
+	var best := -1
+	var best_d := INF
+	for k in batch.count:
+		var o := k * 16
+		var d := Vector2(batch.buf[o + 3], batch.buf[o + 7]).distance_to(Vector2(px, py))
+		if d < best_d:
+			best_d = d
+			best = k
+	if best < 0:
+		return Color(0, 0, 0, 0)
+	var o := best * 16
+	return Color(batch.buf[o + 8], batch.buf[o + 9], batch.buf[o + 10], batch.buf[o + 11])
+
+
+func test_resting_pickups_sit_back_so_enemies_read_first() -> void:
+	fresh_profile()
+	var arena := _arena(_still_config(12))
+	arena.director.paused = true
+	arena.enemies.clear()
+	var rest := GameData.dict(GameData.dict(app.data.game, "pickups"), "resting")
+	var px := arena.player.x
+	var py := arena.player.y
+	var far := Vector2(px + 600.0, py)
+	arena.pickups.drop_xp(far.x, far.y, 1.0)
+	arena.pickups.drop(PickupSystem.KIND_CREDIT, px - 600.0, py, 1.0)
+	arena.pickups.drop(PickupSystem.KIND_REPAIR, px, py + 600.0, 1.0)
+	for s in 20:
+		arena.step(DT)
+	var gem := _drawn_color(arena, far.x, far.y)
+	check(gem.r < 0.75 and gem.a < 1.0, "energy on the floor is drawn dim and see-through (%s)" % gem)
+	check_near(gem.r, GameData.num(rest, "gem_brightness"), 0.01, "as bright as game.json says")
+	var credit := _drawn_color(arena, px - 600.0, py)
+	check(credit.r < 1.0 and credit.r > gem.r, "Credits are dimmed too, less than energy (%s)" % credit)
+	var repair := _drawn_color(arena, px, py + 600.0)
+	check(repair.r >= 0.99 and repair.a >= 0.99, "a special drop is never dimmed (%s)" % repair)
+	# Walk up to the energy: once it flies to the player it lights up.
+	# One step: it is pulled in at once, and arrives a few steps later.
+	arena.player.x = far.x - arena.player.pickup_radius * 0.8
+	arena.step(DT)
+	var flying := -1
+	for i in arena.pickups.count:
+		if arena.pickups.kind[i] == PickupSystem.KIND_XP and arena.pickups.pulled[i] != 0:
+			flying = i
+	check(flying >= 0, "the energy is being pulled in")
+	if flying >= 0:
+		var lit := _drawn_color(arena, arena.pickups.x[flying], arena.pickups.y[flying])
+		check(lit.r >= 0.99 and lit.a >= 0.99, "and is drawn at full brightness on its way (%s)" % lit)
+	_free(arena)
