@@ -1,0 +1,30 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    #flood-red {
+      position: absolute;
+      inset: 0;
+      background: var(--red, #ff4d5e);
+      opacity: 0;
+    }
+  </style>
+  <div data-hf-id="hf-ztnp" id="root" data-composition-id="flood" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-fk6d" id="flood-red"></div>
+  </div>
+  <script>
+    (function () {
+      // The boss warning floods the whole frame red, clock and all; the cut from
+      // the Cyan Grid to the Crimson Void (beat 35, film 16.935 s) happens under it.
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#flood-red", { opacity: 0 }, { opacity: 0.9, duration: 0.075, ease: "power2.in" }, 0);
+      tl.to("#flood-red", { opacity: 0, duration: 0.34, ease: "power2.out" }, 0.075);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["flood"] = tl;
+    })();
+  </script>
+</template>

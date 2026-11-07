@@ -1,0 +1,265 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    /* The game's arena: navy ground, the grid, the splash screen's soft radial. */
+    #ec-bg {
+      position: absolute;
+      inset: 0;
+      background: var(--color-ground, #05070d);
+      opacity: 0;
+    }
+    #ec-grid {
+      position: absolute;
+      left: -96px;
+      top: -96px;
+      width: 1272px;
+      height: 2208px;
+      background-image: linear-gradient(rgba(22, 50, 74, 0.8) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(22, 50, 74, 0.8) 2px, transparent 2px);
+      background-size: 96px 96px;
+      background-position: 12px 24px;
+    }
+    #ec-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 540px 590px, rgba(45, 226, 255, 0.2) 0px, rgba(45, 226, 255, 0.07) 300px, rgba(5, 7, 13, 0) 560px),
+        radial-gradient(ellipse 760px 1100px at 540px 900px, rgba(5, 7, 13, 0) 55%, rgba(5, 7, 13, 0.85) 100%);
+    }
+    #ec-ring {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+    }
+    .ec-foe {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 76px;
+      height: 76px;
+      background: url("assets/brand/enemy_swarmer.png") center / 76px 76px no-repeat;
+    }
+    #ec-icon {
+      position: absolute;
+      left: 370px;
+      top: 790px;
+      width: 340px;
+      height: 340px;
+      transform-origin: 170px 170px;
+    }
+    #ec-icon img {
+      width: 340px;
+      height: 340px;
+      display: block;
+    }
+    #ec-word {
+      position: absolute;
+      left: 0;
+      top: 774px;
+      width: 1080px;
+      text-align: center;
+      font-family: var(--font-display, "Open Sans"), "Open Sans", sans-serif;
+      font-size: 96px;
+      font-weight: 600;
+      letter-spacing: 0.11em;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    #ec-word span {
+      display: inline-block;
+    }
+    #ec-word .c {
+      color: var(--color-cyan, #2de2ff);
+      text-shadow: 0 0 16px rgba(45, 226, 255, 0.3);
+    }
+    #ec-word .m {
+      color: var(--color-magenta, #ff3d9a);
+      text-shadow: 0 0 16px rgba(255, 61, 154, 0.3);
+    }
+    #ec-word .w {
+      color: var(--color-ink, #eaf6ff);
+      text-shadow: 0 0 16px rgba(234, 246, 255, 0.22);
+    }
+    #ec-tag {
+      position: absolute;
+      left: 0;
+      top: 906px;
+      width: 1080px;
+      text-align: center;
+      font-family: var(--font-display, "Open Sans"), "Open Sans", sans-serif;
+      font-size: 44px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      line-height: 1;
+      color: rgba(234, 246, 255, 0.82);
+      white-space: nowrap;
+    }
+    #ec-cta {
+      position: absolute;
+      left: 0;
+      top: 1010px;
+      width: 1080px;
+      height: 230px;
+    }
+    #ec-btn {
+      position: absolute;
+      left: 240px;
+      top: 0;
+      width: 600px;
+      height: 124px;
+      border-radius: 26px;
+      background: var(--color-cyan, #2de2ff);
+      box-shadow: 0 0 34px rgba(45, 226, 255, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      font-family: var(--font-display, "Open Sans"), "Open Sans", sans-serif;
+      font-size: 60px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #05070d;
+      transform-origin: 300px 62px;
+    }
+    #ec-btn svg {
+      width: 46px;
+      height: 46px;
+      fill: #05070d;
+    }
+    #ec-sub {
+      position: absolute;
+      left: 0;
+      top: 168px;
+      width: 1080px;
+      text-align: center;
+      font-family: var(--font-display, "Open Sans"), "Open Sans", sans-serif;
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: var(--color-ink, #eaf6ff);
+    }
+  </style>
+  <div data-hf-id="hf-cz41"
+    id="root"
+    data-composition-id="endcard"
+    data-width="1080"
+    data-height="1920"
+    data-composition-variables='[
+      {"id":"tagline","type":"string","label":"Tagline","default":"ONE CORE. ENDLESS SWARM."},
+      {"id":"cta","type":"string","label":"Button","default":"PLAY FREE","maxLength":14},
+      {"id":"cta-sub","type":"string","label":"Under the button","default":"ON THE APP STORE","maxLength":24}
+    ]'
+  >
+    <div data-hf-id="hf-6v8j" id="ec-bg">
+      <div data-hf-id="hf-x6h6" id="ec-grid"></div>
+      <div data-hf-id="hf-zf8h" id="ec-glow"></div>
+    </div>
+
+    <!-- The swarm again, real Swarmer sprites ringing the lockup and pointing in,
+         as the lobby and the app icon show it. A slow orbit, nothing else. -->
+    <div data-hf-id="hf-4utr" id="ec-ring" data-layout-ignore>
+      <div data-hf-id="hf-q170" id="ec-foe-1" class="ec-foe"></div>
+      <div data-hf-id="hf-yp2v" id="ec-foe-2" class="ec-foe"></div>
+      <div data-hf-id="hf-uqyu" id="ec-foe-3" class="ec-foe"></div>
+      <div data-hf-id="hf-5mgh" id="ec-foe-4" class="ec-foe"></div>
+      <div data-hf-id="hf-4uso" id="ec-foe-5" class="ec-foe"></div>
+      <div data-hf-id="hf-dioj" id="ec-foe-6" class="ec-foe"></div>
+      <div data-hf-id="hf-9kki" id="ec-foe-7" class="ec-foe"></div>
+      <div data-hf-id="hf-zd99" id="ec-foe-8" class="ec-foe"></div>
+      <div data-hf-id="hf-yllg" id="ec-foe-9" class="ec-foe"></div>
+      <div data-hf-id="hf-pffw" id="ec-foe-10" class="ec-foe"></div>
+      <div data-hf-id="hf-q73p" id="ec-foe-11" class="ec-foe"></div>
+      <div data-hf-id="hf-u57q" id="ec-foe-12" class="ec-foe"></div>
+      <div data-hf-id="hf-y3br" id="ec-foe-13" class="ec-foe"></div>
+      <div data-hf-id="hf-21fs" id="ec-foe-14" class="ec-foe"></div>
+      <div data-hf-id="hf-2t3l" id="ec-foe-15" class="ec-foe"></div>
+      <div data-hf-id="hf-8yte" id="ec-foe-16" class="ec-foe"></div>
+      <div data-hf-id="hf-cwxf" id="ec-foe-17" class="ec-foe"></div>
+      <div data-hf-id="hf-xzuc" id="ec-foe-18" class="ec-foe"></div>
+      <div data-hf-id="hf-yri5" id="ec-foe-19" class="ec-foe"></div>
+      <div data-hf-id="hf-ul19" id="ec-foe-20" class="ec-foe"></div>
+      <div data-hf-id="hf-ttdg" id="ec-foe-21" class="ec-foe"></div>
+      <div data-hf-id="hf-2h9b" id="ec-foe-22" class="ec-foe"></div>
+    </div>
+
+    <!-- The shipped app icon. It starts as the core left alone in the Crimson
+         Void (same place, same size, cropped to its ring) and opens into the icon. -->
+    <div data-hf-id="hf-1w4z" id="ec-icon" class="clip" data-start="0.12" data-duration="4.875" data-track-index="0">
+      <img data-hf-id="hf-pw8y" src="assets/brand/icon.png" alt="SWARM//SHIFT app icon" />
+    </div>
+
+    <div data-hf-id="hf-r4gz" id="ec-word" class="clip" data-start="0.6" data-duration="4.395" data-track-index="1">
+      <span data-hf-id="hf-ggx9" class="c">S</span><span data-hf-id="hf-i25d" class="c">W</span><span data-hf-id="hf-nmfr" class="c">A</span><span data-hf-id="hf-gv8a" class="c">R</span><span data-hf-id="hf-se43" class="c">M</span><span data-hf-id="hf-efjz" class="m">/</span><span data-hf-id="hf-rnlr" class="m">/</span><span data-hf-id="hf-41rl" class="w">S</span><span data-hf-id="hf-y09c" class="w">H</span><span data-hf-id="hf-xlyb" class="w">I</span><span data-hf-id="hf-sfyy" class="w">F</span><span data-hf-id="hf-3ngk" class="w">T</span>
+    </div>
+
+    <div data-hf-id="hf-spra" id="ec-tag" class="clip" data-start="1.55" data-duration="3.445" data-track-index="2" data-var-text="tagline">ONE CORE. ENDLESS SWARM.</div>
+
+    <div data-hf-id="hf-6c3b" id="ec-cta" class="clip" data-start="2.5" data-duration="2.495" data-track-index="3">
+      <div data-hf-id="hf-rh0m" id="ec-btn">
+        <svg data-hf-id="hf-35ls" viewBox="0 0 24 24" aria-hidden="true"><path data-hf-id="hf-1dn9" d="M6 3.5v17l14.5-8.5z" /></svg>
+        <span data-hf-id="hf-hjkr" data-var-text="cta">PLAY FREE</span>
+      </div>
+      <div data-hf-id="hf-00sg" id="ec-sub" data-var-text="cta-sub">ON THE APP STORE</div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const B = 60 / 124;
+      const T0 = 20.65;
+      const at = (k) => B * k - T0;
+      const tl = gsap.timeline({ paused: true });
+
+      // The core becomes the icon: it appears over the footage's core (the
+      // icon's ring matches it at 0.65), then grows, rises and opens to the
+      // icon's rounded square while the arena ground comes up behind it.
+      tl.fromTo(
+        "#ec-icon",
+        { opacity: 0, scale: 0.65, y: 0, clipPath: "inset(29% round 50%)" },
+        { opacity: 1, duration: 0.12, ease: "power1.out" },
+        at(43) - 0.04,
+      );
+      tl.to("#ec-bg", { opacity: 1, duration: 0.34, ease: "power2.inOut" }, at(43) + 0.1);
+      tl.to("#ec-icon", { y: -392, duration: 0.56, ease: "power3.inOut" }, at(43) + 0.1);
+      tl.to("#ec-icon", { scale: 1, duration: 0.62, ease: "back.out(1.25)" }, at(43) + 0.14);
+      tl.to("#ec-icon", { clipPath: "inset(0% round 22.5%)", duration: 0.46, ease: "power2.inOut" }, at(43) + 0.16);
+      // The arena keeps drifting under the card, as the game's background does.
+      tl.fromTo("#ec-grid", { y: 0 }, { y: -48, duration: 4.88, ease: "none" }, 0.1);
+
+      // The ring: an ellipse around the whole lockup, turning 3 degrees a second.
+      const foes = Array.from(document.querySelectorAll(".ec-foe"));
+      const orbit = { a: 0 };
+      const placeRing = () => {
+        foes.forEach((el, i) => {
+          const ang = ((i / foes.length) * 360 + orbit.a) * (Math.PI / 180);
+          const x = 540 + Math.cos(ang) * 470;
+          const y = 800 + Math.sin(ang) * 640;
+          const face = (Math.atan2(800 - y, 540 - x) * 180) / Math.PI; // point at the core
+          el.style.transform = `translate(${(x - 38).toFixed(1)}px, ${(y - 38).toFixed(1)}px) rotate(${face.toFixed(1)}deg)`;
+        });
+      };
+      tl.fromTo(orbit, { a: 0 }, { a: 14.6, duration: 4.88, ease: "none", onUpdate: placeRing }, 0.1);
+      placeRing();
+      tl.fromTo("#ec-ring", { opacity: 0, scale: 1.18, transformOrigin: "540px 800px" }, { opacity: 0.5, scale: 1, duration: 0.9, ease: "expo.out" }, at(44) - 0.1);
+
+      // SWARM//SHIFT, letter by letter, from beat 44.
+      tl.fromTo(
+        "#ec-word span",
+        { opacity: 0, filter: "blur(8px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "expo.out", stagger: 0.035 },
+        at(44),
+      );
+      // The tagline on beat 46.
+      tl.fromTo("#ec-tag", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.22, ease: "expo.out" }, at(46));
+      // PLAY FREE on the A minor downbeat (beat 48), the line under it after.
+      tl.fromTo("#ec-btn", { opacity: 0, scale: 0.72 }, { opacity: 1, duration: 0.12, ease: "power1.out" }, at(48));
+      tl.to("#ec-btn", { scale: 1, duration: 0.42, ease: "back.out(1.6)" }, at(48));
+      tl.fromTo("#ec-sub", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "expo.out" }, at(48) + 0.14);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["endcard"] = tl;
+    })();
+  </script>
+</template>

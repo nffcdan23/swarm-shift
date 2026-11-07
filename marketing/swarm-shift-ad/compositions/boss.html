@@ -1,0 +1,84 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: var(--color-ground, #05070d);
+    }
+    .boss-video {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1080px;
+      height: 1920px;
+      object-fit: cover;
+    }
+  </style>
+  <div data-hf-id="hf-uzgu" id="root" data-composition-id="boss" data-width="1080" data-height="1920">
+    <!-- Sector 20, the Crimson Void. 4:54: the game's own warning banner. -->
+    <video data-hf-id="hf-wwim"
+      id="boss-warning"
+      class="boss-video clip"
+      src="assets/footage/boss.mp4"
+      data-hf-media-start-basis="local"
+      data-start="0"
+      data-duration="0.968"
+      data-media-start="2.6"
+      data-track-index="29"
+      data-has-audio="true"
+      data-volume="0.5"
+      playsinline
+    ></video>
+    <!-- 5:00: the Overseer arrives and its energy wall closes the arena. -->
+    <video data-hf-id="hf-h00o"
+      id="boss-arrival"
+      class="boss-video clip"
+      src="assets/footage/boss.mp4"
+      data-hf-media-start-basis="local"
+      data-start="0.968"
+      data-duration="0.967"
+      data-media-start="8.45"
+      data-track-index="30"
+      data-has-audio="true"
+      data-volume="0.45"
+      playsinline
+    ></video>
+    <!-- 5:10: phase four, then the kill, at half speed (its sound is placed
+         separately so it plays at full speed). -->
+    <video data-hf-id="hf-9a2a"
+      id="boss-kill"
+      class="boss-video clip"
+      src="assets/footage/boss.mp4"
+      data-hf-media-start-basis="local"
+      data-start="1.935"
+      data-duration="1.452"
+      data-media-start="19.1"
+      data-playback-rate="0.5"
+      data-track-index="31"
+      muted
+      playsinline
+    ></video>
+    <!-- SECTOR CLEARED: the core alone in the Crimson Void. -->
+    <video data-hf-id="hf-gh8b"
+      id="boss-after"
+      class="boss-video clip"
+      src="assets/footage/boss.mp4"
+      data-hf-media-start-basis="local"
+      data-start="3.387"
+      data-duration="0.673"
+      data-media-start="20.95"
+      data-track-index="32"
+      data-has-audio="true"
+      data-volume="0.6"
+      playsinline
+    ></video>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = window.__timelines || {};
+      window.__timelines["boss"] = tl;
+    })();
+  </script>
+</template>

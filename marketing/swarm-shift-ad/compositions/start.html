@@ -1,0 +1,179 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #start-stage {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: var(--color-ground, #05070d);
+    }
+    #start-cam {
+      position: absolute;
+      inset: 0;
+      transform-origin: 190px 948px;
+    }
+    .start-video {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1080px;
+      height: 1920px;
+      object-fit: cover;
+    }
+    .start-line {
+      position: absolute;
+      left: 0;
+      width: 1080px;
+      text-align: center;
+      font-family: var(--font-display, "Open Sans"), "Open Sans", sans-serif;
+      color: var(--color-ink, #eaf6ff);
+      text-shadow: var(--halo);
+      white-space: nowrap;
+    }
+    #start-drag {
+      top: 556px;
+      font-size: 96px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+    #start-drag .accent {
+      color: var(--color-cyan, #2de2ff);
+    }
+    #start-auto {
+      top: 690px;
+      font-size: 54px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      line-height: 1.15;
+    }
+    #start-auto span {
+      display: block;
+    }
+    .slash {
+      position: absolute;
+      left: 0;
+      top: -240px;
+      width: 120px;
+      height: 2400px;
+      background: var(--color-magenta, #ff3d9a);
+    }
+  </style>
+  <div data-hf-id="hf-1twh" id="root" data-composition-id="start" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-ppoa" id="start-stage">
+      <div data-hf-id="hf-2dal" id="start-cam">
+        <!-- 0:00 of a first run: SECTOR 01, the game's own hint, the thumb's stick. -->
+        <video data-hf-id="hf-tsok"
+          id="start-run"
+          class="start-video clip"
+          src="assets/footage/start.mp4"
+          data-hf-media-start-basis="local"
+          data-start="0"
+          data-duration="3.084"
+          data-media-start="0.07"
+          data-track-index="21"
+          data-has-audio="true"
+          data-volume="1.1"
+          playsinline
+        ></video>
+        <!-- 0:05: RUN LEVEL 2, three weapon cards, the tap on Seeker Missiles. -->
+        <video data-hf-id="hf-eopx"
+          id="start-pick"
+          class="start-video clip"
+          src="assets/footage/start.mp4"
+          data-hf-media-start-basis="local"
+          data-start="3.084"
+          data-duration="1.3"
+          data-media-start="5.3"
+          data-track-index="22"
+          data-has-audio="true"
+          data-volume="1.2"
+          playsinline
+        ></video>
+        <!-- The picked card, held while the camera flies into its icon. -->
+        <video data-hf-id="hf-paci"
+          id="start-hold"
+          class="start-video clip"
+          src="assets/footage/start.mp4"
+          data-hf-media-start-basis="local"
+          data-start="4.384"
+          data-duration="0.676"
+          data-media-start="6.62"
+          data-playback-rate="0.1"
+          data-track-index="23"
+          muted
+          playsinline
+        ></video>
+      </div>
+
+      <div data-hf-id="hf-ta63" id="start-drag" class="start-line clip" data-start="0.5" data-duration="2.584" data-track-index="3" data-layout-allow-overlap>
+        <span data-hf-id="hf-rkwi" id="start-w1" class="accent">DRAG</span> <span data-hf-id="hf-qd11" id="start-w2">TO</span> <span data-hf-id="hf-igtq" id="start-w3">MOVE.</span>
+      </div>
+      <div data-hf-id="hf-6wa5" id="start-auto" class="start-line clip" data-start="1.5" data-duration="1.584" data-track-index="4" data-layout-allow-overlap>
+        <span data-hf-id="hf-lvap" id="start-a1">EVERYTHING ELSE</span><span data-hf-id="hf-x7i5" id="start-a2">IS AUTOMATIC.</span>
+      </div>
+    </div>
+
+    <!-- The "//" of the wordmark, made physical: it wipes 4:17 away into 0:00. -->
+    <div data-hf-id="hf-4z62" id="start-slash-a" class="slash" data-layout-ignore></div>
+    <div data-hf-id="hf-1121" id="start-slash-b" class="slash" data-layout-ignore></div>
+  </div>
+  <script>
+    (function () {
+      const B = 60 / 124;
+      const T0 = 2.239; // this scene's start, in film seconds
+      const at = (k) => B * k - T0; // beat k of the film, in scene seconds
+      const tl = gsap.timeline({ paused: true });
+
+      // The wipe: a "/" edge 20 degrees off vertical sweeps left to right in
+      // 0.36 s, centred on beat 5. Everything left of it is the new scene.
+      const slant = Math.tan((20 * Math.PI) / 180) * 960; // 349 px each way
+      const edge = (e) =>
+        `polygon(0px 0px, ${e + slant}px 0px, ${e - slant}px 1920px, 0px 1920px)`;
+      const wipe = { e: -420 };
+      gsap.set("#start-stage", { clipPath: edge(-420) });
+      gsap.set(["#start-slash-a", "#start-slash-b"], { skewX: -20, x: -900 });
+      tl.to(
+        wipe,
+        {
+          e: 1500,
+          duration: 0.36,
+          ease: "power2.inOut",
+          onUpdate: () => {
+            document.querySelector("#start-stage").style.clipPath = edge(wipe.e);
+            gsap.set("#start-slash-a", { x: wipe.e });
+            gsap.set("#start-slash-b", { x: wipe.e + 176 });
+          },
+        },
+        0,
+      );
+      // Bars leave with the wipe, never linger.
+      tl.set(["#start-slash-a", "#start-slash-b"], { x: 2400 }, 0.37);
+
+      // DRAG TO MOVE. on beat 6, per word; the line under it on beat 8.
+      ["#start-w1", "#start-w2", "#start-w3"].forEach((sel, i) => {
+        tl.fromTo(sel, { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "expo.out" }, at(6) + i * 0.07);
+      });
+      ["#start-a1", "#start-a2"].forEach((sel, i) => {
+        tl.fromTo(sel, { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "expo.out" }, at(8) + i * 0.1);
+      });
+      // Both leave on the cut to the level-up (beat 11).
+      tl.to(["#start-drag", "#start-auto"], { opacity: 0, filter: "blur(8px)", duration: 0.13, ease: "power2.in" }, at(11) - 0.14);
+
+      // Zoom through the picked card's missile icon into the next world.
+      tl.fromTo(
+        "#start-cam",
+        { scale: 1, filter: "blur(0px)" },
+        { scale: 9, filter: "blur(4px)", duration: 0.42, ease: "power3.in" },
+        at(15) - 0.42,
+      );
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["start"] = tl;
+    })();
+  </script>
+</template>

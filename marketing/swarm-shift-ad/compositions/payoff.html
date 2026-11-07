@@ -1,0 +1,119 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #pay-stage {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: var(--color-ground, #05070d);
+    }
+    #pay-cam {
+      position: absolute;
+      inset: 0;
+    }
+    #pay-video {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1080px;
+      height: 1920px;
+      object-fit: cover;
+    }
+    #pay-word {
+      position: absolute;
+      left: 0;
+      top: 548px;
+      width: 1080px;
+      text-align: center;
+      font-family: var(--font-display, "Open Sans"), "Open Sans", sans-serif;
+      font-size: 156px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      color: var(--gold, #ffd15c);
+      text-shadow: 0 0 22px rgba(255, 209, 92, 0.3), var(--halo);
+      white-space: nowrap;
+    }
+    .slash {
+      position: absolute;
+      left: 0;
+      top: -240px;
+      width: 120px;
+      height: 2400px;
+      background: var(--color-magenta, #ff3d9a);
+    }
+  </style>
+  <div data-hf-id="hf-emvc" id="root" data-composition-id="payoff" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-w83c" id="pay-stage">
+      <div data-hf-id="hf-gdi7" id="pay-cam">
+        <!-- Minute four and a half: Prism Wheel, Hive Pods, Singularity and the
+             Pulse Cannon, enemies exploding on death (Sector 1, the Cyan Grid). -->
+        <video data-hf-id="hf-qkb8"
+          id="pay-video"
+          class="clip"
+          src="assets/footage/payoff.mp4"
+          data-hf-media-start-basis="local"
+          data-start="0"
+          data-duration="4.15"
+          data-media-start="3.4"
+          data-track-index="28"
+          data-has-audio="true"
+          data-volume="0.3"
+          playsinline
+        ></video>
+      </div>
+      <div data-hf-id="hf-exc0" id="pay-word" class="clip" data-start="0.6" data-duration="3.55" data-track-index="1" data-layout-allow-overlap>ABSURD.</div>
+    </div>
+    <div data-hf-id="hf-07b4" id="pay-slash-a" class="slash" data-layout-ignore></div>
+    <div data-hf-id="hf-b2sr" id="pay-slash-b" class="slash" data-layout-ignore></div>
+  </div>
+  <script>
+    (function () {
+      const B = 60 / 124;
+      const T0 = 12.885;
+      const at = (k) => B * k - T0;
+      const tl = gsap.timeline({ paused: true });
+
+      // The "//" wipe into minute four, centred on beat 27.
+      const slant = Math.tan((20 * Math.PI) / 180) * 960;
+      const edge = (e) => `polygon(0px 0px, ${e + slant}px 0px, ${e - slant}px 1920px, 0px 1920px)`;
+      const wipe = { e: -420 };
+      gsap.set("#pay-stage", { clipPath: edge(-420) });
+      gsap.set(["#pay-slash-a", "#pay-slash-b"], { skewX: -20, x: -900 });
+      tl.to(
+        wipe,
+        {
+          e: 1500,
+          duration: 0.36,
+          ease: "power2.inOut",
+          onUpdate: () => {
+            document.querySelector("#pay-stage").style.clipPath = edge(wipe.e);
+            gsap.set("#pay-slash-a", { x: wipe.e });
+            gsap.set("#pay-slash-b", { x: wipe.e + 176 });
+          },
+        },
+        0,
+      );
+      tl.set(["#pay-slash-a", "#pay-slash-b"], { x: 2400 }, 0.37);
+
+      // ABSURD. slams on the downbeat of bar 8 (beat 28) and holds dead still;
+      // the camera takes the punch.
+      tl.fromTo(
+        "#pay-word",
+        { opacity: 0, scale: 1.45, filter: "blur(14px)" },
+        { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.22, ease: "expo.out" },
+        at(28),
+      );
+      tl.fromTo("#pay-cam", { scale: 1 }, { scale: 1.045, duration: 0.07, ease: "power2.out" }, at(28) + 0.02);
+      tl.to("#pay-cam", { scale: 1, duration: 0.38, ease: "power3.out" }, at(28) + 0.09);
+
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["payoff"] = tl;
+    })();
+  </script>
+</template>

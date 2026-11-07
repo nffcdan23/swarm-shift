@@ -1,0 +1,128 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .mt-cam {
+      position: absolute;
+      inset: 0;
+    }
+    .mt-video {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1080px;
+      height: 1920px;
+      object-fit: cover;
+    }
+    .mt-label {
+      position: absolute;
+      left: 0;
+      top: 566px;
+      width: 1080px;
+      text-align: center;
+      font-family: var(--font-display, "Open Sans"), "Open Sans", sans-serif;
+      font-size: 64px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      line-height: 1;
+      color: var(--color-ink, #eaf6ff);
+      text-shadow: var(--halo);
+      white-space: nowrap;
+    }
+  </style>
+  <div data-hf-id="hf-4dmo" id="root" data-composition-id="montage" data-width="1080" data-height="1920">
+    <!-- Seeker Missiles (Hive Pods), Sector 2, the Ember Field, 2:09 -->
+    <div data-hf-id="hf-lfr4" id="mt-cam-1" class="mt-cam">
+      <video data-hf-id="hf-ulr4"
+        id="mt-missiles"
+        class="mt-video clip"
+        src="assets/footage/missiles.mp4"
+        data-hf-media-start-basis="local"
+        data-start="0"
+        data-duration="1.55"
+        data-media-start="0.9"
+        data-track-index="24"
+        data-has-audio="true"
+        data-volume="0.42"
+        playsinline
+      ></video>
+    </div>
+    <!-- Prism Lance (Prism Wheel), Sector 3, the Violet Rift, 2:32 -->
+    <video data-hf-id="hf-kliw"
+      id="mt-lance"
+      class="mt-video clip"
+      src="assets/footage/lance.mp4"
+      data-hf-media-start-basis="local"
+      data-start="1.55"
+      data-duration="1.451"
+      data-media-start="2.0"
+      data-track-index="25"
+      data-has-audio="true"
+      data-volume="0.38"
+      playsinline
+    ></video>
+    <!-- Singularity (Supernova), Sector 4, the Toxic Bloom, 3:10 -->
+    <video data-hf-id="hf-bc5v"
+      id="mt-singularity"
+      class="mt-video clip"
+      src="assets/footage/singularity.mp4"
+      data-hf-media-start-basis="local"
+      data-start="3.001"
+      data-duration="1.452"
+      data-media-start="2.55"
+      data-track-index="26"
+      data-has-audio="true"
+      data-volume="0.32"
+      playsinline
+    ></video>
+    <!-- Plasma Mines (Shaped Charges), Sector 6, the Cyan Grid, 3:36 -->
+    <video data-hf-id="hf-urva"
+      id="mt-mines"
+      class="mt-video clip"
+      src="assets/footage/mines.mp4"
+      data-hf-media-start-basis="local"
+      data-start="4.453"
+      data-duration="1.647"
+      data-media-start="2.4"
+      data-track-index="27"
+      data-has-audio="true"
+      data-volume="0.36"
+      playsinline
+    ></video>
+
+    <div data-hf-id="hf-467c" id="mt-l1" class="mt-label clip" data-start="0.1" data-duration="1.45" data-track-index="4">SEEKER MISSILES</div>
+    <div data-hf-id="hf-ubpx" id="mt-l2" class="mt-label clip" data-start="1.55" data-duration="1.451" data-track-index="5">PRISM LANCE</div>
+    <div data-hf-id="hf-ssfs" id="mt-l3" class="mt-label clip" data-start="3.001" data-duration="1.452" data-track-index="6">SINGULARITY</div>
+    <div data-hf-id="hf-ylsq" id="mt-l4" class="mt-label clip" data-start="4.453" data-duration="1.4" data-track-index="7">PLASMA MINES</div>
+  </div>
+  <script>
+    (function () {
+      const B = 60 / 124;
+      const T0 = 7.16;
+      const at = (k) => B * k - T0;
+      const tl = gsap.timeline({ paused: true });
+
+      // Arriving out of the picked card: the first world fades up under the
+      // zoom's last frames and keeps the forward motion as it settles.
+      tl.fromTo("#mt-cam-1", { opacity: 0 }, { opacity: 1, duration: 0.07, ease: "power1.in" }, at(15) - 0.07);
+      tl.fromTo("#mt-cam-1", { scale: 1.22 }, { scale: 1, duration: 0.5, ease: "expo.out" }, at(15) - 0.02);
+
+      // Each weapon's name lands just after its cut, blur to sharp, and holds.
+      const labels = [
+        ["#mt-l1", at(15) + 0.03],
+        ["#mt-l2", at(18) + 0.03],
+        ["#mt-l3", at(21) + 0.03],
+        ["#mt-l4", at(24) + 0.03],
+      ];
+      labels.forEach(([sel, t]) => {
+        tl.fromTo(sel, { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.16, ease: "expo.out" }, t);
+      });
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["montage"] = tl;
+    })();
+  </script>
+</template>

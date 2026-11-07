@@ -1,0 +1,92 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: var(--color-ground, #05070d);
+    }
+    #hook-video {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1080px;
+      height: 1920px;
+      object-fit: cover;
+    }
+    .hook-line {
+      position: absolute;
+      left: 0;
+      width: 1080px;
+      text-align: center;
+      font-family: var(--font-display, "Open Sans"), "Open Sans", sans-serif;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    #hook-one {
+      top: 548px;
+      font-size: 132px;
+      color: var(--color-cyan, #2de2ff);
+      text-shadow: 0 0 22px rgba(45, 226, 255, 0.32), var(--halo);
+    }
+    #hook-swarm {
+      top: 1078px;
+      font-size: 124px;
+      line-height: 0.95;
+      color: var(--swarm, #ff6b9a);
+      text-shadow: 0 0 22px rgba(255, 107, 154, 0.3), var(--halo);
+    }
+    #hook-swarm span {
+      display: block;
+    }
+  </style>
+  <div data-hf-id="hf-srfg" id="root" data-composition-id="hook" data-width="1080" data-height="1920">
+    <!-- Minute four with a core that never levelled: the game camera starts at
+         zoom 1.7 on the core, then pulls back to 0.74 as 460 enemies close in. -->
+    <video data-hf-id="hf-h2kt"
+      id="hook-video"
+      class="clip"
+      src="assets/footage/hook.mp4"
+      data-hf-media-start-basis="local"
+      data-start="0"
+      data-duration="2.62"
+      data-media-start="0.1"
+      data-track-index="20"
+      data-has-audio="true"
+      data-volume="0.9"
+      playsinline
+    ></video>
+
+    <!-- On screen from frame 0: the thumbnail. -->
+    <div data-hf-id="hf-t8uo" id="hook-one" class="hook-line clip" data-start="0" data-duration="2.62" data-track-index="1" data-layout-allow-overlap>
+      ONE CORE.
+    </div>
+    <div data-hf-id="hf-0yz0" id="hook-swarm" class="hook-line clip" data-start="1.4" data-duration="1.22" data-track-index="2" data-layout-allow-overlap>
+      <span data-hf-id="hf-hfz0" id="hook-w1">ENDLESS</span><span data-hf-id="hf-ok2t" id="hook-w2">SWARM.</span>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const B = 60 / 124;
+      const tl = gsap.timeline({ paused: true });
+      // "ENDLESS SWARM." lands on beat 3 as the ring enters the frame: per word,
+      // blur to sharp, no slide.
+      tl.fromTo(
+        "#hook-w1",
+        { opacity: 0, filter: "blur(10px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "expo.out" },
+        B * 3,
+      );
+      tl.fromTo(
+        "#hook-w2",
+        { opacity: 0, filter: "blur(10px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "expo.out" },
+        B * 3 + 0.08,
+      );
+      window.__timelines = window.__timelines || {};
+      window.__timelines["hook"] = tl;
+    })();
+  </script>
+</template>
