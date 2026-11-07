@@ -1,0 +1,205 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    #ck-wrap {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1080px;
+      height: 1920px;
+    }
+    /* A soft shade so the digits read over the busiest footage. */
+    #ck-shade {
+      position: absolute;
+      left: 160px;
+      top: 290px;
+      width: 760px;
+      height: 252px;
+      background: radial-gradient(ellipse at center, rgba(5, 7, 13, 0.74) 0%, rgba(5, 7, 13, 0.46) 42%, rgba(5, 7, 13, 0) 72%);
+    }
+    #ck-digits {
+      position: absolute;
+      left: 0;
+      top: 330px;
+      width: 1080px;
+      height: 168px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      font-family: var(--font-display, "Open Sans"), "Open Sans", sans-serif;
+      font-size: 168px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 168px;
+      color: var(--color-ink, #eaf6ff);
+    }
+    .ck-win {
+      width: 102px;
+      height: 168px;
+      overflow: hidden;
+      text-align: center;
+    }
+    .ck-strip {
+      display: block;
+    }
+    #ck-colon {
+      width: 52px;
+      height: 168px;
+      text-align: center;
+      transform: translateY(-8px);
+    }
+    #ck-bar {
+      position: absolute;
+      left: 360px;
+      top: 516px;
+      width: 360px;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(234, 246, 255, 0.2);
+      overflow: hidden;
+    }
+    #ck-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 360px;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--color-cyan, #2de2ff);
+      transform-origin: 0px 4px;
+    }
+  </style>
+  <div data-hf-id="hf-ippj" id="root" data-composition-id="clock" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-63kk" id="ck-wrap">
+      <div data-hf-id="hf-3tqj" id="ck-shade"></div>
+      <div data-hf-id="hf-uo1d" id="ck-digits" data-layout-allow-overflow>
+        <div data-hf-id="hf-x0br" class="ck-win"><div data-hf-id="hf-mwjq" id="ck-m" class="ck-strip">0<br data-hf-id="hf-x5px" />1<br data-hf-id="hf-rsrt" />2<br data-hf-id="hf-szow" />3<br data-hf-id="hf-sldv" />4<br data-hf-id="hf-qluq" />5<br data-hf-id="hf-q7jp" />6<br data-hf-id="hf-regs" />7<br data-hf-id="hf-r05r" />8<br data-hf-id="hf-p0mm" />9<br data-hf-id="hf-ombl" />0<br data-hf-id="hf-qsyj" />1<br data-hf-id="hf-r79k" />2<br data-hf-id="hf-q0ch" />3<br data-hf-id="hf-qeni" />4<br data-hf-id="hf-p7qf" />5<br data-hf-id="hf-pm1g" />6<br data-hf-id="hf-of4d" />7<br data-hf-id="hf-otfe" />8<br data-hf-id="hf-tzer" />9<br data-hf-id="hf-udps" />0<br data-hf-id="hf-7f5s" />1<br data-hf-id="hf-70ur" />2<br data-hf-id="hf-2kkm" />3<br data-hf-id="hf-269l" />4<br data-hf-id="hf-1ryk" />5<br data-hf-id="hf-1dnj" />6<br data-hf-id="hf-0zci" />7<br data-hf-id="hf-0l1h" />8<br data-hf-id="hf-06qg" />9</div></div>
+        <div data-hf-id="hf-w2c9" id="ck-colon">:</div>
+        <div data-hf-id="hf-soef" class="ck-win"><div data-hf-id="hf-p8tz" id="ck-t" class="ck-strip">0<br data-hf-id="hf-zsff" />1<br data-hf-id="hf-p9mx" />2<br data-hf-id="hf-pnxy" />3<br data-hf-id="hf-q28z" />4<br data-hf-id="hf-qgk0" />5<br data-hf-id="hf-noet" />0<br data-hf-id="hf-o2pu" />1<br data-hf-id="hf-oh0v" />2<br data-hf-id="hf-ovbw" />3<br data-hf-id="hf-m36p" />4<br data-hf-id="hf-mhhq" />5<br data-hf-id="hf-mwk6" />0<br data-hf-id="hf-mi95" />1<br data-hf-id="hf-np68" />2<br data-hf-id="hf-nav7" />3<br data-hf-id="hf-lbc2" />4<br data-hf-id="hf-kx11" />5</div></div>
+        <div data-hf-id="hf-sa3e" class="ck-win"><div data-hf-id="hf-k87w" id="ck-s" class="ck-strip">0<br data-hf-id="hf-m3y4" />1<br data-hf-id="hf-lpn3" />2<br data-hf-id="hf-jq3y" />3<br data-hf-id="hf-jbsx" />4<br data-hf-id="hf-no7z" />5<br data-hf-id="hf-o2j0" />6<br data-hf-id="hf-mvlx" />7<br data-hf-id="hf-n9wy" />8<br data-hf-id="hf-p9g3" />9<br data-hf-id="hf-pnr4" />0<br data-hf-id="hf-ogu1" />1<br data-hf-id="hf-ov52" />2<br data-hf-id="hf-khrr" />3<br data-hf-id="hf-kw2s" />4<br data-hf-id="hf-rkmc" />5<br data-hf-id="hf-r6bb" />6<br data-hf-id="hf-qs0a" />7<br data-hf-id="hf-qdp9" />8<br data-hf-id="hf-t5ug" />9<br data-hf-id="hf-srjf" />0<br data-hf-id="hf-sd8e" />1<br data-hf-id="hf-ryxd" />2<br data-hf-id="hf-ur2k" />3<br data-hf-id="hf-ucrj" />4<br data-hf-id="hf-9f3h" />5<br data-hf-id="hf-9tei" />6<br data-hf-id="hf-a7pj" />7<br data-hf-id="hf-am0k" />8<br data-hf-id="hf-b0bl" />9</div></div>
+      </div>
+      <div data-hf-id="hf-lm53" id="ck-bar"><div data-hf-id="hf-x5kz" id="ck-fill"></div></div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const T0 = 2.239; // this overlay's start, in film seconds
+      const CELL = 168;
+      const N = [10, 6, 10]; // minutes, tens of seconds, seconds
+      const BOSS_AT = 300; // 5:00
+      const mod = (a, n) => ((a % n) + n) % n;
+      const clamp01 = (x) => Math.max(0, Math.min(1, x));
+      const out3 = (x) => 1 - Math.pow(1 - x, 3);
+
+      // A counter whose whole-second steps roll over 0.12 s, like the game's timer ticking.
+      const odo = (v) => {
+        const n = Math.floor(v);
+        return n - 1 + out3(clamp01((v - n) / 0.12));
+      };
+      // Odometer strip positions (unbounded) for a counter value.
+      const positions = (c) => [
+        Math.floor(c / 60) + Math.max(0, mod(c, 60) - 59),
+        Math.floor(c / 10) + Math.max(0, mod(c, 10) - 9),
+        mod(c, 10) + Math.floor(c / 10) * 10,
+      ];
+
+      // The run time each take's HUD shows, as a function of film time (from the
+      // capture marks: tests/ad_capture.gd, see REVIEW.md).
+      const run = (base, from, rate = 1) => (t) => base + (t - from) * rate;
+      const SEG = [
+        { a: 2.239, b: 2.72, roll: -1, turns: [0, 1, 2] }, // rewind 4:19 -> 0:00
+        { a: 2.72, b: 7.18, f: run(0.07, 2.239) }, // the first run (hidden during the pick)
+        { a: 7.18, b: 7.52, roll: 1, turns: [0, 1, 2] }, // -> Seeker Missiles
+        { a: 7.52, b: 8.71, f: run(129.037, 7.16) },
+        { a: 8.71, b: 9.01, roll: 1, turns: [0, 1, 1] }, // -> Prism Lance
+        { a: 9.01, b: 10.161, f: run(152.133, 8.71) },
+        { a: 10.161, b: 10.46, roll: 1, turns: [0, 1, 1] }, // -> Singularity
+        { a: 10.46, b: 11.613, f: run(190.687, 10.161) },
+        { a: 11.613, b: 11.91, roll: 1, turns: [0, 1, 1] }, // -> Plasma Mines
+        { a: 11.91, b: 13.065, f: run(216.537, 11.613) },
+        { a: 13.065, b: 13.38, roll: 1, turns: [0, 1, 2] }, // -> minute four
+        { a: 13.38, b: 16.935, f: run(269.037, 12.885) },
+        { a: 16.935, b: 17.23, roll: 1, turns: [0, 1, 1] }, // -> the warning
+        { a: 17.23, b: 17.903, f: run(294.017, 16.935) },
+        { a: 17.903, b: 18.0, roll: 1, turns: [0, 0, 0] }, // -> 4:59, then 5:00 ticks
+        { a: 18.0, b: 18.871, f: run(299.867, 17.903) },
+        { a: 18.871, b: 19.16, roll: 1, turns: [0, 1, 1] }, // -> the kill (half speed)
+        { a: 19.16, b: 20.323, f: run(310.517, 18.871, 0.5) },
+        { a: 20.323, b: 30, f: run(312.367, 20.323) },
+      ];
+      // Each roll starts where the run before it stopped and lands where the
+      // run after it begins; it spins forward (or back, for the rewind) with
+      // whole extra turns, left digit first.
+      const HOOK_END = (t) => 257.15 + t; // the hook's HUD: 4:17 at frame 0
+      SEG.forEach((s, i) => {
+        if (s.roll === undefined) return;
+        const before = i === 0 ? HOOK_END : SEG[i - 1].f;
+        const after = SEG[i + 1].f;
+        s.v0 = before(s.a);
+        s.v1 = after(s.b);
+        s.P0 = positions(odo(s.v0));
+        const P1 = positions(odo(s.v1));
+        s.D = s.P0.map((p0, k) => {
+          const n = k === 2 ? 10 : N[k];
+          const d = P1[k] - p0;
+          return s.roll > 0 ? mod(d, n) + s.turns[k] * n : -mod(-d, n) - s.turns[k] * n;
+        });
+      });
+
+      const strips = ["#ck-m", "#ck-t", "#ck-s"].map((sel) => document.querySelector(sel));
+      const fill = document.querySelector("#ck-fill");
+      const lastRed = { v: false };
+
+      function render(local) {
+        const t = local + T0;
+        const s = SEG.find((x) => t >= x.a && t < x.b) || SEG[SEG.length - 1];
+        let P;
+        let v;
+        if (s.roll !== undefined) {
+          const span = s.b - s.a;
+          P = s.P0.map((p0, k) => {
+            const delay = k * 0.03 * (span / 0.34);
+            return p0 + s.D[k] * out3(clamp01((t - s.a - delay) / (span - delay)));
+          });
+          v = s.v0 + (s.v1 - s.v0) * out3(clamp01((t - s.a) / span));
+        } else {
+          v = s.f(t);
+          P = positions(odo(v));
+        }
+        strips.forEach((el, k) => {
+          const n = N[k];
+          const idx = n + mod(P[k], n);
+          el.style.transform = `translateY(${(-idx * CELL).toFixed(2)}px)`;
+        });
+        // Progress to the boss: the game's run bar, full at 5:00, then red.
+        const red = v >= BOSS_AT;
+        fill.style.transform = `scaleX(${clamp01(v / BOSS_AT).toFixed(4)})`;
+        if (red !== lastRed.v) {
+          fill.style.background = red ? "var(--red, #ff4d5e)" : "var(--color-cyan, #2de2ff)";
+          lastRed.v = red;
+        }
+      }
+
+      const tl = gsap.timeline({ paused: true });
+      const clock = { t: 0 };
+      tl.to(clock, { t: 18.46, duration: 18.46, ease: "none", onUpdate: () => render(clock.t) }, 0);
+
+      // In with the rewind, out for the level-up screen, back for the montage,
+      // out before the end card.
+      const L = (t) => t - T0;
+      tl.fromTo("#ck-wrap", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.14, ease: "expo.out" }, L(2.36));
+      tl.to("#ck-wrap", { opacity: 0, filter: "blur(8px)", duration: 0.12, ease: "power2.in" }, L(5.19));
+      tl.to("#ck-wrap", { opacity: 1, filter: "blur(0px)", duration: 0.14, ease: "expo.out" }, L(7.2));
+      tl.to("#ck-wrap", { opacity: 0, filter: "blur(8px)", duration: 0.14, ease: "power2.in" }, L(20.45));
+      render(0);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["clock"] = tl;
+    })();
+  </script>
+</template>

@@ -1,0 +1,224 @@
+<!doctype html>
+<html
+  lang="en"
+  data-resolution="portrait"
+  data-composition-variables='[
+    {"id":"color-ground","type":"color","label":"Background","default":"#05070D"},
+    {"id":"color-ink","type":"color","label":"Text","default":"#EAF6FF"},
+    {"id":"color-cyan","type":"color","label":"Player cyan","default":"#2DE2FF"},
+    {"id":"color-magenta","type":"color","label":"Brand magenta (//)","default":"#FF3D9A"},
+    {"id":"font-display","type":"string","label":"Display font","default":"Open Sans"}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>SWARM//SHIFT ad</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* The game's palette (src/ui/palette.gd) and face (Open Sans, Godot's own). */
+      :root {
+        --color-ground: #05070d;
+        --color-ink: #eaf6ff;
+        --color-cyan: #2de2ff;
+        --color-magenta: #ff3d9a;
+        --font-display: "Open Sans";
+        --muted: #7c8da6;
+        --swarm: #ff6b9a;
+        --gold: #ffd15c;
+        --red: #ff4d5e;
+        --halo: 0 0 16px rgba(5, 7, 13, 0.92), 0 0 40px rgba(5, 7, 13, 0.78), 0 0 84px rgba(5, 7, 13, 0.55);
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--color-ground);
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--color-ground);
+        font-family: var(--font-display), "Open Sans", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-35hw"
+      id="root"
+      data-composition-id="main"
+      data-motion-blur="on"
+      data-motion-blur-events="on"
+      data-start="0"
+      data-duration="25.645"
+      data-width="1080"
+      data-height="1920"
+    >
+      <!-- Scenes. One beat of the game's 124 BPM track = 0.48387 s; times below are beats. -->
+
+      <!-- Beats 0-5: the lone core, then the ring of the swarm. -->
+      <div data-hf-id="hf-99o2"
+        id="hook"
+        data-composition-id="hook"
+        data-composition-src="compositions/hook.html"
+        data-start="0"
+        data-duration="2.62"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1080"
+        data-height="1920"
+        style="z-index: 1"
+      ></div>
+
+      <!-- Beats 5-15: 0:00, drag to move, the first level-up and the pick. -->
+      <div data-hf-id="hf-2xgc"
+        id="start"
+        data-composition-id="start"
+        data-composition-src="compositions/start.html"
+        data-start="2.239"
+        data-duration="5.06"
+        data-track-index="2"
+        data-track-kind="graphics"
+        data-width="1080"
+        data-height="1920"
+        style="z-index: 2"
+      ></div>
+
+      <!-- Beats 15-27: one weapon per arena colour. -->
+      <div data-hf-id="hf-a2ih"
+        id="montage"
+        data-composition-id="montage"
+        data-composition-src="compositions/montage.html"
+        data-start="7.16"
+        data-duration="6.1"
+        data-track-index="3"
+        data-track-kind="graphics"
+        data-width="1080"
+        data-height="1920"
+        style="z-index: 3"
+      ></div>
+
+      <!-- Beats 27-35: minute four. -->
+      <div data-hf-id="hf-7pq4"
+        id="payoff"
+        data-composition-id="payoff"
+        data-composition-src="compositions/payoff.html"
+        data-start="12.885"
+        data-duration="4.15"
+        data-track-index="4"
+        data-track-kind="graphics"
+        data-width="1080"
+        data-height="1920"
+        style="z-index: 4"
+      ></div>
+
+      <!-- Beats 35-43: 5:00, the Overseer. -->
+      <div data-hf-id="hf-h98q"
+        id="boss"
+        data-composition-id="boss"
+        data-composition-src="compositions/boss.html"
+        data-start="16.935"
+        data-duration="4.06"
+        data-track-index="5"
+        data-track-kind="graphics"
+        data-width="1080"
+        data-height="1920"
+        style="z-index: 5"
+      ></div>
+
+      <!-- Beats 43-52: the core becomes the icon; the mark and the call to action. -->
+      <div data-hf-id="hf-sfab"
+        id="endcard"
+        data-composition-id="endcard"
+        data-composition-src="compositions/endcard.html"
+        data-start="20.65"
+        data-duration="4.995"
+        data-track-index="6"
+        data-track-kind="graphics"
+        data-width="1080"
+        data-height="1920"
+        data-variable-values='{"tagline":"ONE CORE. ENDLESS SWARM.","cta":"PLAY FREE","cta-sub":"ON THE APP STORE"}'
+        style="z-index: 6"
+      ></div>
+
+      <!-- The run's clock, over every scene from 0:00 to the boss. -->
+      <div data-hf-id="hf-ltla"
+        id="clock"
+        data-composition-id="clock"
+        data-composition-src="compositions/clock.html"
+        data-start="2.239"
+        data-duration="18.46"
+        data-track-index="7"
+        data-track-kind="graphics"
+        data-width="1080"
+        data-height="1920"
+        style="z-index: 10"
+      ></div>
+
+      <!-- The boss warning's red flood, over everything (the clock included). -->
+      <div data-hf-id="hf-768p"
+        id="flood"
+        data-composition-id="flood"
+        data-composition-src="compositions/flood.html"
+        data-start="16.86"
+        data-duration="0.45"
+        data-track-index="13"
+        data-track-kind="graphics"
+        data-width="1080"
+        data-height="1920"
+        style="z-index: 11"
+      ></div>
+
+      <!-- Music: the game's own combat track (124 BPM), from its bar 5, so the
+           call to action lands on the loop's A minor downbeat. It muffles to
+           900 Hz while the level-up screen is open, exactly as the game does
+           (menu_lowpass_hz), and opens on the tap. -->
+      <audio data-hf-id="hf-w7k0"
+        id="music-a"
+        src="assets/audio/music_combat.wav"
+        data-timeline-role="music"
+        data-start="0"
+        data-duration="23.226"
+        data-media-start="7.742"
+        data-volume="1.35"
+        data-track-index="8"
+        data-fx-chain="{&quot;version&quot;:1,&quot;nodes&quot;:[{&quot;type&quot;:&quot;lowpass&quot;,&quot;id&quot;:&quot;lp&quot;,&quot;label&quot;:&quot;Level-up muffle&quot;,&quot;params&quot;:{&quot;frequency&quot;:20000,&quot;q&quot;:0.7}}]}"
+        data-automation="{&quot;version&quot;:1,&quot;lanes&quot;:[{&quot;target&quot;:&quot;fx.lp.frequency&quot;,&quot;points&quot;:[{&quot;t&quot;:0,&quot;v&quot;:20000},{&quot;t&quot;:5.3,&quot;v&quot;:20000},{&quot;t&quot;:5.46,&quot;v&quot;:900},{&quot;t&quot;:6.54,&quot;v&quot;:900},{&quot;t&quot;:6.7,&quot;v&quot;:20000}]}]}"
+      ></audio>
+      <audio data-hf-id="hf-q30r"
+        id="music-b"
+        src="assets/audio/music_combat.wav"
+        data-timeline-role="music"
+        data-start="23.226"
+        data-duration="2.419"
+        data-media-start="0"
+        data-volume="1.35"
+        data-fade-out="0.9"
+        data-track-index="9"
+      ></audio>
+
+      <!-- The game's own sound effects on the cuts the footage does not carry. -->
+      <audio data-hf-id="hf-lz2y" id="sfx-rewind" src="assets/audio/sfx/reroll.wav" data-start="2.33" data-duration="0.24" data-volume="1.1" data-track-index="10"></audio>
+      <audio data-hf-id="hf-gamp" id="sfx-wipe-1" src="assets/audio/sfx/surge.wav" data-start="2.44" data-duration="0.7" data-volume="0.5" data-track-index="11"></audio>
+      <audio data-hf-id="hf-ercl" id="sfx-zoom" src="assets/audio/sfx/surge.wav" data-start="7.278" data-duration="0.7" data-volume="0.55" data-track-index="10"></audio>
+      <audio data-hf-id="hf-675w" id="sfx-wipe-2" src="assets/audio/sfx/surge.wav" data-start="13.085" data-duration="0.7" data-volume="0.55" data-track-index="11"></audio>
+      <audio data-hf-id="hf-yu42" id="sfx-absurd" src="assets/audio/sfx/explosion_l.wav" data-start="13.568" data-duration="0.9" data-volume="0.8" data-track-index="10"></audio>
+      <audio data-hf-id="hf-gckk" id="sfx-kill" src="assets/audio/sfx/boss_die.wav" data-start="19.34" data-duration="2.2" data-volume="1.0" data-track-index="11"></audio>
+      <audio data-hf-id="hf-vkvu" id="sfx-victory" src="assets/audio/sfx/victory.wav" data-start="20.796" data-duration="1.5" data-volume="0.9" data-track-index="10"></audio>
+      <audio data-hf-id="hf-zgal" id="sfx-cta" src="assets/audio/sfx/reward.wav" data-start="23.139" data-duration="0.6" data-volume="0.9" data-track-index="12"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>
